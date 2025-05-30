@@ -50,7 +50,7 @@ const data = {
   navMain: [
     {
       title: "Empresas",
-      url: "#",
+      url: "/",
       icon: BriefcaseBusinessIcon,
       items: [
         {
@@ -64,8 +64,8 @@ const data = {
       ],
     },
     {
-      title: "Mentores",
-      url: "#",
+      title: "Pasantes",
+      url: "/",
       icon: UsersRound,
       isActive: true,
       items: [
