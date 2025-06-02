@@ -1,32 +1,49 @@
-import { GalleryVerticalEnd } from "lucide-react"
+'use client';
 
-import { LoginForm } from "@/components/login-form"
+import { useEffect, useState } from 'react';
+import { Authenticator, useAuthenticator } from '@aws-amplify/ui-react';
+import { fetchAuthSession } from '@aws-amplify/auth';
+
+function UserInfo() {
+  const { user, signOut } = useAuthenticator((context) => [
+    context.user,
+    context.signOut,
+  ]);
+  const [idToken, setIdToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      fetchAuthSession()
+        .then((session) => {
+          const token = session.tokens?.accessToken?.toString() ?? null;
+          console.log('ID Token:', token);
+          setIdToken(token);
+        })
+        .catch((error) => {
+          console.error('Error getting session:', error);
+        });
+    }
+  }, [user]);
+
+  if (!user) return null;
+
+  return (
+    <div style={{ marginTop: '1rem' }}>
+      <p>Signed in as: {user.username}</p>
+      <button onClick={signOut}>Sign Out</button>
+      {idToken && (
+        <pre style={{ whiteSpace: 'break-spaces', maxWidth: '600px' }}>
+          ID Token: {idToken}
+        </pre>
+      )}
+    </div>
+  );
+}
 
 export default function LoginPage() {
   return (
-    <div className="grid min-h-svh lg:grid-cols-2">
-      <div className="flex flex-col gap-4 p-6 md:p-10">
-        <div className="flex justify-center gap-2 md:justify-start">
-          <a href="#" className="flex items-center gap-2 font-medium">
-            <div className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-md">
-              <GalleryVerticalEnd className="size-4" />
-            </div>
-            Climetria
-          </a>
-        </div>
-        <div className="flex flex-1 items-center justify-center">
-          <div className="w-full max-w-xs">
-            <LoginForm />
-          </div>
-        </div>
-      </div>
-      <div className="bg-muted relative hidden lg:block">
-        <img
-          src="/placeholder.svg"
-          alt="Image"
-          className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-        />
-      </div>
-    </div>
-  )
+    <Authenticator initialState="signIn" hideSignUp>
+      <UserInfo />
+    </Authenticator>
+  );
 }
