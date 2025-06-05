@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "prepare": "husky install"
+    "format": "prettier --check .",
+    "format:fix": "prettier --write .",
+    "eslint:fix": "eslint . --fix"
   },
   "dependencies": {
     "@aws-amplify/auth": "^6.13.0",
@@ -53,7 +55,11 @@
     "typescript": "^5"
   },
   "lint-staged": {
-    "*.{js,jsx,ts,tsx}": [
+    "src/**/*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "pages/**/*.{js,jsx,ts,tsx}": [
       "eslint --fix",
       "prettier --write"
     ],
