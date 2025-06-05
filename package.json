@@ -9,7 +9,8 @@
     "lint": "next lint",
     "format": "prettier --check .",
     "format:fix": "prettier --write .",
-    "eslint:fix": "eslint . --fix"
+    "eslint:fix": "eslint \"{src,test}/**/*.ts\" --fix",
+    "prepare": "husky install"
   },
   "dependencies": {
     "@aws-amplify/auth": "^6.13.0",
@@ -37,7 +38,7 @@
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.56.4",
     "tailwind-merge": "^3.3.0",
-    "zod": "^3.25.32"
+    "zod": "^3.25.32",
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -47,7 +48,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9.28.0",
     "eslint-config-next": "15.3.2",
-    "husky": "^9.1.7",
+    "husky": "^8.0.0",
     "lint-staged": "^16.1.0",
     "prettier": "^3.5.3",
     "tailwindcss": "^4",
@@ -55,16 +56,10 @@
     "typescript": "^5"
   },
   "lint-staged": {
-    "src/**/*.{js,jsx,ts,tsx}": [
+    "*.{ts,tsx}": [
+      "prettier --write",
       "eslint --fix",
-      "prettier --write"
-    ],
-    "pages/**/*.{js,jsx,ts,tsx}": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "*.{json,css,md}": [
-      "prettier --write"
+      "git add"
     ]
-  }
+  },
 }
