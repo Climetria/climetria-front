@@ -1,14 +1,32 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { useState } from 'react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   Dialog,
   DialogContent,
@@ -16,97 +34,114 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { Search, MoreHorizontal, Edit, Eye, Trash2, Upload, UserPlus, Users, Globe, IdCard } from "lucide-react"
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Mail, Phone, MapPin, Calendar, Award, TrendingUp } from "lucide-react"
-import { Label } from "@/components/ui/label"
+} from '@/components/ui/dialog';
+import {
+  Search,
+  MoreHorizontal,
+  Edit,
+  Eye,
+  Trash2,
+  Upload,
+  UserPlus,
+  Users,
+  Globe,
+  IdCard,
+} from 'lucide-react';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Mail, Phone } from 'lucide-react';
+import { Label } from '@/components/ui/label';
 
 interface Intern {
-  id: number
-  documentType: string // You might want to create a specific type for DocumentType
-  document: string
-  email: string
-  firstNames: string
-  lastNameFather: string
-  lastNameMother: string
-  phone: string
-  universityName: string
-  profession: string
-  graduationYear: number
-  referralSource: string
-  country: string
-  peruDepartment: string
-  company: string
-  mentor: string
-  status: "active" | "inactive"
-  startDate: string
+  id: number;
+  documentType: string; // You might want to create a specific type for DocumentType
+  document: string;
+  email: string;
+  firstNames: string;
+  lastNameFather: string;
+  lastNameMother: string;
+  phone: string;
+  universityName: string;
+  profession: string;
+  graduationYear: number;
+  referralSource: string;
+  country: string;
+  peruDepartment: string;
+  company: string;
+  mentor: string;
+  status: 'active' | 'inactive';
+  startDate: string;
 }
 
 export default function InternList() {
-  const [searchTerm, setSearchTerm] = useState<string>("")
-  const [selectedStatus, setSelectedStatus] = useState<string>("all")
-  const [selectedIntern, setSelectedIntern] = useState<Intern | null>(null)
-  const [isDetailOpen, setIsDetailOpen] = useState<boolean>(false)
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [selectedIntern, setSelectedIntern] = useState<Intern | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState<boolean>(false);
 
   const interns: Intern[] = [
-  {
-    id: 1,
-    documentType: "DNI",
-    document: "12345678",
-    email: "ana.garcia@example.com",
-    firstNames: "Ana Maria",
-    lastNameFather: "Garcia",
-    lastNameMother: "Lopez",
-    phone: "+51 987654321",
-    universityName: "Universidad Nacional Mayor de San Marcos",
-    profession: "Ingeniería de Software",
-    graduationYear: 2023,
-    referralSource: "LinkedIn",
-    country: "Perú",
-    peruDepartment: "Lima",
-    company: "TechCorp",
-    mentor: "Juan Perez",
-    status: "active",
-    startDate: "2024-01-15"
-  },
-  {
-    id: 2,
-    documentType: "CE",
-    document: "87654321",
-    email: "carlos.rodriguez@example.com",
-    firstNames: "Carlos Jose",
-    lastNameFather: "Rodriguez",
-    lastNameMother: "Silva",
-    phone: "+51 912345678",
-    universityName: "Pontificia Universidad Católica del Perú",
-    profession: "Ingeniería Industrial",
-    graduationYear: 2024,
-    referralSource: "Universidad",
-    country: "Perú",
-    peruDepartment: "Arequipa",
-    company: "InnovaSoft",
-    mentor: "Maria Torres",
-    status: "inactive",
-    startDate: "2023-08-20"
-  }
-  ]
+    {
+      id: 1,
+      documentType: 'DNI',
+      document: '12345678',
+      email: 'ana.garcia@example.com',
+      firstNames: 'Ana Maria',
+      lastNameFather: 'Garcia',
+      lastNameMother: 'Lopez',
+      phone: '+51 987654321',
+      universityName: 'Universidad Nacional Mayor de San Marcos',
+      profession: 'Ingeniería de Software',
+      graduationYear: 2023,
+      referralSource: 'LinkedIn',
+      country: 'Perú',
+      peruDepartment: 'Lima',
+      company: 'TechCorp',
+      mentor: 'Juan Perez',
+      status: 'active',
+      startDate: '2024-01-15',
+    },
+    {
+      id: 2,
+      documentType: 'CE',
+      document: '87654321',
+      email: 'carlos.rodriguez@example.com',
+      firstNames: 'Carlos Jose',
+      lastNameFather: 'Rodriguez',
+      lastNameMother: 'Silva',
+      phone: '+51 912345678',
+      universityName: 'Pontificia Universidad Católica del Perú',
+      profession: 'Ingeniería Industrial',
+      graduationYear: 2024,
+      referralSource: 'Universidad',
+      country: 'Perú',
+      peruDepartment: 'Arequipa',
+      company: 'InnovaSoft',
+      mentor: 'Maria Torres',
+      status: 'inactive',
+      startDate: '2023-08-20',
+    },
+  ];
 
   const filteredInterns = interns.filter((intern) => {
-    const matchesSearch = intern.firstNames || intern.lastNameFather || intern.lastNameMother
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase())
-    const matchesStatus =
-      selectedStatus === "all" || intern.status === selectedStatus
+    const matchesSearch =
+      intern.firstNames ||
+      intern.lastNameFather ||
+      intern.lastNameMother.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = selectedStatus === 'all' || intern.status === selectedStatus;
 
-    return matchesSearch && matchesStatus
-  })
+    return matchesSearch && matchesStatus;
+  });
 
   const handleViewDetail = (intern: Intern) => {
-    setSelectedIntern(intern)
-    setIsDetailOpen(true)
-  }
+    setSelectedIntern(intern);
+    setIsDetailOpen(true);
+  };
 
   return (
     <div className="container mx-auto p-6">
@@ -150,7 +185,9 @@ export default function InternList() {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Carga Masiva de Pasantes</DialogTitle>
-                <DialogDescription>Sube un archivo CSV con los datos de los pasantes</DialogDescription>
+                <DialogDescription>
+                  Sube un archivo CSV con los datos de los pasantes
+                </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <Input type="file" accept=".csv" />
@@ -179,8 +216,8 @@ export default function InternList() {
         <CardHeader>
           <CardTitle>Lista de Pasantes</CardTitle>
           <CardDescription>
-            {filteredInterns.length} pasante{filteredInterns.length !== 1 ? "s" : ""} encontrado
-            {filteredInterns.length !== 1 ? "s" : ""}
+            {filteredInterns.length} pasante{filteredInterns.length !== 1 ? 's' : ''} encontrado
+            {filteredInterns.length !== 1 ? 's' : ''}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -198,13 +235,15 @@ export default function InternList() {
             <TableBody>
               {filteredInterns.map((intern) => (
                 <TableRow key={intern.id}>
-                  <TableCell className="font-medium truncate">{intern.firstNames} {intern.lastNameFather} {intern.lastNameMother}</TableCell>
+                  <TableCell className="font-medium truncate">
+                    {intern.firstNames} {intern.lastNameFather} {intern.lastNameMother}
+                  </TableCell>
                   <TableCell>{intern.email}</TableCell>
                   <TableCell>{intern.company}</TableCell>
                   <TableCell>{intern.mentor}</TableCell>
                   <TableCell>
-                    <Badge variant={intern.status === "active" ? "default" : "secondary"}>
-                      {intern.status === "active" ? "Activo" : "Inactivo"}
+                    <Badge variant={intern.status === 'active' ? 'default' : 'secondary'}>
+                      {intern.status === 'active' ? 'Activo' : 'Inactivo'}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
@@ -246,7 +285,8 @@ export default function InternList() {
               <SheetHeader>
                 <SheetTitle className="flex items-center gap-2">
                   <Users className="h-5 w-5" />
-                  {selectedIntern.firstNames} {selectedIntern.lastNameFather} {selectedIntern.lastNameMother}
+                  {selectedIntern.firstNames} {selectedIntern.lastNameFather}{' '}
+                  {selectedIntern.lastNameMother}
                 </SheetTitle>
                 <SheetDescription>Información detallada del pasante</SheetDescription>
               </SheetHeader>
@@ -268,11 +308,15 @@ export default function InternList() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Globe className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{selectedIntern.peruDepartment}, {selectedIntern.country}</span>
+                      <span className="text-sm">
+                        {selectedIntern.peruDepartment}, {selectedIntern.country}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <IdCard className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{selectedIntern.documentType}: {selectedIntern.document}</span>
+                      <span className="text-sm">
+                        {selectedIntern.documentType}: {selectedIntern.document}
+                      </span>
                     </div>
                   </CardContent>
                 </Card>
@@ -313,5 +357,5 @@ export default function InternList() {
         </SheetContent>
       </Sheet>
     </div>
-  )
+  );
 }

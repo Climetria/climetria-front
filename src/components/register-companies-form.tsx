@@ -1,124 +1,132 @@
-"use client"
+'use client';
 
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
-import { Button } from "@/components/ui/button"
-import { 
-  Form, 
-  FormControl, 
-  FormDescription, 
-  FormField, 
-  FormItem, 
-  FormLabel, 
-  FormMessage 
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { Building2, Mail, Phone, Globe, FileText, Users, Target } from "lucide-react"
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Button } from '@/components/ui/button';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Building2, Mail, Phone, Globe, FileText, Users, Target } from 'lucide-react';
 
 // Validación de RUC peruano (11 dígitos que comienzan con 10 o 20)
 const isValidRUC = (value: string) => {
-  return /^(10|20)\d{9}$/.test(value)
-}
+  return /^(10|20)\d{9}$/.test(value);
+};
 
 // Esquema de validación con Zod
-const formSchema = z.object({
-  email: z.string().email({ message: "Ingrese un correo electrónico válido" }),
-  nombreCompleto: z.string().min(3, { message: "Ingrese su nombre completo" }),
-  celular: z.string().min(9, { message: "Ingrese un número de celular válido" }),
-  pais: z.string().min(1, { message: "Seleccione un país" }),
-  paisOtro: z.string().optional(),
-  organizacion: z.string().min(2, { message: "Ingrese el nombre de la organización" }),
-  ruc: z.string().refine(isValidRUC, { 
-    message: "Ingrese un RUC válido (11 dígitos que comienzan con 10 o 20)" 
-  }),
-  tamanoOrganizacion: z.enum(["micro_pequena", "mediana_grande"], {
-    message: "Seleccione el tamaño de la organización",
-  }),
-  sector: z.string().min(1, { message: "Seleccione un sector" }),
-  sectorOtro: z.string().optional(),
-  ejesTematicos: z.array(z.string()).min(1, { 
-    message: "Seleccione al menos un eje temático" 
-  }),
-}).refine((data) => {
-  if (data.pais === "otro" && !data.paisOtro?.trim()) {
-    return false;
-  }
-  return true;
-}, {
-  message: "Especifique el país cuando selecciona 'Otros'",
-  path: ["paisOtro"],
-}).refine((data) => {
-  if (data.sector === "otro" && !data.sectorOtro?.trim()) {
-    return false;
-  }
-  return true;
-}, {
-  message: "Especifique el sector cuando selecciona 'Otros'",
-  path: ["sectorOtro"],
-})
+const formSchema = z
+  .object({
+    email: z.string().email({ message: 'Ingrese un correo electrónico válido' }),
+    nombreCompleto: z.string().min(3, { message: 'Ingrese su nombre completo' }),
+    celular: z.string().min(9, { message: 'Ingrese un número de celular válido' }),
+    pais: z.string().min(1, { message: 'Seleccione un país' }),
+    paisOtro: z.string().optional(),
+    organizacion: z.string().min(2, { message: 'Ingrese el nombre de la organización' }),
+    ruc: z.string().refine(isValidRUC, {
+      message: 'Ingrese un RUC válido (11 dígitos que comienzan con 10 o 20)',
+    }),
+    tamanoOrganizacion: z.enum(['micro_pequena', 'mediana_grande'], {
+      message: 'Seleccione el tamaño de la organización',
+    }),
+    sector: z.string().min(1, { message: 'Seleccione un sector' }),
+    sectorOtro: z.string().optional(),
+    ejesTematicos: z.array(z.string()).min(1, {
+      message: 'Seleccione al menos un eje temático',
+    }),
+  })
+  .refine(
+    (data) => {
+      if (data.pais === 'otro' && !data.paisOtro?.trim()) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Especifique el país cuando selecciona 'Otros'",
+      path: ['paisOtro'],
+    },
+  )
+  .refine(
+    (data) => {
+      if (data.sector === 'otro' && !data.sectorOtro?.trim()) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Especifique el sector cuando selecciona 'Otros'",
+      path: ['sectorOtro'],
+    },
+  );
 
-type FormValues = z.infer<typeof formSchema>
+type FormValues = z.infer<typeof formSchema>;
 
 export function RegistroEmpresaForm() {
   // Definir los ejes temáticos disponibles
   const ejesTematicos = [
     {
-      id: "hc",
-      label: "Huella de Carbono y Cambio Climático",
-      code: "HC",
-      description: "Medición y reducción de emisiones de CO2"
+      id: 'hc',
+      label: 'Huella de Carbono y Cambio Climático',
+      code: 'HC',
+      description: 'Medición y reducción de emisiones de CO2',
     },
     {
-      id: "hh",
-      label: "Huella Hídrica y Gestión Responsable del Agua",
-      code: "HH", 
-      description: "Optimización del uso del recurso hídrico"
+      id: 'hh',
+      label: 'Huella Hídrica y Gestión Responsable del Agua',
+      code: 'HH',
+      description: 'Optimización del uso del recurso hídrico',
     },
     {
-      id: "cn",
-      label: "Carbono Neutralidad",
-      code: "CN",
-      description: "Compensación total de emisiones de carbono"
+      id: 'cn',
+      label: 'Carbono Neutralidad',
+      code: 'CN',
+      description: 'Compensación total de emisiones de carbono',
     },
-  ]
+  ];
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: "",
-      nombreCompleto: "",
-      celular: "",
-      pais: "",
-      paisOtro: "",
-      organizacion: "",
-      ruc: "",
+      email: '',
+      nombreCompleto: '',
+      celular: '',
+      pais: '',
+      paisOtro: '',
+      organizacion: '',
+      ruc: '',
       tamanoOrganizacion: undefined,
-      sector: "",
-      sectorOtro: "",
+      sector: '',
+      sectorOtro: '',
       ejesTematicos: [],
     },
-  })
+  });
 
-  const { watch, handleSubmit } = form
-  const paisSeleccionado = watch("pais")
-  const sectorSeleccionado = watch("sector")
+  const { watch, handleSubmit } = form;
+  const paisSeleccionado = watch('pais');
+  const sectorSeleccionado = watch('sector');
 
   const onSubmit = (data: FormValues) => {
-    console.log("Form data:", data)
-  }
+    console.log('Form data:', data);
+  };
 
   return (
     <div className="space-y-8 pl-4 md:pl-6 lg:pl-8">
@@ -131,9 +139,7 @@ export function RegistroEmpresaForm() {
                 <Mail className="h-5 w-5 text-primary" />
                 Información de Contacto
               </CardTitle>
-              <CardDescription>
-                Ingrese sus datos personales de contacto
-              </CardDescription>
+              <CardDescription>Ingrese sus datos personales de contacto</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid gap-4 md:grid-cols-2">
@@ -144,11 +150,7 @@ export function RegistroEmpresaForm() {
                     <FormItem>
                       <FormLabel>Correo electrónico *</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="correo@ejemplo.com" 
-                          type="email"
-                          {...field} 
-                        />
+                        <Input placeholder="correo@ejemplo.com" type="email" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -213,7 +215,7 @@ export function RegistroEmpresaForm() {
                   )}
                 />
 
-                {paisSeleccionado === "otro" && (
+                {paisSeleccionado === 'otro' && (
                   <FormField
                     control={form.control}
                     name="paisOtro"
@@ -239,9 +241,7 @@ export function RegistroEmpresaForm() {
                 <Building2 className="h-5 w-5 text-primary" />
                 Información de la Organización
               </CardTitle>
-              <CardDescription>
-                Detalles sobre su empresa u organización
-              </CardDescription>
+              <CardDescription>Detalles sobre su empresa u organización</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid gap-6">
@@ -350,7 +350,7 @@ export function RegistroEmpresaForm() {
                   )}
                 />
 
-                {sectorSeleccionado === "otro" && (
+                {sectorSeleccionado === 'otro' && (
                   <FormField
                     control={form.control}
                     name="sectorOtro"
@@ -394,8 +394,8 @@ export function RegistroEmpresaForm() {
                           name="ejesTematicos"
                           render={({ field }) => {
                             return (
-                              <FormItem 
-                                key={eje.id} 
+                              <FormItem
+                                key={eje.id}
                                 className="flex flex-row items-start space-x-3 space-y-0 rounded-lg border p-4 hover:bg-muted/50 transition-colors"
                               >
                                 <FormControl>
@@ -404,8 +404,8 @@ export function RegistroEmpresaForm() {
                                     onCheckedChange={(checked) => {
                                       const updatedValue = checked
                                         ? [...(field.value || []), eje.id]
-                                        : field.value?.filter((value) => value !== eje.id) || []
-                                      field.onChange(updatedValue)
+                                        : field.value?.filter((value) => value !== eje.id) || [];
+                                      field.onChange(updatedValue);
                                     }}
                                   />
                                 </FormControl>
@@ -418,12 +418,10 @@ export function RegistroEmpresaForm() {
                                       {eje.label}
                                     </FormLabel>
                                   </div>
-                                  <p className="text-sm text-muted-foreground">
-                                    {eje.description}
-                                  </p>
+                                  <p className="text-sm text-muted-foreground">{eje.description}</p>
                                 </div>
                               </FormItem>
-                            )
+                            );
                           }}
                         />
                       ))}
@@ -436,7 +434,7 @@ export function RegistroEmpresaForm() {
           </Card>
 
           <Separator />
-          
+
           <div className="flex justify-end">
             <Button type="submit" className="w-full sm:w-auto">
               Registrar empresa
@@ -445,5 +443,5 @@ export function RegistroEmpresaForm() {
         </form>
       </Form>
     </div>
-  )
+  );
 }

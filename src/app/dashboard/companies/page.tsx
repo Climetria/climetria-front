@@ -1,16 +1,33 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useState } from 'react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -18,142 +35,141 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
+} from '@/components/ui/dialog';
 import {
   Search,
   MoreHorizontal,
   Edit,
   Eye,
   Trash2,
-  ArrowLeft,
   Upload,
   Building2,
   Globe,
-  MapPin,
   Phone,
   Mail,
   User,
   Building,
-  Flag,
-} from "lucide-react"
+} from 'lucide-react';
 
 interface Intern {
-  id: number
-  name: string
-  email: string
-  status: "active" | "inactive"
+  id: number;
+  name: string;
+  email: string;
+  status: 'active' | 'inactive';
 }
 
 interface Mentor {
-  id: number
-  name: string
-  email: string
+  id: number;
+  name: string;
+  email: string;
 }
 
 interface Company {
-  id: number
-  organizationName: string
-  contactName: string
-  phone: string
-  email: string
-  organizationSize: string
-  country: string
-  internsCount: number
-  mentorsCount: number
-  topicsOfInterest: string
-  sector: string
-  status: "active" | "inactive"
-  interns: Intern[]
-  mentors: Mentor[]
+  id: number;
+  organizationName: string;
+  contactName: string;
+  phone: string;
+  email: string;
+  organizationSize: string;
+  country: string;
+  internsCount: number;
+  mentorsCount: number;
+  topicsOfInterest: string;
+  sector: string;
+  status: 'active' | 'inactive';
+  interns: Intern[];
+  mentors: Mentor[];
 }
 
-
 export default function CompaniesPage() {
-  const [searchTerm, setSearchTerm] = useState<string>("")
-  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null)
-  const [isDetailOpen, setIsDetailOpen] = useState<boolean>(false)
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState<boolean>(false);
 
   const companies: Company[] = [
     {
       id: 1,
-      organizationName: "TechCorp",
-      contactName: "Ariana Ramirez",
-      phone: "+54 11 4567-8901",
-      email: "contacto@techcorp.com",
-      organizationSize: "Micro o pequeña",
-      country: "Perú",
+      organizationName: 'TechCorp',
+      contactName: 'Ariana Ramirez',
+      phone: '+54 11 4567-8901',
+      email: 'contacto@techcorp.com',
+      organizationSize: 'Micro o pequeña',
+      country: 'Perú',
       internsCount: 8,
       mentorsCount: 3,
-      topicsOfInterest: "HC - Huella de Carbono y Cambio Climático, HH - Huella Hídrica y Gestión Responsable del Agua, CN - Carbono Neutralidad",
-      sector: "Privado",
-      status: "active",
+      topicsOfInterest:
+        'HC - Huella de Carbono y Cambio Climático, HH - Huella Hídrica y Gestión Responsable del Agua, CN - Carbono Neutralidad',
+      sector: 'Privado',
+      status: 'active',
       interns: [
-        { id: 1, name: "Ana García", email: "ana@email.com", status: "active" },
-        { id: 2, name: "Carlos López", email: "carlos@email.com", status: "active" },
+        { id: 1, name: 'Ana García', email: 'ana@email.com', status: 'active' },
+        { id: 2, name: 'Carlos López', email: 'carlos@email.com', status: 'active' },
       ],
       mentors: [
-        { id: 1, name: "Dr. Juan Pérez", email: "juan@techcorp.com" },
-        { id: 2, name: "Ing. María Silva", email: "maria@techcorp.com" },
+        { id: 1, name: 'Dr. Juan Pérez', email: 'juan@techcorp.com' },
+        { id: 2, name: 'Ing. María Silva', email: 'maria@techcorp.com' },
       ],
     },
     {
       id: 2,
-      organizationName: "EcoSolutions",
-      contactName: "Luis Fernández",
-      phone: "+54 11 2345-6789",
-      email: "luis@ecosolutions.pe",
-      organizationSize: "Mediana",
-      country: "Argentina",
+      organizationName: 'EcoSolutions',
+      contactName: 'Luis Fernández',
+      phone: '+54 11 2345-6789',
+      email: 'luis@ecosolutions.pe',
+      organizationSize: 'Mediana',
+      country: 'Argentina',
       internsCount: 5,
       mentorsCount: 2,
-      topicsOfInterest: "HC - Huella de Carbono y Cambio Climático, HH - Huella Hídrica y Gestión Responsable del Agua",
-      sector: "Privado",
-      status: "active",
+      topicsOfInterest:
+        'HC - Huella de Carbono y Cambio Climático, HH - Huella Hídrica y Gestión Responsable del Agua',
+      sector: 'Privado',
+      status: 'active',
       interns: [
-        { id: 3, name: "Sofía Martínez", email: "a@q.com", status: "active" },
-        { id: 4, name: "Pedro Gómez", email: "a@.", status: "inactive" },
+        { id: 3, name: 'Sofía Martínez', email: 'a@q.com', status: 'active' },
+        { id: 4, name: 'Pedro Gómez', email: 'a@.', status: 'inactive' },
       ],
       mentors: [
-        { id: 3, name: "Lic. Ana Torres", email: "a@q.com" },
-        { id: 4, name: "Ing. Roberto Díaz", email: "a@." },
+        { id: 3, name: 'Lic. Ana Torres', email: 'a@q.com' },
+        { id: 4, name: 'Ing. Roberto Díaz', email: 'a@.' },
       ],
     },
     {
       id: 3,
-      organizationName: "GreenTech",
-      contactName: "María López",
-      phone: "+54 11 3456-7890",
-      email: "contacto@greentech.com",
-      organizationSize: "Grande",
-      country: "Chile",
+      organizationName: 'GreenTech',
+      contactName: 'María López',
+      phone: '+54 11 3456-7890',
+      email: 'contacto@greentech.com',
+      organizationSize: 'Grande',
+      country: 'Chile',
       internsCount: 12,
       mentorsCount: 5,
-      topicsOfInterest: "HC - Huella de Carbono y Cambio Climático, HH - Huella Hídrica y Gestión Responsable del Agua, CN - Carbono Neutralidad",
-      sector: "Privado",
-      status: "inactive",
+      topicsOfInterest:
+        'HC - Huella de Carbono y Cambio Climático, HH - Huella Hídrica y Gestión Responsable del Agua, CN - Carbono Neutralidad',
+      sector: 'Privado',
+      status: 'inactive',
       interns: [
-        { id: 5, name: "Laura Pérez", email: "laura@mail.com", status: "active" },
-        { id: 6, name: "Javier Ruiz", email: "javi@mail.com", status: "inactive" },
+        { id: 5, name: 'Laura Pérez', email: 'laura@mail.com', status: 'active' },
+        { id: 6, name: 'Javier Ruiz', email: 'javi@mail.com', status: 'inactive' },
       ],
       mentors: [
-        { id: 5, name: "Dr. Carlos Ramírez", email: "carlitoss@mail.com" },
-        { id: 6, name: "Ing. Paula Fernández", email: "paulaing@mail.com" },
+        { id: 5, name: 'Dr. Carlos Ramírez', email: 'carlitoss@mail.com' },
+        { id: 6, name: 'Ing. Paula Fernández', email: 'paulaing@mail.com' },
       ],
     },
-  ]
+  ];
 
   const filteredCompanies = companies.filter((company) => {
     const matchesSearch =
       company.organizationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      company.contactName.toLowerCase().includes(searchTerm.toLowerCase())
+      company.contactName.toLowerCase().includes(searchTerm.toLowerCase());
 
-    return matchesSearch
-  })
+    return matchesSearch;
+  });
 
   const handleViewDetail = (company: Company) => {
-    setSelectedCompany(company)
-    setIsDetailOpen(true)
-  }
+    setSelectedCompany(company);
+    setIsDetailOpen(true);
+  };
 
   return (
     <div className="container mx-auto p-6">
@@ -187,7 +203,9 @@ export default function CompaniesPage() {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Carga Masiva de Empresas</DialogTitle>
-                <DialogDescription>Sube un archivo CSV con los datos de las empresas</DialogDescription>
+                <DialogDescription>
+                  Sube un archivo CSV con los datos de las empresas
+                </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <Input type="file" accept=".csv" />
@@ -216,8 +234,8 @@ export default function CompaniesPage() {
         <CardHeader>
           <CardTitle>Lista de Empresas</CardTitle>
           <CardDescription>
-            {filteredCompanies.length} empresa{filteredCompanies.length !== 1 ? "s" : ""} encontrada
-            {filteredCompanies.length !== 1 ? "s" : ""}
+            {filteredCompanies.length} empresa{filteredCompanies.length !== 1 ? 's' : ''} encontrada
+            {filteredCompanies.length !== 1 ? 's' : ''}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -245,8 +263,8 @@ export default function CompaniesPage() {
                   <TableCell className="text-center">{company.internsCount}</TableCell>
                   <TableCell className="text-center">{company.mentorsCount}</TableCell>
                   <TableCell>
-                    <Badge variant={company.status === "active" ? "default" : "secondary"}>
-                      {company.status === "active" ? "Activa" : "Inactiva"}
+                    <Badge variant={company.status === 'active' ? 'default' : 'secondary'}>
+                      {company.status === 'active' ? 'Activa' : 'Inactiva'}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
@@ -315,7 +333,9 @@ export default function CompaniesPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Building className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{selectedCompany.sector} | {selectedCompany.organizationSize}</span>
+                      <span className="text-sm">
+                        {selectedCompany.sector} | {selectedCompany.organizationSize}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Globe className="h-4 w-4 text-muted-foreground" />
@@ -331,7 +351,7 @@ export default function CompaniesPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="flex flex-wrap gap-2">
-                      {selectedCompany.topicsOfInterest.split(", ").map((req, index) => (
+                      {selectedCompany.topicsOfInterest.split(', ').map((req, index) => (
                         <Badge key={index} variant="outline">
                           {req}
                         </Badge>
@@ -353,21 +373,30 @@ export default function CompaniesPage() {
                         {selectedCompany.interns.length > 0 ? (
                           <div className="space-y-4">
                             {selectedCompany.interns.map((intern) => (
-                              <div key={intern.id} className="flex items-center justify-between p-3 border rounded-lg">
+                              <div
+                                key={intern.id}
+                                className="flex items-center justify-between p-3 border rounded-lg"
+                              >
                                 <div>
                                   <div className="font-medium">{intern.name}</div>
-                                  <div className="text-sm text-muted-foreground">{intern.email}</div>
+                                  <div className="text-sm text-muted-foreground">
+                                    {intern.email}
+                                  </div>
                                 </div>
                                 <div className="flex items-center gap-4">
-                                  <Badge variant={intern.status === "active" ? "default" : "secondary"}>
-                                    {intern.status === "active" ? "Activo" : "Inactivo"}
+                                  <Badge
+                                    variant={intern.status === 'active' ? 'default' : 'secondary'}
+                                  >
+                                    {intern.status === 'active' ? 'Activo' : 'Inactivo'}
                                   </Badge>
                                 </div>
                               </div>
                             ))}
                           </div>
                         ) : (
-                          <p className="text-center text-muted-foreground py-8">No hay pasantes asignados</p>
+                          <p className="text-center text-muted-foreground py-8">
+                            No hay pasantes asignados
+                          </p>
                         )}
                       </CardContent>
                     </Card>
@@ -379,16 +408,23 @@ export default function CompaniesPage() {
                         {selectedCompany.mentors.length > 0 ? (
                           <div className="space-y-4">
                             {selectedCompany.mentors.map((mentor) => (
-                              <div key={mentor.id} className="flex items-center justify-between p-3 border rounded-lg">
+                              <div
+                                key={mentor.id}
+                                className="flex items-center justify-between p-3 border rounded-lg"
+                              >
                                 <div>
                                   <div className="font-medium">{mentor.name}</div>
-                                  <div className="text-sm text-muted-foreground">{mentor.email}</div>
+                                  <div className="text-sm text-muted-foreground">
+                                    {mentor.email}
+                                  </div>
                                 </div>
                               </div>
                             ))}
                           </div>
                         ) : (
-                          <p className="text-center text-muted-foreground py-8">No hay mentores asignados</p>
+                          <p className="text-center text-muted-foreground py-8">
+                            No hay mentores asignados
+                          </p>
                         )}
                       </CardContent>
                     </Card>
@@ -400,5 +436,5 @@ export default function CompaniesPage() {
         </SheetContent>
       </Sheet>
     </div>
-  )
+  );
 }

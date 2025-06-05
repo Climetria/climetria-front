@@ -8,8 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "format": "prettier --check .",
-    "format:fix": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "eslint:fix": "eslint \"{src,test}/**/*.ts\" --fix",
+    "format:fix": "prettier --write \"src/**/*.{ts,tsx}\" \"test/**/*.{ts,tsx}\"",
+    "eslint:fix": "eslint \"{src,test}/**/*.{ts,tsx}\" --fix",
     "prepare": "husky install"
   },
   "dependencies": {
