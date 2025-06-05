@@ -7,6 +7,7 @@ import {
   Command,
   Frame,
   GalleryVerticalEnd,
+  User,
   UsersRound,
 } from "lucide-react"
 
@@ -64,9 +65,9 @@ const data = {
       ],
     },
     {
-      title: "Pasantes",
+      title: "Mentores",
       url: "/",
-      icon: UsersRound,
+      icon: User,
       isActive: true,
       items: [
         {
