@@ -55,11 +55,11 @@ const data = {
       items: [
         {
           title: 'Explorar',
-          url: '/dashboard/companies',
+          url: '/dashboard/companies/',
         },
         {
           title: 'Registrar',
-          url: '/dashboard/companies/create',
+          url: '/dashboard/companies/create/',
         },
       ],
     },
@@ -71,11 +71,11 @@ const data = {
       items: [
         {
           title: 'Explorar',
-          url: '/dashboard/mentors',
+          url: '/dashboard/mentors/',
         },
         {
           title: 'Registrar',
-          url: '/dashboard/mentors/create',
+          url: '/dashboard/mentors/create/',
         },
       ],
     },
@@ -87,11 +87,11 @@ const data = {
       items: [
         {
           title: 'Explorar',
-          url: '/dashboard/interns',
+          url: '/dashboard/interns/',
         },
         {
           title: 'Registrar',
-          url: '/dashboard/interns/create',
+          url: '/dashboard/interns/create/',
         },
       ],
     },
