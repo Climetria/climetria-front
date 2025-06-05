@@ -1,14 +1,32 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { useState } from 'react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   Dialog,
   DialogContent,
@@ -16,113 +34,129 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { Search, MoreHorizontal, Edit, Eye, Trash2, Upload, UserCheck, Globe, IdCard } from "lucide-react"
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Mail, Phone, Calendar } from "lucide-react"
+} from '@/components/ui/dialog';
+import {
+  Search,
+  MoreHorizontal,
+  Edit,
+  Eye,
+  Trash2,
+  Upload,
+  UserCheck,
+  Globe,
+  IdCard,
+} from 'lucide-react';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Mail, Phone } from 'lucide-react';
 
 type Intern = {
-  id: number
-  name: string
-  email: string
-  status: "active" | "inactive"
-}
+  id: number;
+  name: string;
+  email: string;
+  status: 'active' | 'inactive';
+};
 
 type Mentor = {
-  id: number
-  documentType: string
-  document: string
-  email: string
-  firstNames: string
-  lastNameFather: string
-  lastNameMother: string
-  phone: string
-  country: string
-  department: string
-  internsCount: number
-  status: "active" | "inactive"
-  startDate: string
-  assignedInterns: Intern[]
-}
+  id: number;
+  documentType: string;
+  document: string;
+  email: string;
+  firstNames: string;
+  lastNameFather: string;
+  lastNameMother: string;
+  phone: string;
+  country: string;
+  department: string;
+  internsCount: number;
+  status: 'active' | 'inactive';
+  startDate: string;
+  assignedInterns: Intern[];
+};
 
 export default function MentorsPage() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [selectedStatus, setSelectedStatus] = useState("all")
-  const [selectedMentor, setSelectedMentor] = useState<Mentor | null>(null)
-  const [isDetailOpen, setIsDetailOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [selectedMentor, setSelectedMentor] = useState<Mentor | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
 
   const mentors: Mentor[] = [
     {
       id: 1,
-      documentType: "DNI",
-      document: "12345678",
-      email: "juan.perez@techcorp.com",
-      firstNames: "Juan",
-      lastNameFather: "Pérez",
-      lastNameMother: "Gómez",
-      phone: "+54 11 1111-2222",
-      country: "Peru",
-      department: "Lima",
+      documentType: 'DNI',
+      document: '12345678',
+      email: 'juan.perez@techcorp.com',
+      firstNames: 'Juan',
+      lastNameFather: 'Pérez',
+      lastNameMother: 'Gómez',
+      phone: '+54 11 1111-2222',
+      country: 'Peru',
+      department: 'Lima',
       internsCount: 3,
-      status: "active",
-      startDate: "2024-01-15",
+      status: 'active',
+      startDate: '2024-01-15',
       assignedInterns: [
-        { id: 1, name: "Ana García", email: "ana@email.com", status: "active" },
-        { id: 2, name: "Carlos López", email: "carlos@email.com", status: "active" },
+        { id: 1, name: 'Ana García', email: 'ana@email.com', status: 'active' },
+        { id: 2, name: 'Carlos López', email: 'carlos@email.com', status: 'active' },
       ],
     },
     {
       id: 2,
-      firstNames: "Laura",
-      lastNameFather: "Martín",
-      lastNameMother: "Fernández",
-      documentType: "DNI",
-      document: "87654321",
-      email: "laura.martin@devstudio.com",
-      phone: "+54 11 3333-4444",
-      country: "Peru",
-      department: "Cusco",
+      firstNames: 'Laura',
+      lastNameFather: 'Martín',
+      lastNameMother: 'Fernández',
+      documentType: 'DNI',
+      document: '87654321',
+      email: 'laura.martin@devstudio.com',
+      phone: '+54 11 3333-4444',
+      country: 'Peru',
+      department: 'Cusco',
       internsCount: 2,
-      status: "active",
-      startDate: "2023-09-01",
-      assignedInterns: [{ id: 3, name: "Sofía Gómez", email: "sofia@email.com", status: "active" }],
+      status: 'active',
+      startDate: '2023-09-01',
+      assignedInterns: [{ id: 3, name: 'Sofía Gómez', email: 'sofia@email.com', status: 'active' }],
     },
     {
       id: 3,
-      firstNames: "Roberto",
-      lastNameFather: "Silva",
-      lastNameMother: "Torres",
-      documentType: "DNI",
-      document: "11223344",
-      email: "roberto.silva@datacorp.com",
-      phone: "+54 11 5555-6666",
-      country: "Peru",
-      department: "Arequipa",
+      firstNames: 'Roberto',
+      lastNameFather: 'Silva',
+      lastNameMother: 'Torres',
+      documentType: 'DNI',
+      document: '11223344',
+      email: 'roberto.silva@datacorp.com',
+      phone: '+54 11 5555-6666',
+      country: 'Peru',
+      department: 'Arequipa',
       internsCount: 4,
-      status: "active",
-      startDate: "2022-05-20",
+      status: 'active',
+      startDate: '2022-05-20',
       assignedInterns: [
-        { id: 4, name: "Martín Castro", email: "martin@email.com", status: "active" },
-        { id: 5, name: "Valentina Díaz", email: "valentina@email.com", status: "active" },
-        { id: 6, name: "Lucas Pérez", email: "lucas@email.com", status: "active" },
+        { id: 4, name: 'Martín Castro', email: 'martin@email.com', status: 'active' },
+        { id: 5, name: 'Valentina Díaz', email: 'valentina@email.com', status: 'active' },
+        { id: 6, name: 'Lucas Pérez', email: 'lucas@email.com', status: 'active' },
       ],
     },
-  ]
+  ];
 
   const filteredMentors = mentors.filter((mentor) => {
     const matchesSearch =
       mentor.firstNames.toLowerCase().includes(searchTerm.toLowerCase()) ||
       mentor.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      mentor.country.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = selectedStatus === "all" || mentor.status === selectedStatus
-    return matchesSearch && matchesStatus
-  })
+      mentor.country.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = selectedStatus === 'all' || mentor.status === selectedStatus;
+    return matchesSearch && matchesStatus;
+  });
 
   const handleViewDetail = (mentor: Mentor) => {
-    setSelectedMentor(mentor)
-    setIsDetailOpen(true)
-  }
+    setSelectedMentor(mentor);
+    setIsDetailOpen(true);
+  };
 
   return (
     <div className="container mx-auto p-6">
@@ -166,7 +200,9 @@ export default function MentorsPage() {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Carga Masiva de Mentores</DialogTitle>
-                <DialogDescription>Sube un archivo CSV con los datos de los mentores</DialogDescription>
+                <DialogDescription>
+                  Sube un archivo CSV con los datos de los mentores
+                </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <Input type="file" accept=".csv" />
@@ -197,8 +233,8 @@ export default function MentorsPage() {
         <CardHeader>
           <CardTitle>Lista de Mentores</CardTitle>
           <CardDescription>
-            {filteredMentors.length} mentor{filteredMentors.length !== 1 ? "es" : ""} encontrado
-            {filteredMentors.length !== 1 ? "s" : ""}
+            {filteredMentors.length} mentor{filteredMentors.length !== 1 ? 'es' : ''} encontrado
+            {filteredMentors.length !== 1 ? 's' : ''}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -224,8 +260,8 @@ export default function MentorsPage() {
                   <TableCell>{mentor.country}</TableCell>
                   <TableCell className="text-center">{mentor.internsCount}</TableCell>
                   <TableCell>
-                    <Badge variant={mentor.status === "active" ? "default" : "secondary"}>
-                      {mentor.status === "active" ? "Activo" : "Inactivo"}
+                    <Badge variant={mentor.status === 'active' ? 'default' : 'secondary'}>
+                      {mentor.status === 'active' ? 'Activo' : 'Inactivo'}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
@@ -267,7 +303,8 @@ export default function MentorsPage() {
               <SheetHeader>
                 <SheetTitle className="flex items-center gap-2">
                   <UserCheck className="h-5 w-5" />
-                  {selectedMentor.firstNames} {selectedMentor.lastNameFather} {selectedMentor.lastNameMother}
+                  {selectedMentor.firstNames} {selectedMentor.lastNameFather}{' '}
+                  {selectedMentor.lastNameMother}
                 </SheetTitle>
                 <SheetDescription>Información detallada del mentor</SheetDescription>
               </SheetHeader>
@@ -289,11 +326,15 @@ export default function MentorsPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Globe className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{selectedMentor.department}, {selectedMentor.country}</span>
+                      <span className="text-sm">
+                        {selectedMentor.department}, {selectedMentor.country}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <IdCard className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{selectedMentor.documentType}: {selectedMentor.document}</span>
+                      <span className="text-sm">
+                        {selectedMentor.documentType}: {selectedMentor.document}
+                      </span>
                     </div>
                     {/*
                     <div className="flex items-center gap-2">
@@ -312,24 +353,34 @@ export default function MentorsPage() {
                   <TabsContent value="interns" className="space-y-4">
                     <Card>
                       <CardContent className="pt-6">
-                        {selectedMentor.assignedInterns && selectedMentor.assignedInterns.length > 0 ? (
+                        {selectedMentor.assignedInterns &&
+                        selectedMentor.assignedInterns.length > 0 ? (
                           <div className="space-y-4">
                             {selectedMentor.assignedInterns.map((intern) => (
-                              <div key={intern.id} className="flex items-center justify-between p-3 border rounded-lg">
+                              <div
+                                key={intern.id}
+                                className="flex items-center justify-between p-3 border rounded-lg"
+                              >
                                 <div>
                                   <div className="font-medium">{intern.name}</div>
-                                  <div className="text-sm text-muted-foreground">{intern.email}</div>
+                                  <div className="text-sm text-muted-foreground">
+                                    {intern.email}
+                                  </div>
                                 </div>
                                 <div className="flex items-center gap-4">
-                                  <Badge variant={intern.status === "active" ? "default" : "secondary"}>
-                                    {intern.status === "active" ? "Activo" : "Inactivo"}
+                                  <Badge
+                                    variant={intern.status === 'active' ? 'default' : 'secondary'}
+                                  >
+                                    {intern.status === 'active' ? 'Activo' : 'Inactivo'}
                                   </Badge>
                                 </div>
                               </div>
                             ))}
                           </div>
                         ) : (
-                          <p className="text-center text-muted-foreground py-8">No hay pasantes asignados</p>
+                          <p className="text-center text-muted-foreground py-8">
+                            No hay pasantes asignados
+                          </p>
                         )}
                       </CardContent>
                     </Card>
@@ -341,5 +392,5 @@ export default function MentorsPage() {
         </SheetContent>
       </Sheet>
     </div>
-  )
+  );
 }

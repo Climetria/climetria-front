@@ -1,6 +1,6 @@
-"use client"
+'use client';
 
-import * as React from "react"
+import * as React from 'react';
 import {
   AudioWaveform,
   BriefcaseBusinessIcon,
@@ -9,12 +9,11 @@ import {
   GalleryVerticalEnd,
   User,
   UsersRound,
-} from "lucide-react"
+} from 'lucide-react';
 
-import { NavMain } from "@/components/nav-main"
-import { NavProjects } from "@/components/nav-projects"
-import { NavUser } from "@/components/nav-user"
-import { CourseSwitcher } from "@/components/course-switcher"
+import { NavMain } from '@/components/nav-main';
+import { NavUser } from '@/components/nav-user';
+import { CourseSwitcher } from '@/components/course-switcher';
 import {
   Sidebar,
   SidebarContent,
@@ -22,82 +21,82 @@ import {
   SidebarHeader,
   SidebarMenuButton,
   SidebarRail,
-} from "@/components/ui/sidebar"
-import Link from "next/link"
+} from '@/components/ui/sidebar';
+import Link from 'next/link';
 
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+    name: 'shadcn',
+    email: 'm@example.com',
+    avatar: '/avatars/shadcn.jpg',
   },
   courses: [
     {
       name: "Cohort '22",
       logo: GalleryVerticalEnd,
-      plan: "Cambio Climático",
+      plan: 'Cambio Climático',
     },
     {
       name: "Cohort '23",
       logo: AudioWaveform,
-      plan: "Energías Renovables",
+      plan: 'Energías Renovables',
     },
     {
       name: "Cohort '24",
       logo: Command,
-      plan: "Desarrollo Sostenible",
+      plan: 'Desarrollo Sostenible',
     },
   ],
   navMain: [
     {
-      title: "Empresas",
-      url: "/",
+      title: 'Empresas',
+      url: '/',
       icon: BriefcaseBusinessIcon,
       items: [
         {
-          title: "Explorar",
-          url: "/dashboard/companies",
+          title: 'Explorar',
+          url: '/dashboard/companies',
         },
         {
-          title: "Registrar",
-          url: "/dashboard/companies/create",
+          title: 'Registrar',
+          url: '/dashboard/companies/create',
         },
       ],
     },
     {
-      title: "Mentores",
-      url: "/",
+      title: 'Mentores',
+      url: '/',
       icon: User,
       isActive: true,
       items: [
         {
-          title: "Explorar",
-          url: "/dashboard/mentors",
+          title: 'Explorar',
+          url: '/dashboard/mentors',
         },
         {
-          title: "Registrar",
-          url: "/dashboard/mentors/create",
+          title: 'Registrar',
+          url: '/dashboard/mentors/create',
         },
       ],
     },
     {
-      title: "Pasantes",
-      url: "#",
+      title: 'Pasantes',
+      url: '#',
       icon: UsersRound,
       isActive: true,
       items: [
         {
-          title: "Explorar",
-          url: "/dashboard/interns",
+          title: 'Explorar',
+          url: '/dashboard/interns',
         },
         {
-          title: "Registrar",
-          url: "/dashboard/interns/create",
+          title: 'Registrar',
+          url: '/dashboard/interns/create',
         },
       ],
     },
-  ]
-}
+  ],
+};
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
@@ -119,5 +118,5 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
-  )
+  );
 }
