@@ -3,41 +3,51 @@
 import { useEffect, useState } from 'react';
 import { Authenticator, useAuthenticator } from '@aws-amplify/ui-react';
 import { fetchAuthSession } from '@aws-amplify/auth';
+import { useRouter } from 'next/navigation';
+import { setAccessTokenCookie } from '@/utils/setAuthCookie';
+import { useUser } from '@/context/UserContext';
 
 function UserInfo() {
-  const { user, signOut } = useAuthenticator((context) => [
-    context.user,
-    context.signOut,
-  ]);
-  const [idToken, setIdToken] = useState<string | null>(null);
+  const { user } = useAuthenticator((context) => [context.user]);
+  const { setUser } = useUser();
+  const [, setIdToken] = useState<string | null>(null);
+  const [isRedirecting, setIsRedirecting] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
-    if (user) {
+    if (user && !isRedirecting) {
+      setIsRedirecting(true);
+
       fetchAuthSession()
-        .then((session) => {
+        .then(async (session) => {
           const token = session.tokens?.accessToken?.toString() ?? null;
-          console.log('ID Token:', token);
-          setIdToken(token);
+          if (token) {
+            setIdToken(token);
+            console.log(user);
+            setUser({
+              username: user?.username || 'no-username',
+              email: user?.signInDetails?.loginId || 'no-email',
+            });
+
+            // Configurar el token en todas las ubicaciones
+            document.cookie = `accessToken=${token}; path=/; secure; sameSite=Lax`;
+            localStorage.setItem('accessToken', token);
+            setAccessTokenCookie(token);
+
+            console.log('Access token set in cookie:', token);
+            console.log('User info:', user);
+
+            // Redirigir al dashboard
+            router.push('/dashboard');
+          }
         })
         .catch((error) => {
           console.error('Error getting session:', error);
+          setIsRedirecting(false);
         });
     }
-  }, [user]);
-
+  }, [user, router, isRedirecting, setUser]);
   if (!user) return null;
-
-  return (
-    <div style={{ marginTop: '1rem' }}>
-      <p>Signed in as: {user.username}</p>
-      <button onClick={signOut}>Sign Out</button>
-      {idToken && (
-        <pre style={{ whiteSpace: 'break-spaces', maxWidth: '600px' }}>
-          ID Token: {idToken}
-        </pre>
-      )}
-    </div>
-  );
 }
 
 export default function LoginPage() {

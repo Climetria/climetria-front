@@ -1,15 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import {
-  AudioWaveform,
-  BriefcaseBusinessIcon,
-  Command,
-  Frame,
-  GalleryVerticalEnd,
-  User,
-  UsersRound,
-} from 'lucide-react';
+import { Building2, Frame, User, UsersRound } from 'lucide-react';
 
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -23,86 +15,122 @@ import {
   SidebarRail,
 } from '@/components/ui/sidebar';
 import Link from 'next/link';
-
-const data = {
-  user: {
-    name: 'shadcn',
-    email: 'm@example.com',
-    avatar: '/avatars/shadcn.jpg',
-  },
-  courses: [
-    {
-      name: "Cohort '22",
-      logo: GalleryVerticalEnd,
-      plan: 'Cambio Climático',
-    },
-    {
-      name: "Cohort '23",
-      logo: AudioWaveform,
-      plan: 'Energías Renovables',
-    },
-    {
-      name: "Cohort '24",
-      logo: Command,
-      plan: 'Desarrollo Sostenible',
-    },
-  ],
-  navMain: [
-    {
-      title: 'Empresas',
-      url: '/',
-      icon: BriefcaseBusinessIcon,
-      items: [
-        {
-          title: 'Explorar',
-          url: '/dashboard/companies/',
-        },
-        {
-          title: 'Registrar',
-          url: '/dashboard/companies/create/',
-        },
-      ],
-    },
-    {
-      title: 'Mentores',
-      url: '/',
-      icon: User,
-      isActive: true,
-      items: [
-        {
-          title: 'Explorar',
-          url: '/dashboard/mentors/',
-        },
-        {
-          title: 'Registrar',
-          url: '/dashboard/mentors/create/',
-        },
-      ],
-    },
-    {
-      title: 'Pasantes',
-      url: '#',
-      icon: UsersRound,
-      isActive: true,
-      items: [
-        {
-          title: 'Explorar',
-          url: '/dashboard/interns/',
-        },
-        {
-          title: 'Registrar',
-          url: '/dashboard/interns/create/',
-        },
-      ],
-    },
-  ],
-};
+import { useCourse } from '@/context/CourseContext';
+import { useUser } from '@/context/UserContext';
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { activeCourse } = useCourse();
+  const { user } = useUser();
+  console.log('AppSidebar user:', user);
+  const userData = {
+    username: user?.username ?? 'default-user-id',
+    email: user?.email ?? 'default@mail.com',
+  };
+
+  const navMain = React.useMemo(() => {
+    if (!activeCourse) {
+      return [
+        {
+          title: 'Empresas',
+          url: '/',
+          icon: Building2,
+          items: [
+            {
+              title: 'Explorar',
+              url: '/dashboard/companies/',
+            },
+            {
+              title: 'Registrar',
+              url: '/dashboard/companies/create/',
+            },
+          ],
+        },
+        {
+          title: 'Mentores',
+          url: '/',
+          icon: User,
+          items: [
+            {
+              title: 'Explorar',
+              url: '/dashboard/mentors/',
+            },
+            {
+              title: 'Registrar',
+              url: '/dashboard/mentors/create/',
+            },
+          ],
+        },
+        {
+          title: 'Pasantes',
+          url: '#',
+          icon: UsersRound,
+          items: [
+            {
+              title: 'Explorar',
+              url: '/dashboard/interns/',
+            },
+            {
+              title: 'Registrar',
+              url: '/dashboard/interns/create/',
+            },
+          ],
+        },
+      ];
+    }
+
+    return [
+      {
+        title: 'Empresas',
+        url: '/',
+        icon: Building2,
+        items: [
+          {
+            title: 'Explorar',
+            url: `/dashboard/companies/`,
+          },
+          {
+            title: 'Registrar',
+            url: `/dashboard/companies/create/`,
+          },
+        ],
+      },
+      {
+        title: 'Mentores',
+        url: '/',
+        icon: User,
+        items: [
+          {
+            title: 'Explorar',
+            url: `/dashboard/mentors/`,
+          },
+          {
+            title: 'Registrar',
+            url: `/dashboard/mentors/create/`,
+          },
+        ],
+      },
+      {
+        title: 'Pasantes',
+        url: '/',
+        icon: UsersRound,
+        items: [
+          {
+            title: 'Explorar',
+            url: `/dashboard/interns/`,
+          },
+          {
+            title: 'Registrar',
+            url: `/dashboard/interns/create/`,
+          },
+        ],
+      },
+    ];
+  }, [activeCourse]);
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <CourseSwitcher courses={data.courses} />
+        <CourseSwitcher />
       </SidebarHeader>
       <SidebarContent>
         <Link href="/dashboard">
@@ -111,10 +139,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <span>Dashboard</span>
           </SidebarMenuButton>
         </Link>
-        <NavMain items={data.navMain} />
+        <NavMain items={navMain} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={userData} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

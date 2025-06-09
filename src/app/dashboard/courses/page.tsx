@@ -1,51 +1,53 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Plus, Search, MoreHorizontal, Edit, Eye, Trash2} from "lucide-react"
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Plus, Search, MoreHorizontal, Edit, Eye, Trash2 } from 'lucide-react';
+import { apiService } from '@/lib/api';
+
+interface CourseAPIResponse {
+  id: string;
+  name: string;
+  description?: string;
+  year: number;
+}
 
 export default function CoursesPage() {
-  const [searchTerm, setSearchTerm] = useState("")
+  const [searchTerm, setSearchTerm] = useState('');
+  const [courses, setCourses] = useState<CourseAPIResponse[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const courses = [
-    {
-      id: 1,
-      name: "Gestión Ambiental y Desarrollo Sostenible 2024",
-      startDate: "2024-03-01",
-      endDate: "2024-08-31",
-      status: "active",
-      coursesCount: 5,
-      internsCount: 25,
-      companiesCount: 8,
-    },
-    {
-      id: 2,
-      name: "Evaluación de Impacto Ambiental 2024",
-      startDate: "2024-04-15",
-      endDate: "2024-09-15",
-      status: "active",
-      coursesCount: 4,
-      internsCount: 18,
-      companiesCount: 6,
-    },
-    {
-      id: 3,
-      name: "Tratamiento de Aguas y Residuos 2023",
-      startDate: "2023-09-01",
-      endDate: "2024-02-28",
-      status: "completed",
-      coursesCount: 3,
-      internsCount: 15,
-      companiesCount: 5,
-    },
-  ]
+  useEffect(() => {
+    async function fetchCourses() {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await apiService.getCourses();
+        setCourses(data);
+      } catch (err) {
+        setError('No se pudieron cargar los cursos.');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
 
-  const filteredCourses = courses.filter((course) => course.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    fetchCourses();
+  }, []);
+
+  const filteredCourses = courses.filter((course) =>
+    course.name.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
 
   return (
     <div className="container mx-auto p-6">
@@ -76,6 +78,9 @@ export default function CoursesPage() {
         </Button>
       </div>
 
+      {loading && <p>Cargando cursos...</p>}
+      {error && <p className="text-destructive">{error}</p>}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredCourses.map((course) => (
           <Card key={course.id} className="hover:shadow-lg transition-shadow">
@@ -83,10 +88,7 @@ export default function CoursesPage() {
               <div className="flex justify-between items-start">
                 <div>
                   <CardTitle className="text-lg">{course.name}</CardTitle>
-                  <CardDescription>
-                    {new Date(course.startDate).toLocaleDateString()} -{" "}
-                    {new Date(course.endDate).toLocaleDateString()}
-                  </CardDescription>
+                  <CardDescription>{course.year}</CardDescription>
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -114,29 +116,13 @@ export default function CoursesPage() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              <Badge variant={course.status === "active" ? "default" : "secondary"}>
-                {course.status === "active" ? "Activo" : "Completado"}
-              </Badge>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-3 gap-4 text-sm">
-                <div className="text-center">
-                  <div className="font-semibold text-lg">{course.coursesCount}</div>
-                  <div className="text-muted-foreground">Cursos</div>
-                </div>
-                <div className="text-center">
-                  <div className="font-semibold text-lg">{course.internsCount}</div>
-                  <div className="text-muted-foreground">Pasantes</div>
-                </div>
-                <div className="text-center">
-                  <div className="font-semibold text-lg">{course.companiesCount}</div>
-                  <div className="text-muted-foreground">Empresas</div>
-                </div>
-              </div>
+              <p className="text-muted-foreground">{course.description}</p>
             </CardContent>
           </Card>
         ))}
       </div>
     </div>
-  )
+  );
 }

@@ -1,11 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -45,6 +44,9 @@ import {
   UserCheck,
   Globe,
   IdCard,
+  AlertCircle,
+  Loader2,
+  UserPlus,
 } from 'lucide-react';
 import {
   Sheet,
@@ -53,104 +55,60 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Mail, Phone } from 'lucide-react';
+import { useCourse } from '@/context/CourseContext';
+import { apiService, Mentor } from '@/lib/api';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
-type Intern = {
-  id: number;
-  name: string;
-  email: string;
-  status: 'active' | 'inactive';
-};
-
-type Mentor = {
-  id: number;
-  documentType: string;
-  document: string;
-  email: string;
-  firstNames: string;
-  lastNameFather: string;
-  lastNameMother: string;
-  phone: string;
-  country: string;
-  department: string;
-  internsCount: number;
-  status: 'active' | 'inactive';
-  startDate: string;
-  assignedInterns: Intern[];
+const getDocTypeLabel = (docType: string) => {
+  const docTypeMap = {
+    DNI: 'DNI',
+    CE: 'Carné de Extranjería',
+    PASSPORT: 'Pasaporte',
+  };
+  return docTypeMap[docType as keyof typeof docTypeMap] || docType;
 };
 
 export default function MentorsPage() {
+  const { activeCourse } = useCourse();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedMentor, setSelectedMentor] = useState<Mentor | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [mentors, setMentors] = useState<Mentor[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const mentors: Mentor[] = [
-    {
-      id: 1,
-      documentType: 'DNI',
-      document: '12345678',
-      email: 'juan.perez@techcorp.com',
-      firstNames: 'Juan',
-      lastNameFather: 'Pérez',
-      lastNameMother: 'Gómez',
-      phone: '+54 11 1111-2222',
-      country: 'Peru',
-      department: 'Lima',
-      internsCount: 3,
-      status: 'active',
-      startDate: '2024-01-15',
-      assignedInterns: [
-        { id: 1, name: 'Ana García', email: 'ana@email.com', status: 'active' },
-        { id: 2, name: 'Carlos López', email: 'carlos@email.com', status: 'active' },
-      ],
-    },
-    {
-      id: 2,
-      firstNames: 'Laura',
-      lastNameFather: 'Martín',
-      lastNameMother: 'Fernández',
-      documentType: 'DNI',
-      document: '87654321',
-      email: 'laura.martin@devstudio.com',
-      phone: '+54 11 3333-4444',
-      country: 'Peru',
-      department: 'Cusco',
-      internsCount: 2,
-      status: 'active',
-      startDate: '2023-09-01',
-      assignedInterns: [{ id: 3, name: 'Sofía Gómez', email: 'sofia@email.com', status: 'active' }],
-    },
-    {
-      id: 3,
-      firstNames: 'Roberto',
-      lastNameFather: 'Silva',
-      lastNameMother: 'Torres',
-      documentType: 'DNI',
-      document: '11223344',
-      email: 'roberto.silva@datacorp.com',
-      phone: '+54 11 5555-6666',
-      country: 'Peru',
-      department: 'Arequipa',
-      internsCount: 4,
-      status: 'active',
-      startDate: '2022-05-20',
-      assignedInterns: [
-        { id: 4, name: 'Martín Castro', email: 'martin@email.com', status: 'active' },
-        { id: 5, name: 'Valentina Díaz', email: 'valentina@email.com', status: 'active' },
-        { id: 6, name: 'Lucas Pérez', email: 'lucas@email.com', status: 'active' },
-      ],
-    },
-  ];
+  useEffect(() => {
+    const fetchMentors = async () => {
+      if (!activeCourse) {
+        setMentors([]);
+        setIsLoading(false);
+        return;
+      }
+      try {
+        setIsLoading(true);
+        setError(null);
+        const mentorsData = await apiService.getMentors(activeCourse.id);
+        setMentors(mentorsData);
+      } catch (err) {
+        console.error('Error fetching mentors:', err);
+        setError('Error al cargar los mentores. Por favor, intenta nuevamente.');
+        setMentors([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchMentors();
+  }, [activeCourse]);
 
   const filteredMentors = mentors.filter((mentor) => {
     const matchesSearch =
       mentor.firstNames.toLowerCase().includes(searchTerm.toLowerCase()) ||
       mentor.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       mentor.country.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = selectedStatus === 'all' || mentor.status === selectedStatus;
-    return matchesSearch && matchesStatus;
+
+    return matchesSearch;
   });
 
   const handleViewDetail = (mentor: Mentor) => {
@@ -158,12 +116,45 @@ export default function MentorsPage() {
     setIsDetailOpen(true);
   };
 
+  const handleDeleteMentor = async (mentor: Mentor) => {
+    if (!activeCourse) return;
+
+    if (
+      confirm(
+        `¿Estás seguro de que quieres eliminar al mentor "${mentor.firstNames} ${mentor.lastNameFather} ${mentor.lastNameMother}"?`,
+      )
+    ) {
+      try {
+        await apiService.deleteMentor(activeCourse.id, mentor.id);
+        setMentors(mentors.filter((c) => c.id !== mentor.id));
+      } catch (err) {
+        console.error('Error deleting mentor:', err);
+        alert('Error al eliminar al mentor. Por favor, intenta nuevamente.');
+      }
+    }
+  };
+
+  if (!activeCourse) {
+    return (
+      <div className="container mx-auto p-6">
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Por favor, selecciona un curso para ver los pasantes asociados.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto p-6">
       <div className="flex items-center gap-4 mb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Gestión de Mentores</h1>
-          <p className="text-muted-foreground">Administra todos los mentores del curso</p>
+          <p className="text-muted-foreground">
+            Administra todos los mentores asignados al curso: <strong>{activeCourse.name}</strong>
+          </p>
         </div>
       </div>
 
@@ -229,70 +220,93 @@ export default function MentorsPage() {
         </div>
       </div>
 
+      {error && (
+        <Alert className="mb-6" variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Lista de Mentores</CardTitle>
           <CardDescription>
-            {filteredMentors.length} mentor{filteredMentors.length !== 1 ? 'es' : ''} encontrado
-            {filteredMentors.length !== 1 ? 's' : ''}
+            {isLoading ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Cargando pasantes...
+              </div>
+            ) : (
+              <>
+                {filteredMentors.length} mentor{filteredMentors.length !== 1 ? 'es' : ''} encontrado
+                {filteredMentors.length !== 1 ? 's' : ''}
+              </>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Mentor</TableHead>
-                <TableHead>Empresa</TableHead>
-                <TableHead>Pasantes</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredMentors.map((mentor) => (
-                <TableRow key={mentor.id}>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{mentor.firstNames}</div>
-                      <div className="text-sm text-muted-foreground">{mentor.email}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{mentor.country}</TableCell>
-                  <TableCell className="text-center">{mentor.internsCount}</TableCell>
-                  <TableCell>
-                    <Badge variant={mentor.status === 'active' ? 'default' : 'secondary'}>
-                      {mentor.status === 'active' ? 'Activo' : 'Inactivo'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleViewDetail(mentor)}>
-                          <Eye className="h-4 w-4 mr-2" />
-                          Ver Detalle
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link href={`/dashboard/mentors/${mentor.id}/edit`}>
-                            <Edit className="h-4 w-4 mr-2" />
-                            Editar
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Deshabilitar
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          ) : filteredMentors.length === 0 ? (
+            <div className="text-center py-8">
+              <UserPlus className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">
+                {mentors.length === 0
+                  ? 'No hay mentores asignados a este curso.'
+                  : 'No se encontraron mentores con los criterios de búsqueda.'}
+              </p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Mentor</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredMentors.map((mentor) => (
+                  <TableRow key={mentor.id}>
+                    <TableCell className="font-medium truncate">
+                      {mentor.firstNames} {mentor.lastNameFather} {mentor.lastNameMother}
+                    </TableCell>
+                    <TableCell>{mentor.email}</TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleViewDetail(mentor)}>
+                            <Eye className="h-4 w-4 mr-2" />
+                            Ver Detalle
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/dashboard/mentors/${mentor.id}/edit`}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Editar
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => handleDeleteMentor(mentor)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Eliminar
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
       {/* Side Slide Detail */}
@@ -327,65 +341,34 @@ export default function MentorsPage() {
                     <div className="flex items-center gap-2">
                       <Globe className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">
-                        {selectedMentor.department}, {selectedMentor.country}
+                        {selectedMentor.peruDepartment}, {selectedMentor.country}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <IdCard className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">
-                        {selectedMentor.documentType}: {selectedMentor.document}
+                        {getDocTypeLabel(selectedMentor.documentType)}: {selectedMentor.document}
                       </span>
                     </div>
-                    {/*
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">Inicio: {new Date(selectedMentor.startDate).toLocaleDateString()}</span>
-                    </div>*/}
                   </CardContent>
                 </Card>
 
-                {/* Tabs para Pasantes */}
-                <Tabs defaultValue="interns" className="w-full">
-                  <TabsList className="w-full">
-                    <TabsTrigger value="interns">Pasantes Asignados</TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="interns" className="space-y-4">
-                    <Card>
-                      <CardContent className="pt-6">
-                        {selectedMentor.assignedInterns &&
-                        selectedMentor.assignedInterns.length > 0 ? (
-                          <div className="space-y-4">
-                            {selectedMentor.assignedInterns.map((intern) => (
-                              <div
-                                key={intern.id}
-                                className="flex items-center justify-between p-3 border rounded-lg"
-                              >
-                                <div>
-                                  <div className="font-medium">{intern.name}</div>
-                                  <div className="text-sm text-muted-foreground">
-                                    {intern.email}
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                  <Badge
-                                    variant={intern.status === 'active' ? 'default' : 'secondary'}
-                                  >
-                                    {intern.status === 'active' ? 'Activo' : 'Inactivo'}
-                                  </Badge>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-center text-muted-foreground py-8">
-                            No hay pasantes asignados
-                          </p>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-                </Tabs>
+                {/* Fechas */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Información Adicional</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="text-sm">
+                      <span className="font-medium">Fecha de registro:</span>{' '}
+                      {new Date(selectedMentor.createdAt).toLocaleDateString('es-ES')}
+                    </div>
+                    <div className="text-sm">
+                      <span className="font-medium">Última actualización:</span>{' '}
+                      {new Date(selectedMentor.updatedAt).toLocaleDateString('es-ES')}
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </>
           )}

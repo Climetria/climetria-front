@@ -1,22 +1,26 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import { AwsAuthProvider } from "@/components/AwsAuthProvider";
-import "./globals.css";
-import "@aws-amplify/ui-react/styles.css";
+import type { Metadata } from 'next';
+import { Geist, Geist_Mono } from 'next/font/google';
+import { AwsAuthProvider } from '@/components/AwsAuthProvider';
+import './globals.css';
+import '@aws-amplify/ui-react/styles.css';
+import { CourseProvider } from '@/context/CourseContext';
+import { Toaster } from '@/components/ui/sonner';
+import { UserProvider } from '@/context/UserContext';
+import { ReactQueryProvider } from '@/context/ReactQueryProvider';
 
 const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+  variable: '--font-geist-sans',
+  subsets: ['latin'],
 });
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  variable: '--font-geist-mono',
+  subsets: ['latin'],
 });
 
 export const metadata: Metadata = {
-  title: "Climetria",
-  description: "Plataforma de gestión de pasantías",
+  title: 'Climetria',
+  description: 'Plataforma de gestión de pasantías',
 };
 
 export default function RootLayout({
@@ -26,10 +30,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <AwsAuthProvider>{children}</AwsAuthProvider>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <ReactQueryProvider>
+          <AwsAuthProvider>
+            <CourseProvider>
+              <UserProvider>
+                <Toaster />
+                {children}
+              </UserProvider>
+            </CourseProvider>
+          </AwsAuthProvider>
+        </ReactQueryProvider>
       </body>
     </html>
   );

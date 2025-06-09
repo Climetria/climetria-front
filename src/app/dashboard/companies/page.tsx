@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,7 +27,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -49,119 +48,72 @@ import {
   Mail,
   User,
   Building,
+  Loader2,
+  AlertCircle,
 } from 'lucide-react';
+import { apiService, Company } from '@/lib/api';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useCourse } from '@/context/CourseContext';
 
-interface Intern {
-  id: number;
-  name: string;
-  email: string;
-  status: 'active' | 'inactive';
-}
+// Helper function to map organization size
+const getOrganizationSizeLabel = (size: string) => {
+  const sizeMap = {
+    SMALL: 'Pequeña',
+    LARGE: 'Grande',
+  };
+  return sizeMap[size as keyof typeof sizeMap] || size;
+};
 
-interface Mentor {
-  id: number;
-  name: string;
-  email: string;
-}
-
-interface Company {
-  id: number;
-  organizationName: string;
-  contactName: string;
-  phone: string;
-  email: string;
-  organizationSize: string;
-  country: string;
-  internsCount: number;
-  mentorsCount: number;
-  topicsOfInterest: string;
-  sector: string;
-  status: 'active' | 'inactive';
-  interns: Intern[];
-  mentors: Mentor[];
-}
+// Helper function to map topics of interest
+const getTopicLabel = (topic: string) => {
+  const topicMap = {
+    CN: 'Carbono Neutralidad',
+    HH: 'Huella Hídrica',
+    HC: 'Huella de Carbono',
+  };
+  return topicMap[topic as keyof typeof topicMap] || topic;
+};
 
 export default function CompaniesPage() {
+  const { activeCourse } = useCourse();
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState<boolean>(false);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const companies: Company[] = [
-    {
-      id: 1,
-      organizationName: 'TechCorp',
-      contactName: 'Ariana Ramirez',
-      phone: '+54 11 4567-8901',
-      email: 'contacto@techcorp.com',
-      organizationSize: 'Micro o pequeña',
-      country: 'Perú',
-      internsCount: 8,
-      mentorsCount: 3,
-      topicsOfInterest:
-        'HC - Huella de Carbono y Cambio Climático, HH - Huella Hídrica y Gestión Responsable del Agua, CN - Carbono Neutralidad',
-      sector: 'Privado',
-      status: 'active',
-      interns: [
-        { id: 1, name: 'Ana García', email: 'ana@email.com', status: 'active' },
-        { id: 2, name: 'Carlos López', email: 'carlos@email.com', status: 'active' },
-      ],
-      mentors: [
-        { id: 1, name: 'Dr. Juan Pérez', email: 'juan@techcorp.com' },
-        { id: 2, name: 'Ing. María Silva', email: 'maria@techcorp.com' },
-      ],
-    },
-    {
-      id: 2,
-      organizationName: 'EcoSolutions',
-      contactName: 'Luis Fernández',
-      phone: '+54 11 2345-6789',
-      email: 'luis@ecosolutions.pe',
-      organizationSize: 'Mediana',
-      country: 'Argentina',
-      internsCount: 5,
-      mentorsCount: 2,
-      topicsOfInterest:
-        'HC - Huella de Carbono y Cambio Climático, HH - Huella Hídrica y Gestión Responsable del Agua',
-      sector: 'Privado',
-      status: 'active',
-      interns: [
-        { id: 3, name: 'Sofía Martínez', email: 'a@q.com', status: 'active' },
-        { id: 4, name: 'Pedro Gómez', email: 'a@.', status: 'inactive' },
-      ],
-      mentors: [
-        { id: 3, name: 'Lic. Ana Torres', email: 'a@q.com' },
-        { id: 4, name: 'Ing. Roberto Díaz', email: 'a@.' },
-      ],
-    },
-    {
-      id: 3,
-      organizationName: 'GreenTech',
-      contactName: 'María López',
-      phone: '+54 11 3456-7890',
-      email: 'contacto@greentech.com',
-      organizationSize: 'Grande',
-      country: 'Chile',
-      internsCount: 12,
-      mentorsCount: 5,
-      topicsOfInterest:
-        'HC - Huella de Carbono y Cambio Climático, HH - Huella Hídrica y Gestión Responsable del Agua, CN - Carbono Neutralidad',
-      sector: 'Privado',
-      status: 'inactive',
-      interns: [
-        { id: 5, name: 'Laura Pérez', email: 'laura@mail.com', status: 'active' },
-        { id: 6, name: 'Javier Ruiz', email: 'javi@mail.com', status: 'inactive' },
-      ],
-      mentors: [
-        { id: 5, name: 'Dr. Carlos Ramírez', email: 'carlitoss@mail.com' },
-        { id: 6, name: 'Ing. Paula Fernández', email: 'paulaing@mail.com' },
-      ],
-    },
-  ];
+  // Fetch companies when active course changes
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      if (!activeCourse) {
+        setCompanies([]);
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setError(null);
+        const companiesData = await apiService.getCompanies(activeCourse.id);
+        setCompanies(companiesData);
+      } catch (err) {
+        console.error('Error fetching companies:', err);
+        setError('Error al cargar las empresas. Por favor, intenta nuevamente.');
+        setCompanies([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCompanies();
+  }, [activeCourse]);
 
   const filteredCompanies = companies.filter((company) => {
     const matchesSearch =
       company.organizationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      company.contactName.toLowerCase().includes(searchTerm.toLowerCase());
+      company.contactName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      company.email.toLowerCase().includes(searchTerm.toLowerCase());
 
     return matchesSearch;
   });
@@ -171,12 +123,43 @@ export default function CompaniesPage() {
     setIsDetailOpen(true);
   };
 
+  const handleDeleteCompany = async (company: Company) => {
+    if (!activeCourse) return;
+
+    if (
+      confirm(`¿Estás seguro de que quieres eliminar la empresa "${company.organizationName}"?`)
+    ) {
+      try {
+        await apiService.deleteCompany(activeCourse.id, company.id);
+        setCompanies(companies.filter((c) => c.id !== company.id));
+      } catch (err) {
+        console.error('Error deleting company:', err);
+        alert('Error al eliminar la empresa. Por favor, intenta nuevamente.');
+      }
+    }
+  };
+
+  if (!activeCourse) {
+    return (
+      <div className="container mx-auto p-6">
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Por favor, selecciona un curso para ver las empresas asociadas.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto p-6">
       <div className="flex items-center gap-4 mb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Gestión de Empresas</h1>
-          <p className="text-muted-foreground">Administra todas las empresas participantes</p>
+          <p className="text-muted-foreground">
+            Administra las empresas del curso: <strong>{activeCourse.name}</strong>
+          </p>
         </div>
       </div>
 
@@ -212,9 +195,10 @@ export default function CompaniesPage() {
                 <div className="text-sm text-muted-foreground">
                   <p>El archivo CSV debe contener las siguientes columnas:</p>
                   <ul className="list-disc list-inside mt-2">
-                    <li>nombre</li>
-                    <li>contacto</li>
-                    <li>telefono</li>
+                    <li>organizationName</li>
+                    <li>contactName</li>
+                    <li>email</li>
+                    <li>phone</li>
                   </ul>
                 </div>
                 <Button className="w-full">Subir Archivo</Button>
@@ -222,7 +206,7 @@ export default function CompaniesPage() {
             </DialogContent>
           </Dialog>
           <Button asChild>
-            <Link href="/dashboard/companies/create">
+            <Link href={`/dashboard/companies/create`}>
               <Building2 className="h-4 w-4 mr-2" />
               Registrar Empresa
             </Link>
@@ -230,72 +214,107 @@ export default function CompaniesPage() {
         </div>
       </div>
 
+      {error && (
+        <Alert className="mb-6" variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Lista de Empresas</CardTitle>
           <CardDescription>
-            {filteredCompanies.length} empresa{filteredCompanies.length !== 1 ? 's' : ''} encontrada
-            {filteredCompanies.length !== 1 ? 's' : ''}
+            {isLoading ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Cargando empresas...
+              </div>
+            ) : (
+              <>
+                {filteredCompanies.length} empresa{filteredCompanies.length !== 1 ? 's' : ''}{' '}
+                encontrada
+                {filteredCompanies.length !== 1 ? 's' : ''}
+              </>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Empresa</TableHead>
-                <TableHead>Contacto</TableHead>
-                <TableHead>Pasantes</TableHead>
-                <TableHead>Mentores</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredCompanies.map((company) => (
-                <TableRow key={company.id}>
-                  <TableCell className="font-medium">{company.organizationName}</TableCell>
-                  <TableCell>
-                    <div>
-                      <div>{company.contactName}</div>
-                      <div className="text-sm text-muted-foreground">{company.phone}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center">{company.internsCount}</TableCell>
-                  <TableCell className="text-center">{company.mentorsCount}</TableCell>
-                  <TableCell>
-                    <Badge variant={company.status === 'active' ? 'default' : 'secondary'}>
-                      {company.status === 'active' ? 'Activa' : 'Inactiva'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleViewDetail(company)}>
-                          <Eye className="h-4 w-4 mr-2" />
-                          Ver Detalle
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link href={`/dashboard/companies/${company.id}/edit`}>
-                            <Edit className="h-4 w-4 mr-2" />
-                            Editar
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Deshabilitar
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          ) : filteredCompanies.length === 0 ? (
+            <div className="text-center py-8">
+              <Building2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">
+                {companies.length === 0
+                  ? 'No hay empresas registradas en este curso.'
+                  : 'No se encontraron empresas con los criterios de búsqueda.'}
+              </p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Empresa</TableHead>
+                  <TableHead>Contacto</TableHead>
+                  <TableHead>Sector</TableHead>
+                  <TableHead>Tamaño</TableHead>
+                  <TableHead>País</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredCompanies.map((company) => (
+                  <TableRow key={company.id}>
+                    <TableCell className="font-medium">{company.organizationName}</TableCell>
+                    <TableCell>
+                      <div>
+                        <div>{company.contactName}</div>
+                        <div className="text-sm text-muted-foreground">{company.phone}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>{company.sector}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">
+                        {getOrganizationSizeLabel(company.organizationSize)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{company.country}</TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleViewDetail(company)}>
+                            <Eye className="h-4 w-4 mr-2" />
+                            Ver Detalle
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/dashboard/companies/${company.id}/edit`}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Editar
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => handleDeleteCompany(company)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Eliminar
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 
@@ -334,102 +353,55 @@ export default function CompaniesPage() {
                     <div className="flex items-center gap-2">
                       <Building className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">
-                        {selectedCompany.sector} | {selectedCompany.organizationSize}
+                        {selectedCompany.sector} |{' '}
+                        {getOrganizationSizeLabel(selectedCompany.organizationSize)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Globe className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">{selectedCompany.country}</span>
                     </div>
+                    {selectedCompany.ruc && (
+                      <div className="flex items-center gap-2">
+                        <Building className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">RUC: {selectedCompany.ruc}</span>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
-                {/* Ejes */}
+                {/* Topics of Interest */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-lg">Ejes Temáticos de Interés</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="flex flex-wrap gap-2">
-                      {selectedCompany.topicsOfInterest.split(', ').map((req, index) => (
+                      {selectedCompany.topicsOfInterest.map((topic, index) => (
                         <Badge key={index} variant="outline">
-                          {req}
+                          {getTopicLabel(topic)}
                         </Badge>
                       ))}
                     </div>
                   </CardContent>
                 </Card>
 
-                {/* Tabs para Pasantes y Mentores */}
-                <Tabs defaultValue="interns" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="interns">Pasantes Asignados</TabsTrigger>
-                    <TabsTrigger value="mentors">Mentores Asignados</TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="interns" className="space-y-4">
-                    <Card>
-                      <CardContent className="pt-6">
-                        {selectedCompany.interns.length > 0 ? (
-                          <div className="space-y-4">
-                            {selectedCompany.interns.map((intern) => (
-                              <div
-                                key={intern.id}
-                                className="flex items-center justify-between p-3 border rounded-lg"
-                              >
-                                <div>
-                                  <div className="font-medium">{intern.name}</div>
-                                  <div className="text-sm text-muted-foreground">
-                                    {intern.email}
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                  <Badge
-                                    variant={intern.status === 'active' ? 'default' : 'secondary'}
-                                  >
-                                    {intern.status === 'active' ? 'Activo' : 'Inactivo'}
-                                  </Badge>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-center text-muted-foreground py-8">
-                            No hay pasantes asignados
-                          </p>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-
-                  <TabsContent value="mentors" className="space-y-4">
-                    <Card>
-                      <CardContent className="pt-6">
-                        {selectedCompany.mentors.length > 0 ? (
-                          <div className="space-y-4">
-                            {selectedCompany.mentors.map((mentor) => (
-                              <div
-                                key={mentor.id}
-                                className="flex items-center justify-between p-3 border rounded-lg"
-                              >
-                                <div>
-                                  <div className="font-medium">{mentor.name}</div>
-                                  <div className="text-sm text-muted-foreground">
-                                    {mentor.email}
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-center text-muted-foreground py-8">
-                            No hay mentores asignados
-                          </p>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-                </Tabs>
+                {/* Fechas */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Información Adicional</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="text-sm">
+                      <span className="font-medium">Fecha de registro:</span>{' '}
+                      {new Date(selectedCompany.createdAt).toLocaleDateString('es-ES')}
+                    </div>
+                    <div className="text-sm">
+                      <span className="font-medium">Última actualización:</span>{' '}
+                      {new Date(selectedCompany.updatedAt).toLocaleDateString('es-ES')}
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </>
           )}

@@ -1,18 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -46,6 +39,9 @@ import {
   Users,
   Globe,
   IdCard,
+  AlertCircle,
+  Loader2,
+  University,
 } from 'lucide-react';
 import {
   Sheet,
@@ -54,88 +50,71 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Mail, Phone } from 'lucide-react';
-import { Label } from '@/components/ui/label';
+import { useCourse } from '@/context/CourseContext';
+import { apiService, Intern } from '@/lib/api';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
-interface Intern {
-  id: number;
-  documentType: string; // You might want to create a specific type for DocumentType
-  document: string;
-  email: string;
-  firstNames: string;
-  lastNameFather: string;
-  lastNameMother: string;
-  phone: string;
-  universityName: string;
-  profession: string;
-  graduationYear: number;
-  referralSource: string;
-  country: string;
-  peruDepartment: string;
-  company: string;
-  mentor: string;
-  status: 'active' | 'inactive';
-  startDate: string;
-}
+// Helper function to map topics of interest
+const getTopicLabel = (topic: string) => {
+  const topicMap = {
+    CN: 'Carbono Neutralidad',
+    HH: 'Huella Hídrica',
+    HC: 'Huella de Carbono',
+  };
+  return topicMap[topic as keyof typeof topicMap] || topic;
+};
+
+const getDocTypeLabel = (docType: string) => {
+  const docTypeMap = {
+    DNI: 'DNI',
+    CE: 'Carné de Extranjería',
+    PASSPORT: 'Pasaporte',
+  };
+  return docTypeMap[docType as keyof typeof docTypeMap] || docType;
+};
 
 export default function InternList() {
+  const { activeCourse } = useCourse();
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedIntern, setSelectedIntern] = useState<Intern | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState<boolean>(false);
+  const [interns, setInterns] = useState<Intern[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const interns: Intern[] = [
-    {
-      id: 1,
-      documentType: 'DNI',
-      document: '12345678',
-      email: 'ana.garcia@example.com',
-      firstNames: 'Ana Maria',
-      lastNameFather: 'Garcia',
-      lastNameMother: 'Lopez',
-      phone: '+51 987654321',
-      universityName: 'Universidad Nacional Mayor de San Marcos',
-      profession: 'Ingeniería de Software',
-      graduationYear: 2023,
-      referralSource: 'LinkedIn',
-      country: 'Perú',
-      peruDepartment: 'Lima',
-      company: 'TechCorp',
-      mentor: 'Juan Perez',
-      status: 'active',
-      startDate: '2024-01-15',
-    },
-    {
-      id: 2,
-      documentType: 'CE',
-      document: '87654321',
-      email: 'carlos.rodriguez@example.com',
-      firstNames: 'Carlos Jose',
-      lastNameFather: 'Rodriguez',
-      lastNameMother: 'Silva',
-      phone: '+51 912345678',
-      universityName: 'Pontificia Universidad Católica del Perú',
-      profession: 'Ingeniería Industrial',
-      graduationYear: 2024,
-      referralSource: 'Universidad',
-      country: 'Perú',
-      peruDepartment: 'Arequipa',
-      company: 'InnovaSoft',
-      mentor: 'Maria Torres',
-      status: 'inactive',
-      startDate: '2023-08-20',
-    },
-  ];
+  useEffect(() => {
+    const fetchInterns = async () => {
+      if (!activeCourse) {
+        setInterns([]);
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setError(null);
+        const internsData = await apiService.getInterns(activeCourse.id);
+        setInterns(internsData);
+      } catch (err) {
+        console.error('Error fetching interns:', err);
+        setError('Error al cargar los pasantes. Por favor, intenta nuevamente.');
+        setInterns([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchInterns();
+  }, [activeCourse]);
 
   const filteredInterns = interns.filter((intern) => {
     const matchesSearch =
       intern.firstNames ||
       intern.lastNameFather ||
       intern.lastNameMother.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = selectedStatus === 'all' || intern.status === selectedStatus;
 
-    return matchesSearch && matchesStatus;
+    return matchesSearch;
   });
 
   const handleViewDetail = (intern: Intern) => {
@@ -143,12 +122,46 @@ export default function InternList() {
     setIsDetailOpen(true);
   };
 
+  const handleDeleteIntern = async (intern: Intern) => {
+    if (!activeCourse) return;
+
+    if (
+      confirm(
+        `¿Estás seguro de que quieres eliminar al pasante "${intern.firstNames} ${intern.lastNameFather} ${intern.lastNameMother}"?`,
+      )
+    ) {
+      try {
+        await apiService.deleteIntern(activeCourse.id, intern.id);
+        setInterns(interns.filter((c) => c.id !== intern.id));
+      } catch (err) {
+        console.error('Error deleting intern:', err);
+        alert('Error al eliminar al pasante. Por favor, intenta nuevamente.');
+      }
+    }
+  };
+
+  if (!activeCourse) {
+    return (
+      <div className="container mx-auto p-6">
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Por favor, selecciona un curso para ver los pasantes asociados.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto p-6">
       <div className="flex items-center gap-4 mb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Gestión de Pasantes</h1>
-          <p className="text-muted-foreground">Administra todos los pasantes registrados</p>
+          <p className="text-muted-foreground">
+            Administra todos los pasantes registrados en el curso:{' '}
+            <strong>{activeCourse.name}</strong>
+          </p>
         </div>
       </div>
 
@@ -163,16 +176,6 @@ export default function InternList() {
               className="pl-10 w-80"
             />
           </div>
-          <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Estado" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="active">Activos</SelectItem>
-              <SelectItem value="inactive">Inactivos</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
         <div className="flex gap-2">
           <Dialog>
@@ -212,69 +215,102 @@ export default function InternList() {
         </div>
       </div>
 
+      {error && (
+        <Alert className="mb-6" variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Lista de Pasantes</CardTitle>
           <CardDescription>
-            {filteredInterns.length} pasante{filteredInterns.length !== 1 ? 's' : ''} encontrado
-            {filteredInterns.length !== 1 ? 's' : ''}
+            {isLoading ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Cargando pasantes...
+              </div>
+            ) : (
+              <>
+                {filteredInterns.length} pasante{filteredInterns.length !== 1 ? 's' : ''} encontrado
+                {filteredInterns.length !== 1 ? 's' : ''}
+              </>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nombre</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Empresa</TableHead>
-                <TableHead>Mentor</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredInterns.map((intern) => (
-                <TableRow key={intern.id}>
-                  <TableCell className="font-medium truncate">
-                    {intern.firstNames} {intern.lastNameFather} {intern.lastNameMother}
-                  </TableCell>
-                  <TableCell>{intern.email}</TableCell>
-                  <TableCell>{intern.company}</TableCell>
-                  <TableCell>{intern.mentor}</TableCell>
-                  <TableCell>
-                    <Badge variant={intern.status === 'active' ? 'default' : 'secondary'}>
-                      {intern.status === 'active' ? 'Activo' : 'Inactivo'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleViewDetail(intern)}>
-                          <Eye className="h-4 w-4 mr-2" />
-                          Ver Detalle
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link href={`/interns/${intern.id}/edit`}>
-                            <Edit className="h-4 w-4 mr-2" />
-                            Editar
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Deshabilitar
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          ) : filteredInterns.length === 0 ? (
+            <div className="text-center py-8">
+              <UserPlus className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">
+                {interns.length === 0
+                  ? 'No hay pasantes registrados en este curso.'
+                  : 'No se encontraron pasantes con los criterios de búsqueda.'}
+              </p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nombre</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Número de celular</TableHead>
+                  <TableHead>Documento</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredInterns.map((intern) => (
+                  <TableRow key={intern.id}>
+                    <TableCell className="font-medium truncate">
+                      {intern.firstNames} {intern.lastNameFather} {intern.lastNameMother}
+                    </TableCell>
+                    <TableCell>{intern.email}</TableCell>
+                    <TableCell>{intern.phone}</TableCell>
+                    <TableCell>
+                      <div>
+                        <div>{getDocTypeLabel(intern.documentType)}</div>
+                        <div className="text-sm text-muted-foreground">{intern.document}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleViewDetail(intern)}>
+                            <Eye className="h-4 w-4 mr-2" />
+                            Ver Detalle
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/interns/${intern.id}/edit`}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Editar
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => handleDeleteIntern(intern)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Eliminar
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
       {/* Side Slide Detail */}
@@ -315,42 +351,50 @@ export default function InternList() {
                     <div className="flex items-center gap-2">
                       <IdCard className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">
-                        {selectedIntern.documentType}: {selectedIntern.document}
+                        {getDocTypeLabel(selectedIntern.documentType)}: {selectedIntern.document}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <University className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">
+                        {selectedIntern.profession}, {selectedIntern.universityName}
                       </span>
                     </div>
                   </CardContent>
                 </Card>
 
-                {/* Asignaciones */}
+                {/* Topics of Interest */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">Asignaciones</CardTitle>
+                    <CardTitle className="text-lg">Ejes Temáticos de Interés</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div>
-                      <Label className="text-sm font-medium">Empresa:</Label>
-                      <p className="text-sm text-muted-foreground">{selectedIntern.company}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Mentor:</Label>
-                      <p className="text-sm text-muted-foreground">{selectedIntern.mentor}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Fecha de Inicio:</Label>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(selectedIntern.startDate).toLocaleDateString()}
-                      </p>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedIntern.topicsOfInterest.map((topic, index) => (
+                        <Badge key={index} variant="outline">
+                          {getTopicLabel(topic)}
+                        </Badge>
+                      ))}
                     </div>
                   </CardContent>
                 </Card>
 
-                {/* Tabs para Calificaciones y Certificados */}
-                <Tabs defaultValue="grades" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="grades">Calificaciones</TabsTrigger>
-                    <TabsTrigger value="certificates">Certificados</TabsTrigger>
-                  </TabsList>
-                </Tabs>
+                {/* Fechas */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Información Adicional</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="text-sm">
+                      <span className="font-medium">Fecha de registro:</span>{' '}
+                      {new Date(selectedIntern.createdAt).toLocaleDateString('es-ES')}
+                    </div>
+                    <div className="text-sm">
+                      <span className="font-medium">Última actualización:</span>{' '}
+                      {new Date(selectedIntern.updatedAt).toLocaleDateString('es-ES')}
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </>
           )}
