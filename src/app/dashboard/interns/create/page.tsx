@@ -128,7 +128,6 @@ export default function CreateInternPage() {
         graduationYear: data.graduationYear ? parseInt(data.graduationYear) : undefined,
         referralSource: data.howDidYouKnow,
         topicsOfInterest: data.programs,
-        courseId: activeCourse.id,
         peruDepartment:
           data.country === 'Perú' ? data.department?.toUpperCase().replace(/ /g, '_') : undefined,
       };
