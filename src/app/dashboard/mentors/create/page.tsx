@@ -28,21 +28,41 @@ import { useCourse } from '@/context/CourseContext';
 import { useState } from 'react';
 import { apiService } from '@/lib/api';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ResidencyFields } from '@/components/residency-fields';
 
-const formSchema = z.object({
-  email: z
-    .string()
-    .email({ message: 'Correo electrónico inválido' })
-    .min(1, { message: 'El correo electrónico es obligatorio' }),
-  firstNames: z.string().min(1, { message: 'Los nombres son obligatorios' }),
-  paternalLastName: z.string().min(1, { message: 'El apellido paterno es obligatorio' }),
-  maternalLastName: z.string().min(1, { message: 'El apellido materno es obligatorio' }),
-  phone: z.string().min(1, { message: 'El celular/WhatsApp es obligatorio' }),
-  documentType: z.string().min(1, { message: 'El tipo de documento es obligatorio' }),
-  documentNumber: z.string().min(1, { message: 'El número de documento es obligatorio' }),
-  country: z.string().min(1, { message: 'El país es obligatorio' }),
-  department: z.string().optional(),
-});
+const formSchema = z
+  .object({
+    email: z
+      .string()
+      .email({ message: 'Correo electrónico inválido' })
+      .min(1, { message: 'El correo electrónico es obligatorio' }),
+    firstNames: z.string().min(1, { message: 'Los nombres son obligatorios' }),
+    paternalLastName: z.string().min(1, { message: 'El apellido paterno es obligatorio' }),
+    maternalLastName: z.string().min(1, { message: 'El apellido materno es obligatorio' }),
+    phone: z.string().min(1, { message: 'El celular/WhatsApp es obligatorio' }),
+    documentType: z.string().min(1, { message: 'El tipo de documento es obligatorio' }),
+    documentNumber: z.string().min(1, { message: 'El número de documento es obligatorio' }),
+    country: z.string().min(1, { message: 'El país es obligatorio' }),
+    countrySelector: z.string().optional(), // <- new field for country selector (UI purposes only)
+    department: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.country === 'Perú' && !data.department) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'El departamento es obligatorio si el país es Perú',
+        path: ['department'],
+      });
+    }
+
+    if (data.country === 'Otros') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Debes especificar el nombre del país',
+        path: ['country'],
+      });
+    }
+  });
 
 type FormValues = z.infer<typeof formSchema>;
 
@@ -61,40 +81,11 @@ export default function CreateMentorPage() {
       paternalLastName: '',
       maternalLastName: '',
       phone: '',
-      country: 'Peru',
+      country: 'Perú',
+      countrySelector: 'Perú',
       department: '',
     },
   });
-
-  const watchCountry = form.watch('country');
-  const departments = [
-    { label: 'Amazonas', value: 'AMAZONAS' },
-    { label: 'Ancash', value: 'ANCASH' },
-    { label: 'Apurímac', value: 'APURIMAC' },
-    { label: 'Arequipa', value: 'AREQUIPA' },
-    { label: 'Ayacucho', value: 'AYACUCHO' },
-    { label: 'Cajamarca', value: 'CAJAMARCA' },
-    { label: 'Callao', value: 'CALLAO' },
-    { label: 'Cusco', value: 'CUSCO' },
-    { label: 'Huancavelica', value: 'HUANCAVELICA' },
-    { label: 'Huánuco', value: 'HUANUCO' },
-    { label: 'Ica', value: 'ICA' },
-    { label: 'Junín', value: 'JUNIN' },
-    { label: 'La Libertad', value: 'LA_LIBERTAD' },
-    { label: 'Lambayeque', value: 'LAMBAYEQUE' },
-    { label: 'Lima Metropolitana', value: 'LIMA_METROPOLITANA' },
-    { label: 'Lima Provincias', value: 'LIMA_PROVINCIAS' },
-    { label: 'Loreto', value: 'LORETO' },
-    { label: 'Madre de Dios', value: 'MADRE_DE_DIOS' },
-    { label: 'Moquegua', value: 'MOQUEGUA' },
-    { label: 'Pasco', value: 'PASCO' },
-    { label: 'Piura', value: 'PIURA' },
-    { label: 'Puno', value: 'PUNO' },
-    { label: 'San Martín', value: 'SAN_MARTIN' },
-    { label: 'Tacna', value: 'TACNA' },
-    { label: 'Tumbes', value: 'TUMBES' },
-    { label: 'Ucayali', value: 'UCAYALI' },
-  ];
 
   const onSubmit = async (data: FormValues) => {
     if (!activeCourse) {
@@ -201,7 +192,7 @@ export default function CreateMentorPage() {
                     <FormItem>
                       <FormLabel>Nombres *</FormLabel>
                       <FormControl>
-                        <Input placeholder="Juan Carlos" {...field} />
+                        <Input placeholder="Nombres" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -217,7 +208,7 @@ export default function CreateMentorPage() {
                     <FormItem>
                       <FormLabel>Apellido Paterno *</FormLabel>
                       <FormControl>
-                        <Input placeholder="Pérez" {...field} />
+                        <Input placeholder="Apellido Paterno" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -231,7 +222,7 @@ export default function CreateMentorPage() {
                     <FormItem>
                       <FormLabel>Apellido Materno *</FormLabel>
                       <FormControl>
-                        <Input placeholder="García" {...field} />
+                        <Input placeholder="Apellido Materno" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -262,19 +253,32 @@ export default function CreateMentorPage() {
                     </FormItem>
                   )}
                 />
-
                 <FormField
                   control={form.control}
                   name="documentNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Número de Documento *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="12345678" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  render={({ field }) => {
+                    const documentType = form.watch('documentType');
+                    const placeholders = {
+                      DNI: '12345678 (8 dígitos)',
+                      CE: '123456789876 (min. 12 dígitos)',
+                      PASSPORT: 'AB1234567',
+                    };
+                    return (
+                      <FormItem>
+                        <FormLabel>Número de Documento *</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder={
+                              placeholders[documentType as keyof typeof placeholders] ||
+                              'Ingrese número'
+                            }
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
                 />
               </div>
 
@@ -294,57 +298,8 @@ export default function CreateMentorPage() {
                 />
               </div>
 
-              {/* Ubicación */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="country"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>País *</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecciona un país" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Perú">Perú</SelectItem>
-                          <SelectItem value="Otros">Otros</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {watchCountry === 'Perú' && (
-                  <FormField
-                    control={form.control}
-                    name="department"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Departamento de residencia</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecciona un departamento" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {departments.map((d) => (
-                              <SelectItem key={d.value} value={d.value}>
-                                {d.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-              </div>
+              {/* Residency */}
+              <ResidencyFields control={form.control} setValue={form.setValue} />
 
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
                 <Button type="submit" className="flex-1" disabled={isLoading}>

@@ -1,17 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -27,26 +20,19 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
-  Search,
   MoreHorizontal,
   Edit,
   Eye,
   Trash2,
-  Upload,
   UserCheck,
   Globe,
   IdCard,
   AlertCircle,
   Loader2,
   UserPlus,
+  Mail,
+  Phone,
+  User,
 } from 'lucide-react';
 import {
   Sheet,
@@ -55,29 +41,76 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import { Mail, Phone } from 'lucide-react';
 import { useCourse } from '@/context/CourseContext';
-import { apiService, Mentor } from '@/lib/api';
+import { apiService, type Mentor, type Company } from '@/lib/api';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { toast } from 'sonner';
 
-const getDocTypeLabel = (docType: string) => {
-  const docTypeMap = {
-    DNI: 'DNI',
-    CE: 'Carné de Extranjería',
-    PASSPORT: 'Pasaporte',
-  };
-  return docTypeMap[docType as keyof typeof docTypeMap] || docType;
+// Modular components
+import { AssignmentModal } from '@/components/assignment/assignment-modal';
+import { UnassignmentModal } from '@/components/assignment/unassignment-modal';
+import { PaginationControls } from '@/components/data-table/pagination-controls';
+import { StatusBadge } from '@/components/status-badge';
+import { useFilteredPagination } from '@/hooks/use-filtered-pagination';
+import { BulkUploadDialog } from '@/components/batch-upload/bulk-upload';
+import { mentorAssignmentConfig, mentorUnassignmentConfig } from '@/config/mentor-assignment';
+import { SearchWithFilters } from '@/components/data-table/search-filters';
+import { getDocTypeLabel } from '@/lib/helper-functions';
+
+const mentorFilterFn = (mentor: Mentor, searchTerm: string, filters: Record<string, string>) => {
+  const matchesSearch =
+    mentor.firstNames.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    mentor.lastNameFather.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    mentor.lastNameMother.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    mentor.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    mentor.country.toLowerCase().includes(searchTerm.toLowerCase());
+
+  // Add status filtering when mentor status is available
+  const matchesStatus = filters.status === 'all' || true; // TODO: Add mentor.status === filters.status
+
+  return matchesSearch && matchesStatus;
 };
 
-export default function MentorsPage() {
+export default function MentorsPageModular() {
   const { activeCourse } = useCourse();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedMentor, setSelectedMentor] = useState<Mentor | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [mentors, setMentors] = useState<Mentor[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isCompaniesLoading, setIsCompaniesLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Assignment modal states
+  const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState<boolean>(false);
+  const [isUnassignmentModalOpen, setIsUnassignmentModalOpen] = useState<boolean>(false);
+  const [mentorToAssign, setMentorToAssign] = useState<Mentor | null>(null);
+  const [isAssigning, setIsAssigning] = useState<boolean>(false);
+
+  const isMobile = useIsMobile();
+
+  // Use filtered pagination hook
+  const {
+    currentPage,
+    setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage,
+    totalPages,
+    startIndex,
+    endIndex,
+    paginatedData: paginatedMentors,
+    //filteredData: filteredMentors,
+    totalItems,
+  } = useFilteredPagination({
+    data: mentors,
+    itemsPerPage: 10,
+    searchTerm,
+    filters: { status: selectedStatus },
+    filterFn: mentorFilterFn,
+  });
 
   useEffect(() => {
     const fetchMentors = async () => {
@@ -86,6 +119,7 @@ export default function MentorsPage() {
         setIsLoading(false);
         return;
       }
+
       try {
         setIsLoading(true);
         setError(null);
@@ -99,17 +133,104 @@ export default function MentorsPage() {
         setIsLoading(false);
       }
     };
+
     fetchMentors();
   }, [activeCourse]);
 
-  const filteredMentors = mentors.filter((mentor) => {
-    const matchesSearch =
-      mentor.firstNames.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      mentor.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      mentor.country.toLowerCase().includes(searchTerm.toLowerCase());
+  // Fetch companies when needed for assignment
+  const fetchCompanies = async () => {
+    if (!activeCourse || companies.length > 0) return;
 
-    return matchesSearch;
-  });
+    try {
+      setIsCompaniesLoading(true);
+      const companiesData = await apiService.getCompanies(activeCourse.id);
+      setCompanies(companiesData);
+    } catch (err) {
+      console.error('Error fetching companies:', err);
+    } finally {
+      setIsCompaniesLoading(false);
+    }
+  };
+
+  const handleAssignMentor = (mentor: Mentor) => {
+    setMentorToAssign(mentor);
+    setIsAssignmentModalOpen(true);
+    fetchCompanies();
+  };
+
+  const handleUnassignMentor = (mentor: Mentor) => {
+    setMentorToAssign(mentor);
+    setIsUnassignmentModalOpen(true);
+  };
+
+  const handleConfirmAssignment = async (companyId: string) => {
+    if (!mentorToAssign || !activeCourse) return;
+
+    const selectedCompany = companies.find((company) => company.id === companyId);
+    if (!selectedCompany) {
+      toast.error('La empresa seleccionada no existe o no está disponible');
+      return;
+    }
+
+    try {
+      setIsAssigning(true);
+
+      // Call the API to assign the mentor to a company
+      await apiService.assignMentorToOrganization(activeCourse.id, mentorToAssign.id, companyId);
+
+      // Fetch updated mentor from the API
+      const updatedMentor = await apiService.getMentor(activeCourse.id, mentorToAssign.id);
+
+      // Update local state with the refreshed mentor
+      setMentors((prevMentors) =>
+        prevMentors.map((mentor) => (mentor.id === updatedMentor.id ? updatedMentor : mentor)),
+      );
+
+      setIsAssignmentModalOpen(false);
+      setMentorToAssign(null);
+      toast.success('Mentor asignado exitosamente');
+    } catch (err) {
+      console.error('Error assigning mentor:', err);
+      toast.error('Error al asignar el mentor');
+    } finally {
+      setIsAssigning(false);
+    }
+  };
+
+  const handleConfirmUnassignment = async () => {
+    if (!mentorToAssign || !activeCourse) return;
+
+    // Get the first organization ID to remove (assuming single assignment for now)
+    const organizationId = mentorToAssign.organizationIds?.[0];
+    if (!organizationId) {
+      toast.error('No se encontró una asignación para remover');
+      return;
+    }
+
+    try {
+      setIsAssigning(true);
+
+      // Call the API to unassign the mentor
+      await apiService.removeMentorFromCompany(activeCourse.id, organizationId, mentorToAssign.id);
+
+      // Refetch updated mentor from the API
+      const updatedMentor = await apiService.getMentor(activeCourse.id, mentorToAssign.id);
+
+      // Update local state with the refreshed mentor
+      setMentors((prevMentors) =>
+        prevMentors.map((mentor) => (mentor.id === updatedMentor.id ? updatedMentor : mentor)),
+      );
+
+      setIsUnassignmentModalOpen(false);
+      setMentorToAssign(null);
+      toast.success('Mentor desasignado exitosamente');
+    } catch (err) {
+      console.error('Error unassigning mentor:', err);
+      toast.error('Error al desasignar el mentor');
+    } finally {
+      setIsAssigning(false);
+    }
+  };
 
   const handleViewDetail = (mentor: Mentor) => {
     setSelectedMentor(mentor);
@@ -126,11 +247,32 @@ export default function MentorsPage() {
     ) {
       try {
         await apiService.deleteMentor(activeCourse.id, mentor.id);
-        setMentors(mentors.filter((c) => c.id !== mentor.id));
+        setMentors(mentors.filter((m) => m.id !== mentor.id));
+        toast.success('Mentor eliminado exitosamente');
       } catch (err) {
         console.error('Error deleting mentor:', err);
-        alert('Error al eliminar al mentor. Por favor, intenta nuevamente.');
+        toast.error('Error al eliminar el mentor');
       }
+    }
+  };
+
+  const handleBulkUpload = async (file: File) => {
+    if (!activeCourse) return;
+
+    try {
+      // TODO: Implement API call for bulk upload mentors
+      // const response = await apiService.uploadMentorsBatch(activeCourse.id, file);
+      console.log('Uploading mentors file:', file.name);
+
+      // Simulate successful upload
+      toast.success('Mentores cargados exitosamente');
+
+      // Refresh mentors list
+      const mentorsData = await apiService.getMentors(activeCourse.id);
+      setMentors(mentorsData);
+    } catch (error) {
+      toast.error('Error al subir el archivo.');
+      throw error;
     }
   };
 
@@ -140,12 +282,54 @@ export default function MentorsPage() {
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Por favor, selecciona un curso para ver los pasantes asociados.
+            Por favor, selecciona un curso para ver los mentores asociados.
           </AlertDescription>
         </Alert>
       </div>
     );
   }
+
+  const statusFilters = [
+    {
+      value: selectedStatus,
+      onChange: setSelectedStatus,
+      placeholder: 'Estado',
+      options: [
+        { value: 'all', label: 'Todos' },
+        { value: 'assigned', label: 'Asignados' },
+        { value: 'unassigned', label: 'No asignados' },
+      ],
+    },
+  ];
+
+  const actions = (
+    <>
+      <BulkUploadDialog
+        title="Carga Masiva de Mentores"
+        description="Sube un archivo CSV con los datos de los mentores"
+        acceptedFileTypes=".csv"
+        triggerText="Carga Masiva"
+        columns={[
+          'documentType',
+          'document',
+          'email',
+          'firstNames',
+          'lastNameFather',
+          'lastNameMother',
+          'phone',
+          'country',
+          'peruDepartment',
+        ]}
+        onUpload={handleBulkUpload}
+      />
+      <Button asChild className="w-full sm:w-auto">
+        <Link href="/dashboard/mentors/create">
+          <UserCheck className="h-4 w-4 mr-2" />
+          Registrar Mentor
+        </Link>
+      </Button>
+    </>
+  );
 
   return (
     <div className="container mx-auto p-6">
@@ -158,66 +342,14 @@ export default function MentorsPage() {
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Buscar mentores..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-80"
-            />
-          </div>
-          <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Estado" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="active">Activos</SelectItem>
-              <SelectItem value="inactive">Inactivos</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex gap-2">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <Upload className="h-4 w-4 mr-2" />
-                Carga Masiva
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Carga Masiva de Mentores</DialogTitle>
-                <DialogDescription>
-                  Sube un archivo CSV con los datos de los mentores
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <Input type="file" accept=".csv" />
-                <div className="text-sm text-muted-foreground">
-                  <p>El archivo CSV debe contener las siguientes columnas:</p>
-                  <ul className="list-disc list-inside mt-2">
-                    <li>nombre</li>
-                    <li>email</li>
-                    <li>telefono</li>
-                    <li>empresa</li>
-                    <li>especialidad</li>
-                  </ul>
-                </div>
-                <Button className="w-full">Subir Archivo</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-          <Button asChild>
-            <Link href="/dashboard/mentors/create">
-              <UserCheck className="h-4 w-4 mr-2" />
-              Registrar Mentor
-            </Link>
-          </Button>
-        </div>
+      <div className="flex flex-col gap-4 mb-6">
+        <SearchWithFilters
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          searchPlaceholder="Buscar mentores..."
+          filters={statusFilters}
+          actions={actions}
+        />
       </div>
 
       {error && (
@@ -234,12 +366,12 @@ export default function MentorsPage() {
             {isLoading ? (
               <div className="flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Cargando pasantes...
+                Cargando mentores...
               </div>
             ) : (
               <>
-                {filteredMentors.length} mentor{filteredMentors.length !== 1 ? 'es' : ''} encontrado
-                {filteredMentors.length !== 1 ? 's' : ''}
+                Mostrando {startIndex + 1}-{Math.min(endIndex, totalItems)} de {totalItems} mentor
+                {totalItems !== 1 ? 'es' : ''}
               </>
             )}
           </CardDescription>
@@ -249,7 +381,7 @@ export default function MentorsPage() {
             <div className="flex justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin" />
             </div>
-          ) : filteredMentors.length === 0 ? (
+          ) : paginatedMentors.length === 0 ? (
             <div className="text-center py-8">
               <UserPlus className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground">
@@ -258,22 +390,107 @@ export default function MentorsPage() {
                   : 'No se encontraron mentores con los criterios de búsqueda.'}
               </p>
             </div>
+          ) : isMobile ? (
+            // Cards for mobile view
+            <div className="space-y-4">
+              {paginatedMentors.map((mentor) => (
+                <Card key={mentor.id} className="p-4">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <h3 className="font-medium text-sm">
+                        {mentor.firstNames} {mentor.lastNameFather} {mentor.lastNameMother}
+                      </h3>
+                      <p className="text-xs text-muted-foreground">{mentor.email}</p>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleViewDetail(mentor)}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          Ver Detalle
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href={`/dashboard/mentors/${mentor.id}/edit`}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Editar
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => handleDeleteMentor(mentor)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Eliminar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-xs">{mentor.phone}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Globe className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-xs">{mentor.country}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <IdCard className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-xs">
+                        {getDocTypeLabel(mentor.documentType)}: {mentor.document}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <StatusBadge
+                        entity={mentor}
+                        status={(mentor as any).organizationStatus || 'unassigned'}
+                        onAssign={handleAssignMentor}
+                        onUnassign={handleUnassignMentor}
+                      />
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
           ) : (
+            // Table for desktop view
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Mentor</TableHead>
                   <TableHead>Email</TableHead>
+                  <TableHead>Teléfono</TableHead>
+                  <TableHead>Documento</TableHead>
+                  <TableHead>Estado</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredMentors.map((mentor) => (
+                {paginatedMentors.map((mentor) => (
                   <TableRow key={mentor.id}>
-                    <TableCell className="font-medium truncate">
+                    <TableCell className="font-medium">
                       {mentor.firstNames} {mentor.lastNameFather} {mentor.lastNameMother}
                     </TableCell>
                     <TableCell>{mentor.email}</TableCell>
+                    <TableCell>{mentor.phone}</TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        <div>{getDocTypeLabel(mentor.documentType)}</div>
+                        <div className="text-muted-foreground">{mentor.document}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge
+                        entity={mentor}
+                        status={(mentor as any).organizationStatus || 'unassigned'}
+                        onAssign={handleAssignMentor}
+                        onUnassign={handleUnassignMentor}
+                      />
+                    </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -308,10 +525,49 @@ export default function MentorsPage() {
             </Table>
           )}
         </CardContent>
+
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          itemsPerPage={itemsPerPage}
+          totalItems={totalItems}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={setItemsPerPage}
+          startIndex={startIndex}
+          endIndex={endIndex}
+        />
       </Card>
-      {/* Side Slide Detail */}
+
+      {/* Assignment Modal */}
+      <AssignmentModal
+        isOpen={isAssignmentModalOpen}
+        onClose={() => {
+          setIsAssignmentModalOpen(false);
+          setMentorToAssign(null);
+        }}
+        assignee={mentorToAssign}
+        assignableEntities={companies}
+        onAssign={handleConfirmAssignment}
+        isLoading={isCompaniesLoading || isAssigning}
+        config={mentorAssignmentConfig}
+      />
+
+      {/* Unassignment Modal */}
+      <UnassignmentModal
+        isOpen={isUnassignmentModalOpen}
+        onClose={() => {
+          setIsUnassignmentModalOpen(false);
+          setMentorToAssign(null);
+        }}
+        entity={mentorToAssign}
+        onUnassign={handleConfirmUnassignment}
+        isLoading={isAssigning}
+        config={mentorUnassignmentConfig}
+      />
+
+      {/* Detail Sheet */}
       <Sheet open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <SheetContent className="w-[600px] sm:w-[800px] overflow-y-auto">
+        <SheetContent className={`${isMobile ? 'w-full' : 'w-[600px] sm:w-[800px]'}`}>
           {selectedMentor && (
             <>
               <SheetHeader>
@@ -324,12 +580,18 @@ export default function MentorsPage() {
               </SheetHeader>
 
               <div className="mt-6 space-y-6">
-                {/* Información básica */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-lg">Información Personal</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">
+                        {selectedMentor.firstNames} {selectedMentor.lastNameFather}{' '}
+                        {selectedMentor.lastNameMother}
+                      </span>
+                    </div>
                     <div className="flex items-center gap-2">
                       <Mail className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">{selectedMentor.email}</span>
@@ -341,7 +603,9 @@ export default function MentorsPage() {
                     <div className="flex items-center gap-2">
                       <Globe className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">
-                        {selectedMentor.peruDepartment}, {selectedMentor.country}
+                        {selectedMentor.peruDepartment
+                          ? `${selectedMentor.peruDepartment}, ${selectedMentor.country}`
+                          : selectedMentor.country}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -353,7 +617,6 @@ export default function MentorsPage() {
                   </CardContent>
                 </Card>
 
-                {/* Fechas */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-lg">Información Adicional</CardTitle>

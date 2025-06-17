@@ -31,7 +31,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     if (!activeCourse) {
       return [
         {
-          title: 'Empresas',
+          title: 'Organizaciones',
           url: '/',
           icon: Building2,
           items: [
@@ -80,7 +80,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
     return [
       {
-        title: 'Empresas',
+        title: 'Organizaciones',
         url: '/',
         icon: Building2,
         items: [

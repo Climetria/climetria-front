@@ -273,7 +273,7 @@ export default function CreateCompanyPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="Perú">Perú</SelectItem>
+                          <SelectItem value="Peru">Perú</SelectItem>
                           <SelectItem value="Colombia">Colombia</SelectItem>
                           <SelectItem value="Ecuador">Ecuador</SelectItem>
                           <SelectItem value="Bolivia">Bolivia</SelectItem>

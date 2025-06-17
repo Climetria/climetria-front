@@ -1,3 +1,5 @@
+import { CsvUploadInternResponseDto } from '@/interfaces/csvUploadIntern-response.dto';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export interface Company {
@@ -44,6 +46,8 @@ export interface Intern {
   courseId: string;
   createdAt: string;
   updatedAt: string;
+  organizationStatus: string;
+  organizationIds?: string[];
 }
 
 export interface Mentor {
@@ -60,9 +64,11 @@ export interface Mentor {
   courseId: string;
   createdAt: string;
   updatedAt: string;
+  organizationStatus: string;
+  organizationIds?: string[];
 }
 
-// Utilidad para leer cookies desde el cliente
+// Utility to read cookies from the client
 function getCookieValue(name: string): string | null {
   if (typeof document === 'undefined') return null;
   const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
@@ -87,7 +93,6 @@ class ApiService {
       console.log('Request options:', requestOptions);
 
       const response = await fetch(`${API_BASE_URL}${url}`, requestOptions);
-
       console.log(`Response status: ${response.status}`);
 
       if (!response.ok) {
@@ -104,9 +109,21 @@ class ApiService {
         );
       }
 
-      const responseData = await response.json();
-      console.log('Response data:', responseData);
-      return responseData;
+      // Avoid parsing .json() if there is no content
+      const contentLength = response.headers.get('content-length');
+      const contentType = response.headers.get('content-type');
+
+      if (response.status === 204 || !contentType || parseInt(contentLength || '0', 10) === 0) {
+        return null;
+      }
+
+      if (contentType.includes('application/json')) {
+        const responseData = await response.json();
+        console.log('Response data:', responseData);
+        return responseData;
+      }
+
+      return null;
     } catch (error) {
       console.error(`Error fetching ${url}:`, error);
       throw error;
@@ -135,15 +152,15 @@ class ApiService {
 
   // Companies
   async getCompanies(courseId: string): Promise<Company[]> {
-    return this.fetchWithErrorHandling(`/courses/${courseId}/companies`);
+    return this.fetchWithErrorHandling(`/courses/${courseId}/organizations`);
   }
 
   async getCompany(courseId: string, companyId: string): Promise<Company> {
-    return this.fetchWithErrorHandling(`/courses/${courseId}/companies/${companyId}`);
+    return this.fetchWithErrorHandling(`/courses/${courseId}/organizations/${companyId}`);
   }
 
   async createCompany(courseId: string, companyData: Partial<Company>): Promise<Company> {
-    // Asegurar que solo enviamos los campos necesarios para la creación
+    // Make sure to only send the necessary fields for creation
     const cleanData = {
       ruc: companyData.ruc,
       email: companyData.email,
@@ -158,7 +175,7 @@ class ApiService {
 
     console.log('Clean company data to send:', cleanData);
 
-    return this.fetchWithErrorHandling(`/courses/${courseId}/companies`, {
+    return this.fetchWithErrorHandling(`/courses/${courseId}/organizations`, {
       method: 'POST',
       body: JSON.stringify(cleanData),
     });
@@ -169,14 +186,14 @@ class ApiService {
     companyId: string,
     companyData: Partial<Company>,
   ): Promise<Company> {
-    return this.fetchWithErrorHandling(`/courses/${courseId}/companies/${companyId}`, {
+    return this.fetchWithErrorHandling(`/courses/${courseId}/organizations/${companyId}`, {
       method: 'PATCH',
       body: JSON.stringify(companyData),
     });
   }
 
   async deleteCompany(courseId: string, companyId: string): Promise<void> {
-    return this.fetchWithErrorHandling(`/courses/${courseId}/companies/${companyId}`, {
+    return this.fetchWithErrorHandling(`/courses/${courseId}/organizations/${companyId}`, {
       method: 'DELETE',
     });
   }
@@ -214,6 +231,27 @@ class ApiService {
     });
   }
 
+  async uploadInternsBatch(courseId: string, file: File): Promise<CsvUploadInternResponseDto> {
+    const token = getCookieValue('accessToken');
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_BASE_URL}/courses/${courseId}/interns/batch`, {
+      method: 'POST',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorBody}`);
+    }
+
+    return response.json();
+  }
+
   // Mentors
   async getMentors(courseId: string): Promise<Mentor[]> {
     return this.fetchWithErrorHandling(`/courses/${courseId}/mentors`);
@@ -245,6 +283,104 @@ class ApiService {
     return this.fetchWithErrorHandling(`/courses/${courseId}/mentors/${mentorId}`, {
       method: 'DELETE',
     });
+  }
+
+  // ===== ASSIGNMENT METHODS =====
+
+  /**
+   * Assign a mentor to a company within a specific course
+   */
+  async assignMentorToOrganization(
+    courseId: string,
+    mentorId: string,
+    organizationId: string,
+  ): Promise<void> {
+    return this.fetchWithErrorHandling(
+      `/courses/${courseId}/organizations/${organizationId}/mentors/${mentorId}`,
+      {
+        method: 'PATCH',
+      },
+    );
+  }
+
+  /**
+   * Assign an intern to a company within a specific course
+   */
+  async assignInternToOrganization(
+    courseId: string,
+    organizationId: string,
+    internId: string,
+  ): Promise<void> {
+    return this.fetchWithErrorHandling(
+      `/courses/${courseId}/organizations/${organizationId}/interns/${internId}`,
+      {
+        method: 'PATCH',
+      },
+    );
+  }
+
+  /**
+   * Remove a mentor's assignment from a company
+   */
+  async removeMentorFromCompany(
+    courseId: string,
+    organizationId: string,
+    mentorId: string,
+  ): Promise<void> {
+    return this.fetchWithErrorHandling(
+      `/courses/${courseId}/organizations/${organizationId}/mentors/${mentorId}`,
+      {
+        method: 'DELETE',
+      },
+    );
+  }
+
+  /**
+   * Remove an intern's assignment from a company
+   */
+  async removeInternFromCompany(
+    courseId: string,
+    organizationId: string,
+    internId: string,
+  ): Promise<void> {
+    return this.fetchWithErrorHandling(
+      `/courses/${courseId}/organizations/${organizationId}/interns/${internId}`,
+      {
+        method: 'DELETE',
+      },
+    );
+  }
+
+  /**
+   * Get all mentors assigned to a specific company
+   */
+  async getCompanyMentors(courseId: string, organizationId: string): Promise<Mentor[]> {
+    return this.fetchWithErrorHandling(
+      `/courses/${courseId}/organizations/${organizationId}/mentors`,
+    );
+  }
+
+  /**
+   * Get all interns assigned to a specific company
+   */
+  async getCompanyInterns(courseId: string, organizationId: string): Promise<Intern[]> {
+    return this.fetchWithErrorHandling(
+      `/courses/${courseId}/organizations/${organizationId}/interns`,
+    );
+  }
+
+  /**
+   * Assign multiple mentors to a company at once
+   */
+  async assignMultipleMentorsToCompany(
+    courseId: string,
+    organizationId: string,
+    mentorIds: string[],
+  ): Promise<void> {
+    const promises = mentorIds.map((mentorId) =>
+      this.assignMentorToOrganization(courseId, organizationId, mentorId),
+    );
+    await Promise.all(promises);
   }
 }
 

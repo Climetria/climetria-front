@@ -1,7 +1,7 @@
 export const breadcrumbMap: Record<string, string> = {
   dashboard: 'Dashboard',
   mentors: 'Mentores',
-  companies: 'Empresas',
+  companies: 'Organizaciones',
   create: 'Crear',
   explore: 'Explorar',
   courses: 'Cursos',
