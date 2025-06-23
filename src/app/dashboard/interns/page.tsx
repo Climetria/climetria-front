@@ -44,7 +44,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { useCourse } from '@/context/CourseContext';
-import { apiService, type Intern, type Company } from '@/lib/api';
+import { apiService, type Intern, type Organization } from '@/lib/api';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
@@ -58,24 +58,24 @@ import { PaginationControls } from '@/components/data-table/pagination-controls'
 import { BulkUploadDialog } from '@/components/batch-upload/bulk-upload';
 import { SearchWithFilters } from '@/components/data-table/search-filters';
 import { internAssignmentConfig, internUnassignmentConfig } from '@/config/intern-assignment';
+import { getDocTypeLabel, getTopicLabel } from '@/lib/helper-functions';
 
-// Helper functions
-const getTopicLabel = (topic: string) => {
-  const topicMap = {
-    CN: 'Carbono Neutralidad',
-    HH: 'Huella Hídrica',
-    HC: 'Huella de Carbono',
-  };
-  return topicMap[topic as keyof typeof topicMap] || topic;
-};
+const internFilterFn = (intern: Intern, searchTerm: string, filters: Record<string, string>) => {
+  const matchesSearch =
+    intern.firstNames.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    intern.lastNameFather.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    intern.lastNameMother.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    intern.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    intern.profession.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    intern.universityName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    intern.country.toLowerCase().includes(searchTerm.toLowerCase());
 
-const getDocTypeLabel = (docType: string) => {
-  const docTypeMap = {
-    DNI: 'DNI',
-    CE: 'Carné de Extranjería',
-    PASSPORT: 'Pasaporte',
-  };
-  return docTypeMap[docType as keyof typeof docTypeMap] || docType;
+  const matchesStatus =
+    filters.status === 'all' ||
+    (filters.status === 'assigned' && intern.organizationStatus === 'assigned') ||
+    (filters.status === 'unassigned' && intern.organizationStatus === 'unassigned');
+
+  return matchesSearch && matchesStatus;
 };
 
 export default function InternsPageModular() {
@@ -84,7 +84,7 @@ export default function InternsPageModular() {
   const [selectedIntern, setSelectedIntern] = useState<Intern | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState<boolean>(false);
   const [interns, setInterns] = useState<Intern[]>([]);
-  const [companies, setCompanies] = useState<Company[]>([]);
+  const [companies, setCompanies] = useState<Organization[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isCompaniesLoading, setIsCompaniesLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -651,7 +651,7 @@ export default function InternsPageModular() {
                       <span className="text-sm">
                         Estado:{' '}
                         {selectedIntern.organizationStatus === 'assigned'
-                          ? 'Asignado'
+                          ? `Asignado a ${selectedIntern.organizationIds?.[0]}`
                           : 'No asignado'}
                       </span>
                     </div>
@@ -696,23 +696,3 @@ export default function InternsPageModular() {
     </div>
   );
 }
-
-// Reemplazar la función internFilterFn por:
-const internFilterFn = (intern: Intern, searchTerm: string, filters: Record<string, string>) => {
-  const matchesSearch =
-    intern.firstNames.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    intern.lastNameFather.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    intern.lastNameMother.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    intern.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    intern.profession.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    intern.universityName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    intern.country.toLowerCase().includes(searchTerm.toLowerCase());
-
-  // Filter by organization status if not "all"
-  const matchesStatus =
-    filters.status === 'all' ||
-    (filters.status === 'assigned' && intern.organizationStatus === 'assigned') ||
-    (filters.status === 'unassigned' && intern.organizationStatus === 'unassigned');
-
-  return matchesSearch && matchesStatus;
-};

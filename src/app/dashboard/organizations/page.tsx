@@ -40,7 +40,7 @@ import {
   Loader2,
   AlertCircle,
 } from 'lucide-react';
-import { apiService, type Company } from '@/lib/api';
+import { apiService, type Mentor, type Organization } from '@/lib/api';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useCourse } from '@/context/CourseContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -52,9 +52,10 @@ import { usePagination } from '@/hooks/use-pagination';
 import { BulkUploadDialog } from '@/components/batch-upload/bulk-upload';
 import { SearchAndActions } from '@/components/data-table/search-actions';
 import { getOrganizationSizeLabel, getTopicLabel } from '@/lib/helper-functions';
+import { DynamicMentorModal } from '@/components/assignment/dynamic-mentor-modal';
 
 // Helper function for filtering companies
-const companyFilterFn = (company: Company, searchTerm: string) => {
+const companyFilterFn = (company: Organization, searchTerm: string) => {
   return (
     company.organizationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     company.contactName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -67,12 +68,20 @@ const companyFilterFn = (company: Company, searchTerm: string) => {
 export default function CompaniesPageModular() {
   const { activeCourse } = useCourse();
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const [selectedCompany, setSelectedCompany] = useState<Organization | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState<boolean>(false);
-  const [companies, setCompanies] = useState<Company[]>([]);
+  const [companies, setCompanies] = useState<Organization[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [mentors, setMentors] = useState<Mentor[]>([]);
+  const [isMentorsLoading, setIsMentorsLoading] = useState<boolean>(false);
+  const [mentorsLoaded, setMentorsLoaded] = useState<boolean>(false);
   const isMobile = useIsMobile();
+
+  // Dynamic modal states
+  const [isDynamicModalOpen, setIsDynamicModalOpen] = useState<boolean>(false);
+  const [organizationForModal, setOrganizationForModal] = useState<Organization | null>(null);
+  const [isAssigning, setIsAssigning] = useState<boolean>(false);
 
   // Use pagination hook
   const {
@@ -84,7 +93,6 @@ export default function CompaniesPageModular() {
     startIndex,
     endIndex,
     paginatedData: paginatedCompanies,
-    //filteredData: filteredCompanies,
     totalItems,
   } = usePagination({
     data: companies,
@@ -113,18 +121,129 @@ export default function CompaniesPageModular() {
         setCompanies([]);
       } finally {
         setIsLoading(false);
+        setMentorsLoaded(false); // Reset mentors loaded state
       }
     };
 
     fetchCompanies();
   }, [activeCourse]);
 
-  const handleViewDetail = (company: Company) => {
+  // Fetch mentors when needed for assignment
+  const fetchMentors = async () => {
+    if (!activeCourse || mentorsLoaded) return;
+
+    try {
+      setIsMentorsLoading(true);
+      const mentorsData = await apiService.getMentors(activeCourse.id);
+      setMentors(mentorsData);
+      setMentorsLoaded(true);
+    } catch (err) {
+      console.error('Error fetching mentors:', err);
+      toast.error('Error al cargar los mentores');
+    } finally {
+      setIsMentorsLoading(false);
+    }
+  };
+
+  // Handle opening the dynamic modal
+  const handleOpenMentorModal = (organization: Organization) => {
+    setOrganizationForModal(organization);
+    setIsDynamicModalOpen(true);
+    fetchMentors();
+  };
+
+  // Handle mentor assignment
+  const handleAssignMentors = async (mentorIds: string[]) => {
+    if (!organizationForModal || !activeCourse) return;
+
+    try {
+      setIsAssigning(true);
+
+      // Assign each mentor to the organization
+      for (const mentorId of mentorIds) {
+        await apiService.assignMentorToOrganization(
+          activeCourse.id,
+          mentorId,
+          organizationForModal.id,
+        );
+      }
+
+      // Fetch updated organization from the API
+      const updatedOrganization = await apiService.getCompany(
+        activeCourse.id,
+        organizationForModal.id,
+      );
+
+      // Update local state with the refreshed organization
+      setCompanies((prevCompanies) =>
+        prevCompanies.map((company) =>
+          company.id === updatedOrganization.id ? updatedOrganization : company,
+        ),
+      );
+
+      // Update the modal organization state
+      setOrganizationForModal(updatedOrganization);
+
+      toast.success(
+        `${mentorIds.length} mentor${mentorIds.length > 1 ? 'es asignados' : ' asignado'} exitosamente`,
+      );
+    } catch (err) {
+      console.error('Error assigning mentors:', err);
+      toast.error('Error al asignar los mentores');
+    } finally {
+      setIsAssigning(false);
+    }
+  };
+
+  // Handle mentor unassignment
+  const handleUnassignMentors = async (mentorIds: string[]) => {
+    if (!organizationForModal || !activeCourse) return;
+
+    try {
+      setIsAssigning(true);
+
+      // Unassign each mentor from the organization
+      for (const mentorId of mentorIds) {
+        await apiService.removeMentorFromCompany(
+          activeCourse.id,
+          organizationForModal.id,
+          mentorId,
+        );
+      }
+
+      // Fetch updated organization from the API
+      const updatedOrganization = await apiService.getCompany(
+        activeCourse.id,
+        organizationForModal.id,
+      );
+
+      // Update local state with the refreshed organization
+      setCompanies((prevCompanies) =>
+        prevCompanies.map((company) =>
+          company.id === updatedOrganization.id ? updatedOrganization : company,
+        ),
+      );
+
+      // Update the modal organization state
+      setOrganizationForModal(updatedOrganization);
+
+      toast.success(
+        `${mentorIds.length} mentor${mentorIds.length > 1 ? 'es desasignados' : ' desasignado'} exitosamente`,
+      );
+    } catch (err) {
+      console.error('Error unassigning mentors:', err);
+      toast.error('Error al desasignar los mentores');
+    } finally {
+      setIsAssigning(false);
+    }
+  };
+
+  const handleViewDetail = (company: Organization) => {
     setSelectedCompany(company);
     setIsDetailOpen(true);
   };
 
-  const handleDeleteCompany = async (company: Company) => {
+  const handleDeleteCompany = async (company: Organization) => {
     if (!activeCourse) return;
 
     if (
@@ -146,10 +265,7 @@ export default function CompaniesPageModular() {
 
     try {
       // TODO: Implement API call for bulk upload companies
-      // const response = await apiService.uploadCompaniesBatch(activeCourse.id, file);
       console.log('Uploading companies file:', file.name);
-
-      // Simulate successful upload
       toast.success('Empresas cargadas exitosamente');
 
       // Refresh companies list
@@ -159,6 +275,38 @@ export default function CompaniesPageModular() {
       toast.error('Error al subir el archivo.');
       throw error;
     }
+  };
+
+  // Helper function to get mentor assignment status
+  const getMentorAssignmentStatus = (company: Organization) => {
+    const mentorCount = company.mentorIds?.length || 0;
+    if (mentorCount === 0) return 'unassigned';
+    return 'assigned';
+  };
+
+  // Helper function to render mentor status badge (clickable)
+  const renderMentorStatusBadge = (company: Organization) => {
+    const mentorCount = company.mentorIds?.length || 0;
+    const status = getMentorAssignmentStatus(company);
+
+    return (
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-auto p-1 hover:bg-muted/50"
+        onClick={() => handleOpenMentorModal(company)}
+      >
+        {status === 'assigned' ? (
+          <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-200">
+            {mentorCount} Mentor{mentorCount > 1 ? 'es' : ''}
+          </Badge>
+        ) : (
+          <Badge variant="secondary" className="hover:bg-muted">
+            Sin Mentores
+          </Badge>
+        )}
+      </Button>
+    );
   };
 
   if (!activeCourse) {
@@ -195,9 +343,9 @@ export default function CompaniesPageModular() {
         onUpload={handleBulkUpload}
       />
       <Button asChild className="w-full sm:w-auto">
-        <Link href="/dashboard/companies/create">
+        <Link href="/dashboard/organizations/create">
           <Building2 className="h-4 w-4 mr-2" />
-          Registrar Empresa
+          Registrar Organización
         </Link>
       </Button>
     </>
@@ -242,7 +390,8 @@ export default function CompaniesPageModular() {
             ) : (
               <>
                 Mostrando {startIndex + 1}-{Math.min(endIndex, totalItems)} de {totalItems} empresa
-                {totalItems !== 1 ? 's' : ''}
+                {totalItems !== 1 ? 's' : ''}. Haz clic en el estado de mentores para gestionar
+                asignaciones.
               </>
             )}
           </CardDescription>
@@ -283,7 +432,7 @@ export default function CompaniesPageModular() {
                           Ver Detalle
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link href={`/dashboard/companies/${company.id}/edit`}>
+                          <Link href={`/dashboard/organizations/${company.id}/edit`}>
                             <Edit className="h-4 w-4 mr-2" />
                             Editar
                           </Link>
@@ -311,11 +460,8 @@ export default function CompaniesPageModular() {
                       <Mail className="h-3 w-3 text-muted-foreground" />
                       <span className="text-xs">{company.email}</span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <Badge variant="outline" className="text-xs">
-                        {getOrganizationSizeLabel(company.organizationSize)}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">{company.country}</span>
+                    <div className="flex items-center gap-2">
+                      {renderMentorStatusBadge(company)}
                     </div>
                   </div>
                 </Card>
@@ -327,10 +473,10 @@ export default function CompaniesPageModular() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Empresa</TableHead>
+                  <TableHead>RUC</TableHead>
                   <TableHead>Contacto</TableHead>
-                  <TableHead>Sector</TableHead>
-                  <TableHead>Tamaño</TableHead>
                   <TableHead>País</TableHead>
+                  <TableHead>Mentores</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -338,19 +484,15 @@ export default function CompaniesPageModular() {
                 {paginatedCompanies.map((company) => (
                   <TableRow key={company.id}>
                     <TableCell className="font-medium">{company.organizationName}</TableCell>
+                    <TableCell>{company.ruc || 'N/A'}</TableCell>
                     <TableCell>
                       <div>
                         <div>{company.contactName}</div>
                         <div className="text-sm text-muted-foreground">{company.phone}</div>
                       </div>
                     </TableCell>
-                    <TableCell>{company.sector}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {getOrganizationSizeLabel(company.organizationSize)}
-                      </Badge>
-                    </TableCell>
                     <TableCell>{company.country}</TableCell>
+                    <TableCell>{renderMentorStatusBadge(company)}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -364,7 +506,7 @@ export default function CompaniesPageModular() {
                             Ver Detalle
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
-                            <Link href={`/dashboard/companies/${company.id}/edit`}>
+                            <Link href={`/dashboard/organizations/${company.id}/edit`}>
                               <Edit className="h-4 w-4 mr-2" />
                               Editar
                             </Link>
@@ -397,6 +539,20 @@ export default function CompaniesPageModular() {
           endIndex={endIndex}
         />
       </Card>
+
+      {/* Dynamic Mentor Modal */}
+      <DynamicMentorModal
+        isOpen={isDynamicModalOpen}
+        onClose={() => {
+          setIsDynamicModalOpen(false);
+          setOrganizationForModal(null);
+        }}
+        organization={organizationForModal}
+        mentors={mentors}
+        onAssign={handleAssignMentors}
+        onUnassign={handleUnassignMentors}
+        isLoading={isMentorsLoading || isAssigning}
+      />
 
       {/* Detail Sheet */}
       <Sheet open={isDetailOpen} onOpenChange={setIsDetailOpen}>
@@ -448,6 +604,37 @@ export default function CompaniesPageModular() {
                         <Building className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm">RUC: {selectedCompany.ruc}</span>
                       </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Mentors Assigned */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Mentores Asignados</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {selectedCompany.mentorIds && selectedCompany.mentorIds.length > 0 ? (
+                      <div className="space-y-2">
+                        {selectedCompany.mentorIds.map((mentorId, index) => {
+                          const mentor = mentors.find((m) => m.id === mentorId);
+                          return (
+                            <div
+                              key={index}
+                              className="flex items-center gap-2 p-2 bg-muted rounded"
+                            >
+                              <User className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm">
+                                {mentor
+                                  ? `${mentor.firstNames} ${mentor.lastNameFather} ${mentor.lastNameMother}`
+                                  : `Mentor ID: ${mentorId}`}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No hay mentores asignados</p>
                     )}
                   </CardContent>
                 </Card>

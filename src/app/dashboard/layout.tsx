@@ -16,7 +16,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <DynamicBreadcrumb />
           </div>
         </header>
-        <main className="flex flex-1 flex-col gap-4 p-4 pt-0">{children}</main>
+
+        {/* ✅ Este wrapper evita scroll horizontal global */}
+        <div className="w-full overflow-x-hidden">
+          <main className="flex flex-1 flex-col gap-4 p-4 pt-0 overflow-x-hidden">{children}</main>
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );

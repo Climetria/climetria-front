@@ -1,6 +1,4 @@
 'use client';
-
-import * as React from 'react';
 import { ChevronsUpDown, Plus, Search, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 
 import {
@@ -95,17 +93,53 @@ export function CourseSwitcher() {
     return (
       <SidebarMenu>
         <SidebarMenuItem>
-          <SidebarMenuButton size="lg" disabled>
-            <div className="bg-muted text-muted-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-              <Command className="size-4" />
-            </div>
-            <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate font-medium">Sin cursos</span>
-              <span className="truncate text-xs text-muted-foreground">
-                No hay cursos disponibles
-              </span>
-            </div>
-          </SidebarMenuButton>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <SidebarMenuButton
+                size="lg"
+                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              >
+                <div className="bg-muted text-muted-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                  <Command className="size-4" />
+                </div>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-medium">Sin cursos</span>
+                  <span className="truncate text-xs text-muted-foreground">
+                    No hay cursos disponibles
+                  </span>
+                </div>
+                <ChevronsUpDown className="ml-auto size-4" />
+              </SidebarMenuButton>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+              align="start"
+              side={isMobile ? 'bottom' : 'right'}
+              sideOffset={4}
+            >
+              <DropdownMenuLabel className="text-muted-foreground text-xs">
+                Opciones
+              </DropdownMenuLabel>
+
+              <DropdownMenuItem className="gap-2 p-2 cursor-pointer" asChild>
+                <Link href="/dashboard/courses/create" className="flex items-center gap-2 w-full">
+                  <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
+                    <Plus className="size-4" />
+                  </div>
+                  <div className="text-muted-foreground font-medium">Crear primer curso</div>
+                </Link>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem className="gap-2 p-2 cursor-pointer" asChild>
+                <Link href="/dashboard/courses" className="flex items-center gap-2 w-full">
+                  <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
+                    <Search className="size-4" />
+                  </div>
+                  <div className="text-muted-foreground font-medium">Ver cursos</div>
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </SidebarMenuItem>
       </SidebarMenu>
     );
@@ -158,9 +192,7 @@ export function CourseSwitcher() {
                 <DropdownMenuItem
                   key={course.id}
                   onClick={() => setActiveCourse(course)}
-                  className={`gap-2 p-2 cursor-pointer ${
-                    isActive ? 'bg-accent text-accent-foreground' : ''
-                  }`}
+                  className={`gap-2 p-2 cursor-pointer ${isActive ? 'bg-accent text-accent-foreground' : ''}`}
                 >
                   <div className="flex size-6 items-center justify-center rounded-md border">
                     <CourseIcon className="size-3.5 shrink-0" />

@@ -1,8 +1,8 @@
-import { CsvUploadInternResponseDto } from '@/interfaces/csvUploadIntern-response.dto';
+import type { CsvUploadInternResponseDto } from '@/interfaces/csvUploadIntern-response.dto';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-export interface Company {
+export interface Organization {
   id: string;
   ruc: string;
   email: string;
@@ -13,7 +13,14 @@ export interface Company {
   organizationSize: 'SMALL' | 'LARGE';
   sector: string;
   topicsOfInterest: string[];
-  courseId: string;
+  // Campos opcionales agregados para el formulario
+  maximumNumberOfInterns?: number;
+  placeOfResidenceFilter?: string;
+  studiedMajorFilter?: string[];
+  genderFilter?: string[];
+  courseIds?: string[];
+  mentorIds?: string[];
+  internIds?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -113,7 +120,11 @@ class ApiService {
       const contentLength = response.headers.get('content-length');
       const contentType = response.headers.get('content-type');
 
-      if (response.status === 204 || !contentType || parseInt(contentLength || '0', 10) === 0) {
+      if (
+        response.status === 204 ||
+        !contentType ||
+        Number.parseInt(contentLength || '0', 10) === 0
+      ) {
         return null;
       }
 
@@ -151,16 +162,16 @@ class ApiService {
   }
 
   // Companies
-  async getCompanies(courseId: string): Promise<Company[]> {
+  async getCompanies(courseId: string): Promise<Organization[]> {
     return this.fetchWithErrorHandling(`/courses/${courseId}/organizations`);
   }
 
-  async getCompany(courseId: string, companyId: string): Promise<Company> {
+  async getCompany(courseId: string, companyId: string): Promise<Organization> {
     return this.fetchWithErrorHandling(`/courses/${courseId}/organizations/${companyId}`);
   }
 
-  async createCompany(courseId: string, companyData: Partial<Company>): Promise<Company> {
-    // Make sure to only send the necessary fields for creation
+  async createCompany(courseId: string, companyData: Partial<Organization>): Promise<Organization> {
+    // Include all the new optional fields
     const cleanData = {
       ruc: companyData.ruc,
       email: companyData.email,
@@ -171,6 +182,12 @@ class ApiService {
       organizationSize: companyData.organizationSize,
       sector: companyData.sector,
       topicsOfInterest: companyData.topicsOfInterest,
+      // Include optional preference fields
+      maximumNumberOfInterns: companyData.maximumNumberOfInterns,
+      placeOfResidenceFilter: companyData.placeOfResidenceFilter,
+      studiedMajorFilter: companyData.studiedMajorFilter,
+      genderFilter: companyData.genderFilter,
+      courseIds: companyData.courseIds,
     };
 
     console.log('Clean company data to send:', cleanData);
@@ -184,8 +201,8 @@ class ApiService {
   async updateCompany(
     courseId: string,
     companyId: string,
-    companyData: Partial<Company>,
-  ): Promise<Company> {
+    companyData: Partial<Organization>,
+  ): Promise<Organization> {
     return this.fetchWithErrorHandling(`/courses/${courseId}/organizations/${companyId}`, {
       method: 'PATCH',
       body: JSON.stringify(companyData),

@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Building2, Frame, User, UsersRound } from 'lucide-react';
+import { Activity, Building2, Frame, User, UsersRound } from 'lucide-react';
 
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -37,11 +37,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           items: [
             {
               title: 'Explorar',
-              url: '/dashboard/companies/',
+              url: '/dashboard/organizations/',
             },
             {
               title: 'Registrar',
-              url: '/dashboard/companies/create/',
+              url: '/dashboard/organizations/create/',
             },
           ],
         },
@@ -86,11 +86,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         items: [
           {
             title: 'Explorar',
-            url: `/dashboard/companies/`,
+            url: `/dashboard/organizations/`,
           },
           {
             title: 'Registrar',
-            url: `/dashboard/companies/create/`,
+            url: `/dashboard/organizations/create/`,
           },
         ],
       },
@@ -137,6 +137,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuButton className="mx-2 cursor-pointer">
             <Frame className="h-5 w-5" />
             <span>Dashboard</span>
+          </SidebarMenuButton>
+        </Link>
+        <Link href="/dashboard/tracking">
+          <SidebarMenuButton className="mx-2 cursor-pointer">
+            <Activity className="h-5 w-5" />
+            <span>Seguimiento</span>
           </SidebarMenuButton>
         </Link>
         <NavMain items={navMain} />

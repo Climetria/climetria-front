@@ -42,7 +42,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { useCourse } from '@/context/CourseContext';
-import { apiService, type Mentor, type Company } from '@/lib/api';
+import { apiService, type Mentor, type Organization } from '@/lib/api';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
@@ -53,7 +53,6 @@ import { UnassignmentModal } from '@/components/assignment/unassignment-modal';
 import { PaginationControls } from '@/components/data-table/pagination-controls';
 import { StatusBadge } from '@/components/status-badge';
 import { useFilteredPagination } from '@/hooks/use-filtered-pagination';
-import { BulkUploadDialog } from '@/components/batch-upload/bulk-upload';
 import { mentorAssignmentConfig, mentorUnassignmentConfig } from '@/config/mentor-assignment';
 import { SearchWithFilters } from '@/components/data-table/search-filters';
 import { getDocTypeLabel } from '@/lib/helper-functions';
@@ -66,8 +65,10 @@ const mentorFilterFn = (mentor: Mentor, searchTerm: string, filters: Record<stri
     mentor.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     mentor.country.toLowerCase().includes(searchTerm.toLowerCase());
 
-  // Add status filtering when mentor status is available
-  const matchesStatus = filters.status === 'all' || true; // TODO: Add mentor.status === filters.status
+  const matchesStatus =
+    filters.status === 'all' ||
+    (filters.status === 'assigned' && mentor.organizationStatus === 'assigned') ||
+    (filters.status === 'unassigned' && mentor.organizationStatus === 'unassigned');
 
   return matchesSearch && matchesStatus;
 };
@@ -79,7 +80,7 @@ export default function MentorsPageModular() {
   const [selectedMentor, setSelectedMentor] = useState<Mentor | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [mentors, setMentors] = useState<Mentor[]>([]);
-  const [companies, setCompanies] = useState<Company[]>([]);
+  const [companies, setCompanies] = useState<Organization[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isCompaniesLoading, setIsCompaniesLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -256,26 +257,6 @@ export default function MentorsPageModular() {
     }
   };
 
-  const handleBulkUpload = async (file: File) => {
-    if (!activeCourse) return;
-
-    try {
-      // TODO: Implement API call for bulk upload mentors
-      // const response = await apiService.uploadMentorsBatch(activeCourse.id, file);
-      console.log('Uploading mentors file:', file.name);
-
-      // Simulate successful upload
-      toast.success('Mentores cargados exitosamente');
-
-      // Refresh mentors list
-      const mentorsData = await apiService.getMentors(activeCourse.id);
-      setMentors(mentorsData);
-    } catch (error) {
-      toast.error('Error al subir el archivo.');
-      throw error;
-    }
-  };
-
   if (!activeCourse) {
     return (
       <div className="container mx-auto p-6">
@@ -304,24 +285,6 @@ export default function MentorsPageModular() {
 
   const actions = (
     <>
-      <BulkUploadDialog
-        title="Carga Masiva de Mentores"
-        description="Sube un archivo CSV con los datos de los mentores"
-        acceptedFileTypes=".csv"
-        triggerText="Carga Masiva"
-        columns={[
-          'documentType',
-          'document',
-          'email',
-          'firstNames',
-          'lastNameFather',
-          'lastNameMother',
-          'phone',
-          'country',
-          'peruDepartment',
-        ]}
-        onUpload={handleBulkUpload}
-      />
       <Button asChild className="w-full sm:w-auto">
         <Link href="/dashboard/mentors/create">
           <UserCheck className="h-4 w-4 mr-2" />
@@ -465,7 +428,6 @@ export default function MentorsPageModular() {
                   <TableHead>Email</TableHead>
                   <TableHead>Teléfono</TableHead>
                   <TableHead>Documento</TableHead>
-                  <TableHead>Estado</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -482,14 +444,6 @@ export default function MentorsPageModular() {
                         <div>{getDocTypeLabel(mentor.documentType)}</div>
                         <div className="text-muted-foreground">{mentor.document}</div>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge
-                        entity={mentor}
-                        status={(mentor as any).organizationStatus || 'unassigned'}
-                        onAssign={handleAssignMentor}
-                        onUnassign={handleUnassignMentor}
-                      />
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
