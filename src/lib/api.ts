@@ -32,6 +32,9 @@ export interface Course {
   year: number;
   createdAt: string;
   updatedAt: string;
+  mentorIds?: string[];
+  organizationIds?: string[];
+  internIds?: string[];
 }
 
 export interface Intern {
@@ -142,7 +145,7 @@ class ApiService {
   }
 
   // Courses
-  async getCourses(): Promise<Course[]> {
+  async getAllCourses(): Promise<Course[]> {
     return this.fetchWithErrorHandling('/courses');
   }
 
@@ -150,47 +153,62 @@ class ApiService {
     return this.fetchWithErrorHandling(`/courses/${courseId}`);
   }
 
-  async createCourse(courseData: {
-    name: string;
-    description?: string;
-    year: number;
-  }): Promise<Course> {
+  async createCourse(courseData: Partial<Course>): Promise<Course> {
     return this.fetchWithErrorHandling('/courses', {
       method: 'POST',
       body: JSON.stringify(courseData),
     });
   }
 
-  // Companies
-  async getCompanies(courseId: string): Promise<Organization[]> {
+  async updateCourse(courseId: string, courseData: Partial<Course>): Promise<Course> {
+    return this.fetchWithErrorHandling(`/courses/${courseId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(courseData),
+    });
+  }
+
+  async deleteCourse(courseId: string): Promise<void> {
+    return this.fetchWithErrorHandling(`/courses/${courseId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Organizations
+  async getAllOrganizationsWithinCourse(courseId: string): Promise<Organization[]> {
     return this.fetchWithErrorHandling(`/courses/${courseId}/organizations`);
   }
 
-  async getCompany(courseId: string, companyId: string): Promise<Organization> {
-    return this.fetchWithErrorHandling(`/courses/${courseId}/organizations/${companyId}`);
+  async getOrganizationWithinCourse(
+    courseId: string,
+    organizationId: string,
+  ): Promise<Organization> {
+    return this.fetchWithErrorHandling(`/courses/${courseId}/organizations/${organizationId}`);
   }
 
-  async createCompany(courseId: string, companyData: Partial<Organization>): Promise<Organization> {
+  async createOrganizationWithinCourse(
+    courseId: string,
+    organizationData: Partial<Organization>,
+  ): Promise<Organization> {
     // Include all the new optional fields
     const cleanData = {
-      ruc: companyData.ruc,
-      email: companyData.email,
-      contactName: companyData.contactName,
-      phone: companyData.phone,
-      country: companyData.country,
-      organizationName: companyData.organizationName,
-      organizationSize: companyData.organizationSize,
-      sector: companyData.sector,
-      topicsOfInterest: companyData.topicsOfInterest,
+      ruc: organizationData.ruc,
+      email: organizationData.email,
+      contactName: organizationData.contactName,
+      phone: organizationData.phone,
+      country: organizationData.country,
+      organizationName: organizationData.organizationName,
+      organizationSize: organizationData.organizationSize,
+      sector: organizationData.sector,
+      topicsOfInterest: organizationData.topicsOfInterest,
       // Include optional preference fields
-      maximumNumberOfInterns: companyData.maximumNumberOfInterns,
-      placeOfResidenceFilter: companyData.placeOfResidenceFilter,
-      studiedMajorFilter: companyData.studiedMajorFilter,
-      genderFilter: companyData.genderFilter,
-      courseIds: companyData.courseIds,
+      maximumNumberOfInterns: organizationData.maximumNumberOfInterns,
+      placeOfResidenceFilter: organizationData.placeOfResidenceFilter,
+      studiedMajorFilter: organizationData.studiedMajorFilter,
+      genderFilter: organizationData.genderFilter,
+      courseIds: organizationData.courseIds,
     };
 
-    console.log('Clean company data to send:', cleanData);
+    console.log('Clean organization data to send:', cleanData);
 
     return this.fetchWithErrorHandling(`/courses/${courseId}/organizations`, {
       method: 'POST',
@@ -198,40 +216,40 @@ class ApiService {
     });
   }
 
-  async updateCompany(
+  async updateOrganizationWithinCourse(
     courseId: string,
-    companyId: string,
-    companyData: Partial<Organization>,
+    organizationId: string,
+    organizationData: Partial<Organization>,
   ): Promise<Organization> {
-    return this.fetchWithErrorHandling(`/courses/${courseId}/organizations/${companyId}`, {
+    return this.fetchWithErrorHandling(`/courses/${courseId}/organizations/${organizationId}`, {
       method: 'PATCH',
-      body: JSON.stringify(companyData),
+      body: JSON.stringify(organizationData),
     });
   }
 
-  async deleteCompany(courseId: string, companyId: string): Promise<void> {
-    return this.fetchWithErrorHandling(`/courses/${courseId}/organizations/${companyId}`, {
+  async deleteOrganizationWithinCourse(courseId: string, organizationId: string): Promise<void> {
+    return this.fetchWithErrorHandling(`/courses/${courseId}/organizations/${organizationId}`, {
       method: 'DELETE',
     });
   }
 
   // Interns
-  async getInterns(courseId: string): Promise<Intern[]> {
+  async getAllInternsWithinCourse(courseId: string): Promise<Intern[]> {
     return this.fetchWithErrorHandling(`/courses/${courseId}/interns`);
   }
 
-  async getIntern(courseId: string, internId: string): Promise<Intern> {
+  async getInternWithinCourse(courseId: string, internId: string): Promise<Intern> {
     return this.fetchWithErrorHandling(`/courses/${courseId}/interns/${internId}`);
   }
 
-  async createIntern(courseId: string, internData: Partial<Intern>): Promise<Intern> {
+  async createInternWithinCourse(courseId: string, internData: Partial<Intern>): Promise<Intern> {
     return this.fetchWithErrorHandling(`/courses/${courseId}/interns`, {
       method: 'POST',
       body: JSON.stringify(internData),
     });
   }
 
-  async updateIntern(
+  async updateInternWithinCourse(
     courseId: string,
     internId: string,
     internData: Partial<Intern>,
@@ -242,13 +260,16 @@ class ApiService {
     });
   }
 
-  async deleteIntern(courseId: string, internId: string): Promise<void> {
+  async deleteInternWithinCourse(courseId: string, internId: string): Promise<void> {
     return this.fetchWithErrorHandling(`/courses/${courseId}/interns/${internId}`, {
       method: 'DELETE',
     });
   }
 
-  async uploadInternsBatch(courseId: string, file: File): Promise<CsvUploadInternResponseDto> {
+  async uploadInternsBatchWithinCourse(
+    courseId: string,
+    file: File,
+  ): Promise<CsvUploadInternResponseDto> {
     const token = getCookieValue('accessToken');
     const formData = new FormData();
     formData.append('file', file);
@@ -270,22 +291,22 @@ class ApiService {
   }
 
   // Mentors
-  async getMentors(courseId: string): Promise<Mentor[]> {
+  async getAllMentorsWithinCourse(courseId: string): Promise<Mentor[]> {
     return this.fetchWithErrorHandling(`/courses/${courseId}/mentors`);
   }
 
-  async getMentor(courseId: string, mentorId: string): Promise<Mentor> {
+  async getMentorWithinCourse(courseId: string, mentorId: string): Promise<Mentor> {
     return this.fetchWithErrorHandling(`/courses/${courseId}/mentors/${mentorId}`);
   }
 
-  async createMentor(courseId: string, mentorData: Partial<Mentor>): Promise<Mentor> {
+  async createMentorWithinCourse(courseId: string, mentorData: Partial<Mentor>): Promise<Mentor> {
     return this.fetchWithErrorHandling(`/courses/${courseId}/mentors`, {
       method: 'POST',
       body: JSON.stringify(mentorData),
     });
   }
 
-  async updateMentor(
+  async updateMentorWithinCourse(
     courseId: string,
     mentorId: string,
     mentorData: Partial<Mentor>,
@@ -296,7 +317,7 @@ class ApiService {
     });
   }
 
-  async deleteMentor(courseId: string, mentorId: string): Promise<void> {
+  async deleteMentorWithinCourse(courseId: string, mentorId: string): Promise<void> {
     return this.fetchWithErrorHandling(`/courses/${courseId}/mentors/${mentorId}`, {
       method: 'DELETE',
     });
@@ -305,7 +326,7 @@ class ApiService {
   // ===== ASSIGNMENT METHODS =====
 
   /**
-   * Assign a mentor to a company within a specific course
+   * Assign a mentor to a organization within a specific course
    */
   async assignMentorToOrganization(
     courseId: string,
@@ -321,7 +342,7 @@ class ApiService {
   }
 
   /**
-   * Assign an intern to a company within a specific course
+   * Assign an intern to a organization within a specific course
    */
   async assignInternToOrganization(
     courseId: string,
@@ -337,9 +358,9 @@ class ApiService {
   }
 
   /**
-   * Remove a mentor's assignment from a company
+   * Remove a mentor's assignment from a organization
    */
-  async removeMentorFromCompany(
+  async removeMentorFromOrganizationWithinCourse(
     courseId: string,
     organizationId: string,
     mentorId: string,
@@ -353,9 +374,9 @@ class ApiService {
   }
 
   /**
-   * Remove an intern's assignment from a company
+   * Remove an intern's assignment from a organization
    */
-  async removeInternFromCompany(
+  async removeInternFromOrganizationWithinCourse(
     courseId: string,
     organizationId: string,
     internId: string,
@@ -369,27 +390,33 @@ class ApiService {
   }
 
   /**
-   * Get all mentors assigned to a specific company
+   * Get all mentors assigned to a specific organization within a course
    */
-  async getCompanyMentors(courseId: string, organizationId: string): Promise<Mentor[]> {
+  async getAllOrganizationMentorsWithinCourse(
+    courseId: string,
+    organizationId: string,
+  ): Promise<Mentor[]> {
     return this.fetchWithErrorHandling(
       `/courses/${courseId}/organizations/${organizationId}/mentors`,
     );
   }
 
   /**
-   * Get all interns assigned to a specific company
+   * Get all interns assigned to a specific organization within a course
    */
-  async getCompanyInterns(courseId: string, organizationId: string): Promise<Intern[]> {
+  async getAllOrganizationInternsWithinCourse(
+    courseId: string,
+    organizationId: string,
+  ): Promise<Intern[]> {
     return this.fetchWithErrorHandling(
       `/courses/${courseId}/organizations/${organizationId}/interns`,
     );
   }
 
   /**
-   * Assign multiple mentors to a company at once
+   * Assign multiple mentors to a organization at once
    */
-  async assignMultipleMentorsToCompany(
+  async assignMultipleMentorsToOrganization(
     courseId: string,
     organizationId: string,
     mentorIds: string[],

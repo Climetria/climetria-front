@@ -113,7 +113,7 @@ export default function CreateMentorPage() {
       console.log('Datos a enviar:', mentorData);
       console.log('Course ID:', activeCourse.id);
 
-      await apiService.createMentor(activeCourse.id, mentorData);
+      await apiService.createMentorWithinCourse(activeCourse.id, mentorData);
 
       // Redirect to the mentors list after successful creation
       router.push('/dashboard/mentors');

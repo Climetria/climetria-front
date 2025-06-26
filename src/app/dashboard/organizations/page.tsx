@@ -53,24 +53,25 @@ import { BulkUploadDialog } from '@/components/batch-upload/bulk-upload';
 import { SearchAndActions } from '@/components/data-table/search-actions';
 import { getOrganizationSizeLabel, getTopicLabel } from '@/lib/helper-functions';
 import { DynamicMentorModal } from '@/components/assignment/dynamic-mentor-modal';
+import { DeleteConfirmationModal } from '@/components/delete-confirmation-modal';
 
-// Helper function for filtering companies
-const companyFilterFn = (company: Organization, searchTerm: string) => {
+// Helper function for filtering organizations
+const organizationFilterFn = (organization: Organization, searchTerm: string) => {
   return (
-    company.organizationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    company.contactName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    company.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    company.sector.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    company.country.toLowerCase().includes(searchTerm.toLowerCase())
+    organization.organizationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    organization.contactName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    organization.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    organization.sector.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    organization.country.toLowerCase().includes(searchTerm.toLowerCase())
   );
 };
 
-export default function CompaniesPageModular() {
+export default function OrganizationsExplorePage() {
   const { activeCourse } = useCourse();
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [selectedCompany, setSelectedCompany] = useState<Organization | null>(null);
+  const [selectedOrganization, setSelectedOrganization] = useState<Organization | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState<boolean>(false);
-  const [companies, setCompanies] = useState<Organization[]>([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [mentors, setMentors] = useState<Mentor[]>([]);
@@ -83,6 +84,11 @@ export default function CompaniesPageModular() {
   const [organizationForModal, setOrganizationForModal] = useState<Organization | null>(null);
   const [isAssigning, setIsAssigning] = useState<boolean>(false);
 
+  // Delete confirmation modal states
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
+  const [organizationToDelete, setOrganizationToDelete] = useState<Organization | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+
   // Use pagination hook
   const {
     currentPage,
@@ -92,20 +98,20 @@ export default function CompaniesPageModular() {
     totalPages,
     startIndex,
     endIndex,
-    paginatedData: paginatedCompanies,
+    paginatedData: paginatedOrganizations,
     totalItems,
   } = usePagination({
-    data: companies,
+    data: organizations,
     itemsPerPage: 10,
     searchTerm,
-    filterFn: companyFilterFn,
+    filterFn: organizationFilterFn,
   });
 
-  // Fetch companies when active course changes
+  // Fetch organizations when active course changes
   useEffect(() => {
-    const fetchCompanies = async () => {
+    const fetchOrganizations = async () => {
       if (!activeCourse) {
-        setCompanies([]);
+        setOrganizations([]);
         setIsLoading(false);
         return;
       }
@@ -113,19 +119,20 @@ export default function CompaniesPageModular() {
       try {
         setIsLoading(true);
         setError(null);
-        const companiesData = await apiService.getCompanies(activeCourse.id);
-        setCompanies(companiesData);
+        const organizationsData = await apiService.getAllOrganizationsWithinCourse(activeCourse.id);
+        setOrganizations(organizationsData);
       } catch (err) {
-        console.error('Error fetching companies:', err);
+        console.error('Error fetching organizations:', err);
         setError('Error al cargar las organizaciones. Por favor, intenta nuevamente.');
-        setCompanies([]);
+        setOrganizations([]);
       } finally {
         setIsLoading(false);
         setMentorsLoaded(false); // Reset mentors loaded state
       }
     };
 
-    fetchCompanies();
+    fetchOrganizations();
+
   }, [activeCourse]);
 
   // Fetch mentors when needed for assignment
@@ -134,7 +141,7 @@ export default function CompaniesPageModular() {
 
     try {
       setIsMentorsLoading(true);
-      const mentorsData = await apiService.getMentors(activeCourse.id);
+      const mentorsData = await apiService.getAllMentorsWithinCourse(activeCourse.id);
       setMentors(mentorsData);
       setMentorsLoaded(true);
     } catch (err) {
@@ -169,15 +176,15 @@ export default function CompaniesPageModular() {
       }
 
       // Fetch updated organization from the API
-      const updatedOrganization = await apiService.getCompany(
+      const updatedOrganization = await apiService.getOrganizationWithinCourse(
         activeCourse.id,
         organizationForModal.id,
       );
 
       // Update local state with the refreshed organization
-      setCompanies((prevCompanies) =>
-        prevCompanies.map((company) =>
-          company.id === updatedOrganization.id ? updatedOrganization : company,
+      setOrganizations((prevOrganizations) =>
+        prevOrganizations.map((organization) =>
+          organization.id === updatedOrganization.id ? updatedOrganization : organization,
         ),
       );
 
@@ -204,7 +211,7 @@ export default function CompaniesPageModular() {
 
       // Unassign each mentor from the organization
       for (const mentorId of mentorIds) {
-        await apiService.removeMentorFromCompany(
+        await apiService.removeMentorFromOrganizationWithinCourse(
           activeCourse.id,
           organizationForModal.id,
           mentorId,
@@ -212,15 +219,15 @@ export default function CompaniesPageModular() {
       }
 
       // Fetch updated organization from the API
-      const updatedOrganization = await apiService.getCompany(
+      const updatedOrganization = await apiService.getOrganizationWithinCourse(
         activeCourse.id,
         organizationForModal.id,
       );
 
       // Update local state with the refreshed organization
-      setCompanies((prevCompanies) =>
-        prevCompanies.map((company) =>
-          company.id === updatedOrganization.id ? updatedOrganization : company,
+      setOrganizations((prevOrganizations) =>
+        prevOrganizations.map((organization) =>
+          organization.id === updatedOrganization.id ? updatedOrganization : organization,
         ),
       );
 
@@ -238,25 +245,31 @@ export default function CompaniesPageModular() {
     }
   };
 
-  const handleViewDetail = (company: Organization) => {
-    setSelectedCompany(company);
+  const handleViewDetail = (organization: Organization) => {
+    setSelectedOrganization(organization);
     setIsDetailOpen(true);
   };
 
-  const handleDeleteCompany = async (company: Organization) => {
-    if (!activeCourse) return;
+  const handleDeleteOrganization = (organization: Organization) => {
+    setOrganizationToDelete(organization);
+    setIsDeleteModalOpen(true);
+  };
 
-    if (
-      confirm(`¿Estás seguro de que quieres eliminar la empresa "${company.organizationName}"?`)
-    ) {
-      try {
-        await apiService.deleteCompany(activeCourse.id, company.id);
-        setCompanies(companies.filter((c) => c.id !== company.id));
-        toast.success('Empresa eliminada exitosamente');
-      } catch (err) {
-        console.error('Error deleting company:', err);
-        toast.error('Error al eliminar la empresa');
-      }
+  const handleConfirmDelete = async () => {
+    if (!organizationToDelete || !activeCourse) return;
+
+    try {
+      setIsDeleting(true);
+      await apiService.deleteOrganizationWithinCourse(activeCourse.id, organizationToDelete.id);
+      setOrganizations(organizations.filter((c) => c.id !== organizationToDelete.id));
+      toast.success('Organización eliminada exitosamente');
+    } catch (err) {
+      console.error('Error deleting organization:', err);
+      toast.error('Error al eliminar la organización');
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteModalOpen(false);
+      setOrganizationToDelete(null);
     }
   };
 
@@ -264,13 +277,13 @@ export default function CompaniesPageModular() {
     if (!activeCourse) return;
 
     try {
-      // TODO: Implement API call for bulk upload companies
-      console.log('Uploading companies file:', file.name);
-      toast.success('Empresas cargadas exitosamente');
+      // TODO: Implement API call for bulk upload organizations
+      console.log('Uploading organizations file:', file.name);
+      toast.success('Organizaciones cargadas exitosamente');
 
-      // Refresh companies list
-      const companiesData = await apiService.getCompanies(activeCourse.id);
-      setCompanies(companiesData);
+      // Refresh organizations list
+      const organizationsData = await apiService.getAllOrganizationsWithinCourse(activeCourse.id);
+      setOrganizations(organizationsData);
     } catch (error) {
       toast.error('Error al subir el archivo.');
       throw error;
@@ -278,23 +291,23 @@ export default function CompaniesPageModular() {
   };
 
   // Helper function to get mentor assignment status
-  const getMentorAssignmentStatus = (company: Organization) => {
-    const mentorCount = company.mentorIds?.length || 0;
+  const getMentorAssignmentStatus = (organization: Organization) => {
+    const mentorCount = organization.mentorIds?.length || 0;
     if (mentorCount === 0) return 'unassigned';
     return 'assigned';
   };
 
   // Helper function to render mentor status badge (clickable)
-  const renderMentorStatusBadge = (company: Organization) => {
-    const mentorCount = company.mentorIds?.length || 0;
-    const status = getMentorAssignmentStatus(company);
+  const renderMentorStatusBadge = (organization: Organization) => {
+    const mentorCount = organization.mentorIds?.length || 0;
+    const status = getMentorAssignmentStatus(organization);
 
     return (
       <Button
         variant="ghost"
         size="sm"
         className="h-auto p-1 hover:bg-muted/50"
-        onClick={() => handleOpenMentorModal(company)}
+        onClick={() => handleOpenMentorModal(organization)}
       >
         {status === 'assigned' ? (
           <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-200">
@@ -389,7 +402,8 @@ export default function CompaniesPageModular() {
               </div>
             ) : (
               <>
-                Mostrando {startIndex + 1}-{Math.min(endIndex, totalItems)} de {totalItems} empresa
+                Mostrando {startIndex + 1}-{Math.min(endIndex, totalItems)} de {totalItems}{' '}
+                organización
                 {totalItems !== 1 ? 's' : ''}. Haz clic en el estado de mentores para gestionar
                 asignaciones.
               </>
@@ -401,11 +415,11 @@ export default function CompaniesPageModular() {
             <div className="flex justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin" />
             </div>
-          ) : paginatedCompanies.length === 0 ? (
+          ) : paginatedOrganizations.length === 0 ? (
             <div className="text-center py-8">
               <Building2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground">
-                {companies.length === 0
+                {organizations.length === 0
                   ? 'No hay organizaciones registradas en este curso.'
                   : 'No se encontraron organizaciones con los criterios de búsqueda.'}
               </p>
@@ -413,12 +427,12 @@ export default function CompaniesPageModular() {
           ) : isMobile ? (
             // Cards for mobile view
             <div className="space-y-4">
-              {paginatedCompanies.map((company) => (
-                <Card key={company.id} className="p-4">
+              {paginatedOrganizations.map((organization) => (
+                <Card key={organization.id} className="p-4">
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex-1">
-                      <h3 className="font-medium text-sm">{company.organizationName}</h3>
-                      <p className="text-xs text-muted-foreground">{company.sector}</p>
+                      <h3 className="font-medium text-sm">{organization.organizationName}</h3>
+                      <p className="text-xs text-muted-foreground">{organization.sector}</p>
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -427,19 +441,19 @@ export default function CompaniesPageModular() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleViewDetail(company)}>
+                        <DropdownMenuItem onClick={() => handleViewDetail(organization)}>
                           <Eye className="h-4 w-4 mr-2" />
                           Ver Detalle
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link href={`/dashboard/organizations/${company.id}/edit`}>
+                          <Link href={`/dashboard/organizations/${organization.id}/edit`}>
                             <Edit className="h-4 w-4 mr-2" />
                             Editar
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-destructive"
-                          onClick={() => handleDeleteCompany(company)}
+                          onClick={() => handleDeleteOrganization(organization)}
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
                           Eliminar
@@ -450,18 +464,18 @@ export default function CompaniesPageModular() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <User className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-xs">{company.contactName}</span>
+                      <span className="text-xs">{organization.contactName}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Phone className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-xs">{company.phone}</span>
+                      <span className="text-xs">{organization.phone}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Mail className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-xs">{company.email}</span>
+                      <span className="text-xs">{organization.email}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      {renderMentorStatusBadge(company)}
+                      {renderMentorStatusBadge(organization)}
                     </div>
                   </div>
                 </Card>
@@ -472,27 +486,28 @@ export default function CompaniesPageModular() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Empresa</TableHead>
+                  <TableHead>Organización</TableHead>
                   <TableHead>RUC</TableHead>
                   <TableHead>Contacto</TableHead>
-                  <TableHead>País</TableHead>
                   <TableHead>Mentores</TableHead>
+                  <TableHead>Pasantes</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedCompanies.map((company) => (
-                  <TableRow key={company.id}>
-                    <TableCell className="font-medium">{company.organizationName}</TableCell>
-                    <TableCell>{company.ruc || 'N/A'}</TableCell>
+                {paginatedOrganizations.map((organization) => (
+                  <TableRow key={organization.id}>
+                    <TableCell className="font-medium">{organization.organizationName}</TableCell>
+                    <TableCell>{organization.ruc || 'N/A'}</TableCell>
                     <TableCell>
                       <div>
-                        <div>{company.contactName}</div>
-                        <div className="text-sm text-muted-foreground">{company.phone}</div>
+                        <div>{organization.contactName}</div>
+                        <div className="text-sm text-muted-foreground">{organization.phone}</div>
                       </div>
                     </TableCell>
-                    <TableCell>{company.country}</TableCell>
-                    <TableCell>{renderMentorStatusBadge(company)}</TableCell>
+                    <TableCell>{renderMentorStatusBadge(organization)}</TableCell>
+                    {/*TODO: Implement Pasantes logic*/}
+                    <TableCell>{renderMentorStatusBadge(organization)}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -501,19 +516,19 @@ export default function CompaniesPageModular() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleViewDetail(company)}>
+                          <DropdownMenuItem onClick={() => handleViewDetail(organization)}>
                             <Eye className="h-4 w-4 mr-2" />
                             Ver Detalle
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
-                            <Link href={`/dashboard/organizations/${company.id}/edit`}>
+                            <Link href={`/dashboard/organizations/${organization.id}/edit`}>
                               <Edit className="h-4 w-4 mr-2" />
                               Editar
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-destructive"
-                            onClick={() => handleDeleteCompany(company)}
+                            onClick={() => handleDeleteOrganization(organization)}
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
                             Eliminar
@@ -554,19 +569,41 @@ export default function CompaniesPageModular() {
         isLoading={isMentorsLoading || isAssigning}
       />
 
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setOrganizationToDelete(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        isDeleting={isDeleting}
+        description={
+          organizationToDelete && (
+            <>
+              Esta acción no se puede deshacer. Esto eliminará la organización{' '}
+              <strong>{organizationToDelete.organizationName}</strong> y removerá todos sus datos
+              del sistema.
+            </>
+          )
+        }
+        confirmButtonText="Eliminar organización"
+        title="¿Estás seguro de eliminar esta organización?"
+      />
+
       {/* Detail Sheet */}
       <Sheet open={isDetailOpen} onOpenChange={setIsDetailOpen}>
         <SheetContent
           className={`${isMobile ? 'w-full' : 'w-[800px] sm:w-[800px]'} overflow-y-auto`}
         >
-          {selectedCompany && (
+          {selectedOrganization && (
             <>
               <SheetHeader>
                 <SheetTitle className="flex items-center gap-2">
                   <Building2 className="h-5 w-5" />
-                  {selectedCompany.organizationName}
+                  {selectedOrganization.organizationName}
                 </SheetTitle>
-                <SheetDescription>Información detallada de la empresa</SheetDescription>
+                <SheetDescription>Información detallada de la organización</SheetDescription>
               </SheetHeader>
 
               <div className="mt-6 space-y-6">
@@ -578,31 +615,31 @@ export default function CompaniesPageModular() {
                   <CardContent className="space-y-4">
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{selectedCompany.contactName}</span>
+                      <span className="text-sm">{selectedOrganization.contactName}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{selectedCompany.phone}</span>
+                      <span className="text-sm">{selectedOrganization.phone}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{selectedCompany.email}</span>
+                      <span className="text-sm">{selectedOrganization.email}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Building className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">
-                        {selectedCompany.sector} |{' '}
-                        {getOrganizationSizeLabel(selectedCompany.organizationSize)}
+                        {selectedOrganization.sector} |{' '}
+                        {getOrganizationSizeLabel(selectedOrganization.organizationSize)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Globe className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{selectedCompany.country}</span>
+                      <span className="text-sm">{selectedOrganization.country}</span>
                     </div>
-                    {selectedCompany.ruc && (
+                    {selectedOrganization.ruc && (
                       <div className="flex items-center gap-2">
                         <Building className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">RUC: {selectedCompany.ruc}</span>
+                        <span className="text-sm">RUC: {selectedOrganization.ruc}</span>
                       </div>
                     )}
                   </CardContent>
@@ -614,9 +651,9 @@ export default function CompaniesPageModular() {
                     <CardTitle className="text-lg">Mentores Asignados</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {selectedCompany.mentorIds && selectedCompany.mentorIds.length > 0 ? (
+                    {selectedOrganization.mentorIds && selectedOrganization.mentorIds.length > 0 ? (
                       <div className="space-y-2">
-                        {selectedCompany.mentorIds.map((mentorId, index) => {
+                        {selectedOrganization.mentorIds.map((mentorId, index) => {
                           const mentor = mentors.find((m) => m.id === mentorId);
                           return (
                             <div
@@ -646,7 +683,7 @@ export default function CompaniesPageModular() {
                   </CardHeader>
                   <CardContent>
                     <div className="flex flex-wrap gap-2">
-                      {selectedCompany.topicsOfInterest.map((topic, index) => (
+                      {selectedOrganization.topicsOfInterest.map((topic, index) => (
                         <Badge key={index} variant="outline">
                           {getTopicLabel(topic)}
                         </Badge>
@@ -663,11 +700,11 @@ export default function CompaniesPageModular() {
                   <CardContent className="space-y-2">
                     <div className="text-sm">
                       <span className="font-medium">Fecha de registro:</span>{' '}
-                      {new Date(selectedCompany.createdAt).toLocaleDateString('es-ES')}
+                      {new Date(selectedOrganization.createdAt).toLocaleDateString('es-ES')}
                     </div>
                     <div className="text-sm">
                       <span className="font-medium">Última actualización:</span>{' '}
-                      {new Date(selectedCompany.updatedAt).toLocaleDateString('es-ES')}
+                      {new Date(selectedOrganization.updatedAt).toLocaleDateString('es-ES')}
                     </div>
                   </CardContent>
                 </Card>

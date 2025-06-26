@@ -118,8 +118,8 @@ export default function CreateOrganizationPage() {
     },
   });
 
-  // Mutation para crear empresa
-  const createCompanyMutation = useMutation({
+  // Mutation for creating the organization
+  const createOrganizationMutation = useMutation({
     mutationFn: async (data: FormValues) => {
       if (!activeCourse) {
         throw new Error('No hay un curso activo seleccionado');
@@ -127,7 +127,7 @@ export default function CreateOrganizationPage() {
 
       console.log('Form data before sending:', data);
 
-      const companyData = {
+      const organizationData = {
         ruc: data.ruc.trim(),
         email: data.email.trim(),
         contactName: data.contactName.trim(),
@@ -143,22 +143,22 @@ export default function CreateOrganizationPage() {
         genderFilter: data.genderFilter,
       };
 
-      console.log('Company data to send:', companyData);
+      console.log('Organization data to send:', organizationData);
 
-      return apiService.createCompany(activeCourse.id, companyData);
+      return apiService.createOrganizationWithinCourse(activeCourse.id, organizationData);
     },
     onSuccess: (data) => {
       console.log('Organization created successfully:', data);
-      queryClient.invalidateQueries({ queryKey: ['companies'] });
+      queryClient.invalidateQueries({ queryKey: ['organizations'] });
       router.push('/dashboard/organizations');
     },
     onError: (error: Error) => {
-      console.error('Error creating company:', error);
+      console.error('Error creating organization:', error);
     },
   });
 
   const onSubmit = (data: FormValues) => {
-    createCompanyMutation.mutate(data);
+    createOrganizationMutation.mutate(data);
   };
 
   const nextStep = async () => {
@@ -308,11 +308,11 @@ export default function CreateOrganizationPage() {
         {/* Main Content - Ocupa 3/4 del espacio */}
         <div className="flex-1">
           {/* Error de mutación */}
-          {createCompanyMutation.error && (
+          {createOrganizationMutation.error && (
             <Alert variant="destructive" className="mb-6">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                {createCompanyMutation.error.message ||
+                {createOrganizationMutation.error.message ||
                   'Error al registrar la organización. Por favor, intenta nuevamente.'}
               </AlertDescription>
             </Alert>
@@ -342,7 +342,7 @@ export default function CreateOrganizationPage() {
                           type="button"
                           variant="outline"
                           onClick={prevStep}
-                          disabled={createCompanyMutation.isPending}
+                          disabled={createOrganizationMutation.isPending}
                         >
                           <ChevronLeft className="h-4 w-4 mr-2" />
                           Anterior
@@ -353,7 +353,7 @@ export default function CreateOrganizationPage() {
                         <Button
                           type="button"
                           onClick={nextStep}
-                          disabled={createCompanyMutation.isPending}
+                          disabled={createOrganizationMutation.isPending}
                         >
                           Siguiente
                           <ChevronRight className="h-4 w-4 ml-2" />
@@ -361,10 +361,10 @@ export default function CreateOrganizationPage() {
                       ) : (
                         <Button
                           type="button"
-                          disabled={createCompanyMutation.isPending || !form.formState.isValid}
+                          disabled={createOrganizationMutation.isPending || !form.formState.isValid}
                           onClick={() => form.handleSubmit(onSubmit)()}
                         >
-                          {createCompanyMutation.isPending ? (
+                          {createOrganizationMutation.isPending ? (
                             <>
                               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                               Registrando...
@@ -384,7 +384,7 @@ export default function CreateOrganizationPage() {
                       variant="ghost"
                       asChild
                       className="sm:ml-auto"
-                      disabled={createCompanyMutation.isPending}
+                      disabled={createOrganizationMutation.isPending}
                     >
                       <Link href="/dashboard/organizations">Cancelar</Link>
                     </Button>
@@ -657,7 +657,7 @@ function PreferencesStep({ form }: { form: ReturnType<typeof useForm<FormValues>
         <h3 className="font-medium mb-2">Configuración de Filtros</h3>
         <p className="text-sm text-muted-foreground">
           Estos filtros te ayudarán a encontrar internos que se ajusten mejor a las necesidades de
-          tu organización. Todos los campos son opcionales.
+          tu organización.
         </p>
       </div>
 
@@ -698,6 +698,7 @@ function PreferencesStep({ form }: { form: ReturnType<typeof useForm<FormValues>
                   <SelectValue placeholder="Selecciona un departamento" />
                 </SelectTrigger>
               </FormControl>
+              {/* TODO: Fetch real values */}
               <SelectContent>
                 <SelectItem value="LIMA">Lima</SelectItem>
                 <SelectItem value="AREQUIPA">Arequipa</SelectItem>
@@ -730,9 +731,11 @@ function PreferencesStep({ form }: { form: ReturnType<typeof useForm<FormValues>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {[
-                { value: 'ADMINISTRATION', label: 'Administración' },
                 { value: 'ENVIRONMENTAL_ENGINEERING', label: 'Ingeniería Ambiental' },
-                { value: 'INDUSTRIAL_ENGINEERING', label: 'Ingeniería Industrial' },
+                { value: 'FOREST_ENGINEERING', label: 'Ingeniería Forestal' },
+                { value: 'BIOLOGY', label: 'Biología' },
+                { value: 'ENVIRONMENTAL_MANAGEMENT', label: 'Gestión Ambiental' },
+                { value: 'OTHERS', label: 'Otros' },
               ].map((major) => (
                 <FormField
                   key={major.value}
@@ -780,8 +783,7 @@ function PreferencesStep({ form }: { form: ReturnType<typeof useForm<FormValues>
               {[
                 { value: 'MALE', label: 'Masculino' },
                 { value: 'FEMALE', label: 'Femenino' },
-                { value: 'OTHER', label: 'Otro' },
-                { value: 'NO_PREFERENCE', label: 'Sin preferencia' },
+                { value: 'BOTH', label: 'Ambos' },
               ].map((gender) => (
                 <FormField
                   key={gender.value}

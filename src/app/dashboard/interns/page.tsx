@@ -59,6 +59,8 @@ import { BulkUploadDialog } from '@/components/batch-upload/bulk-upload';
 import { SearchWithFilters } from '@/components/data-table/search-filters';
 import { internAssignmentConfig, internUnassignmentConfig } from '@/config/intern-assignment';
 import { getDocTypeLabel, getTopicLabel } from '@/lib/helper-functions';
+import { DeleteConfirmationModal } from '@/components/delete-confirmation-modal';
+
 
 const internFilterFn = (intern: Intern, searchTerm: string, filters: Record<string, string>) => {
   const matchesSearch =
@@ -78,18 +80,18 @@ const internFilterFn = (intern: Intern, searchTerm: string, filters: Record<stri
   return matchesSearch && matchesStatus;
 };
 
-export default function InternsPageModular() {
+export default function InternsExplorePage() {
   const { activeCourse } = useCourse();
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedIntern, setSelectedIntern] = useState<Intern | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState<boolean>(false);
   const [interns, setInterns] = useState<Intern[]>([]);
-  const [companies, setCompanies] = useState<Organization[]>([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isCompaniesLoading, setIsCompaniesLoading] = useState<boolean>(false);
+  const [isOrganizationsLoading, setIsOrganizationsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState('all');
-  const [companiesLoaded, setCompaniesLoaded] = useState<boolean>(false);
+  const [organizationsLoaded, setOrganizationsLoaded] = useState<boolean>(false);
 
   // Assignment modal states
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState<boolean>(false);
@@ -97,9 +99,14 @@ export default function InternsPageModular() {
   const [internToAssign, setInternToAssign] = useState<Intern | null>(null);
   const [isAssigning, setIsAssigning] = useState<boolean>(false);
 
+  // Delete confirmation modal states
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
+  const [internToDelete, setInternToDelete] = useState<Intern | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+
   const isMobile = useIsMobile();
 
-  // Reemplazar el hook usePagination por:
+  // Use filtered pagination hook
   const {
     currentPage,
     setCurrentPage,
@@ -109,7 +116,6 @@ export default function InternsPageModular() {
     startIndex,
     endIndex,
     paginatedData: paginatedInterns,
-    //filteredData: filteredInterns,
     totalItems,
   } = useFilteredPagination({
     data: interns,
@@ -130,7 +136,7 @@ export default function InternsPageModular() {
       try {
         setIsLoading(true);
         setError(null);
-        const internsData = await apiService.getInterns(activeCourse.id);
+        const internsData = await apiService.getAllInternsWithinCourse(activeCourse.id);
         setInterns(internsData);
       } catch (err) {
         console.error('Error fetching interns:', err);
@@ -138,35 +144,33 @@ export default function InternsPageModular() {
         setInterns([]);
       } finally {
         setIsLoading(false);
-        // En el useEffect que carga los pasantes, agregar al final:
-        setCompaniesLoaded(false);
+        setOrganizationsLoaded(false);
       }
     };
 
     fetchInterns();
   }, [activeCourse]);
 
-  // Reemplazar la función fetchCompanies por:
-  const fetchCompanies = async () => {
-    if (!activeCourse || companiesLoaded) return;
+  const fetchOrganizations = async () => {
+    if (!activeCourse || organizationsLoaded) return;
 
     try {
-      setIsCompaniesLoading(true);
-      const companiesData = await apiService.getCompanies(activeCourse.id);
-      setCompanies(companiesData);
-      setCompaniesLoaded(true);
+      setIsOrganizationsLoading(true);
+      const organizationsData = await apiService.getAllOrganizationsWithinCourse(activeCourse.id);
+      setOrganizations(organizationsData);
+      setOrganizationsLoaded(true);
     } catch (err) {
-      console.error('Error fetching companies:', err);
-      toast.error('Error al cargar las empresas');
+      console.error('Error fetching organizations:', err);
+      toast.error('Error al cargar las organizaciones');
     } finally {
-      setIsCompaniesLoading(false);
+      setIsOrganizationsLoading(false);
     }
   };
 
   const handleAssignIntern = (intern: Intern) => {
     setInternToAssign(intern);
     setIsAssignmentModalOpen(true);
-    fetchCompanies();
+    fetchOrganizations();
   };
 
   const handleUnassignIntern = (intern: Intern) => {
@@ -174,32 +178,38 @@ export default function InternsPageModular() {
     setIsUnassignmentModalOpen(true);
   };
 
-  const handleConfirmAssignment = async (companyId: string) => {
+  const handleConfirmAssignment = async (organizationId: string) => {
     if (!internToAssign || !activeCourse) return;
 
-    const selectedCompany = companies.find((company) => company.id === companyId);
-    if (!selectedCompany) {
-      toast.error('La empresa seleccionada no existe o no está disponible');
+    const selectedOrganization = organizations.find(
+      (organization) => organization.id === organizationId,
+    );
+    if (!selectedOrganization) {
+      toast.error('La organización seleccionada no existe o no está disponible');
       return;
     }
 
     try {
       setIsAssigning(true);
 
-      // Call the API to assign intern to company
-      await apiService.assignInternToOrganization(activeCourse.id, companyId, internToAssign.id);
+      await apiService.assignInternToOrganization(
+        activeCourse.id,
+        organizationId,
+        internToAssign.id,
+      );
 
-      // OFetch updated intern from the API
-      const updatedIntern = await apiService.getIntern(activeCourse.id, internToAssign.id);
+      const updatedIntern = await apiService.getInternWithinCourse(
+        activeCourse.id,
+        internToAssign.id,
+      );
 
-      // Update local state with the updated intern
       setInterns((prevInterns) =>
         prevInterns.map((intern) => (intern.id === updatedIntern.id ? updatedIntern : intern)),
       );
 
       setIsAssignmentModalOpen(false);
       setInternToAssign(null);
-      toast.success(`Pasante asignado exitosamente a ${selectedCompany.organizationName}`);
+      toast.success(`Pasante asignado exitosamente a ${selectedOrganization.organizationName}`);
     } catch (err) {
       console.error('Error assigning intern:', err);
       toast.error('Error al asignar el pasante. Por favor, intenta nuevamente.');
@@ -211,7 +221,6 @@ export default function InternsPageModular() {
   const handleConfirmUnassignment = async () => {
     if (!internToAssign || !activeCourse) return;
 
-    // Get the first organization ID to remove (assuming single assignment for now)
     const organizationId = internToAssign.organizationIds?.[0];
     if (!organizationId) {
       toast.error('No se encontró una asignación para remover');
@@ -221,13 +230,17 @@ export default function InternsPageModular() {
     try {
       setIsAssigning(true);
 
-      // Call the API to remove intern from company
-      await apiService.removeInternFromCompany(activeCourse.id, organizationId, internToAssign.id);
+      await apiService.removeInternFromOrganizationWithinCourse(
+        activeCourse.id,
+        organizationId,
+        internToAssign.id,
+      );
 
-      // Refetch the updated intern from the API
-      const updatedIntern = await apiService.getIntern(activeCourse.id, internToAssign.id);
+      const updatedIntern = await apiService.getInternWithinCourse(
+        activeCourse.id,
+        internToAssign.id,
+      );
 
-      // Replace the intern in the local state
       setInterns((prevInterns) =>
         prevInterns.map((intern) => (intern.id === updatedIntern.id ? updatedIntern : intern)),
       );
@@ -248,22 +261,26 @@ export default function InternsPageModular() {
     setIsDetailOpen(true);
   };
 
-  const handleDeleteIntern = async (intern: Intern) => {
-    if (!activeCourse) return;
+  const handleDeleteIntern = (intern: Intern) => {
+    setInternToDelete(intern);
+    setIsDeleteModalOpen(true);
+  };
 
-    if (
-      confirm(
-        `¿Estás seguro de que quieres eliminar al pasante "${intern.firstNames} ${intern.lastNameFather} ${intern.lastNameMother}"?`,
-      )
-    ) {
-      try {
-        await apiService.deleteIntern(activeCourse.id, intern.id);
-        setInterns(interns.filter((c) => c.id !== intern.id));
-        toast.success('Pasante eliminado exitosamente');
-      } catch (err) {
-        console.error('Error deleting intern:', err);
-        toast.error('Error al eliminar el pasante');
-      }
+  const handleConfirmDelete = async () => {
+    if (!internToDelete || !activeCourse) return;
+
+    try {
+      setIsDeleting(true);
+      await apiService.deleteInternWithinCourse(activeCourse.id, internToDelete.id);
+      setInterns(interns.filter((c) => c.id !== internToDelete.id));
+      toast.success('Pasante eliminado exitosamente');
+    } catch (err) {
+      console.error('Error deleting intern:', err);
+      toast.error('Error al eliminar el pasante');
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteModalOpen(false);
+      setInternToDelete(null);
     }
   };
 
@@ -271,11 +288,10 @@ export default function InternsPageModular() {
     if (!activeCourse) return;
 
     try {
-      const response = await apiService.uploadInternsBatch(activeCourse.id, file);
+      const response = await apiService.uploadInternsBatchWithinCourse(activeCourse.id, file);
       if (response.validInterns.length > 0) {
         toast.success(`${response.validInterns.length} pasantes registrados con éxito.`);
-        // Refresh interns list
-        const internsData = await apiService.getInterns(activeCourse.id);
+        const internsData = await apiService.getAllInternsWithinCourse(activeCourse.id);
         setInterns(internsData);
       }
       if (response.invalidRows.length > 0) {
@@ -300,7 +316,6 @@ export default function InternsPageModular() {
     );
   }
 
-  // Antes de la declaración de actions, agregar:
   const statusFilters = [
     {
       value: selectedStatus,
@@ -361,7 +376,6 @@ export default function InternsPageModular() {
       </div>
 
       <div className="flex flex-col gap-4 mb-6">
-        {/* Reemplazar el componente SearchAndActions por: */}
         <SearchWithFilters
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
@@ -570,9 +584,9 @@ export default function InternsPageModular() {
           setInternToAssign(null);
         }}
         assignee={internToAssign}
-        assignableEntities={companies}
+        assignableEntities={organizations}
         onAssign={handleConfirmAssignment}
-        isLoading={isCompaniesLoading || isAssigning}
+        isLoading={isOrganizationsLoading || isAssigning}
         config={internAssignmentConfig}
       />
 
@@ -587,6 +601,30 @@ export default function InternsPageModular() {
         onUnassign={handleConfirmUnassignment}
         isLoading={isAssigning}
         config={internUnassignmentConfig}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setInternToDelete(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        isDeleting={isDeleting}
+        description={
+          internToDelete && (
+            <>
+              Esta acción no se puede deshacer. Esto eliminará al pasante{' '}
+              <strong>
+                {internToDelete.firstNames} {internToDelete.lastNameFather}{' '}
+                {internToDelete.lastNameMother}
+              </strong>{' '}
+              y removerá todos sus datos del sistema.
+            </>
+          )
+        }
+        confirmButtonText="Eliminar pasante"
       />
 
       {/* Detail Sheet */}

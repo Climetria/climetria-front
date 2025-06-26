@@ -134,7 +134,7 @@ export default function CreateInternPage() {
       console.log('Datos a enviar:', internData);
       console.log('Course ID:', activeCourse.id);
 
-      await apiService.createIntern(activeCourse.id, internData);
+      await apiService.createInternWithinCourse(activeCourse.id, internData);
 
       router.push('/dashboard/interns');
     } catch (err: unknown) {

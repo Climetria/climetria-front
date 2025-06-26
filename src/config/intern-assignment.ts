@@ -9,9 +9,9 @@ export const internAssignmentConfig = {
   loadingText: 'Asignando...',
   noEntitiesMessage: 'No hay organizaciones disponibles en este curso',
   noResultsMessage: 'No se encontraron organizaciones con los criterios de búsqueda',
-  entityDisplayName: (company: Organization) => company.organizationName,
-  entitySubtitle: (company: Organization) => `Contacto: ${company.contactName}`,
-  entityContact: (company: Organization) => company.email,
+  entityDisplayName: (organization: Organization) => organization.organizationName,
+  entitySubtitle: (organization: Organization) => `Contacto: ${organization.contactName}`,
+  entityContact: (organization: Organization) => organization.email,
 };
 
 export const internUnassignmentConfig = {

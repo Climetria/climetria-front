@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -42,20 +42,17 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { useCourse } from '@/context/CourseContext';
-import { apiService, type Mentor, type Organization } from '@/lib/api';
+import { apiService, type Mentor } from '@/lib/api';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 
 // Modular components
-import { AssignmentModal } from '@/components/assignment/assignment-modal';
-import { UnassignmentModal } from '@/components/assignment/unassignment-modal';
 import { PaginationControls } from '@/components/data-table/pagination-controls';
-import { StatusBadge } from '@/components/status-badge';
 import { useFilteredPagination } from '@/hooks/use-filtered-pagination';
-import { mentorAssignmentConfig, mentorUnassignmentConfig } from '@/config/mentor-assignment';
 import { SearchWithFilters } from '@/components/data-table/search-filters';
 import { getDocTypeLabel } from '@/lib/helper-functions';
+import { DeleteConfirmationModal } from '@/components/delete-confirmation-modal';
 
 const mentorFilterFn = (mentor: Mentor, searchTerm: string, filters: Record<string, string>) => {
   const matchesSearch =
@@ -73,23 +70,20 @@ const mentorFilterFn = (mentor: Mentor, searchTerm: string, filters: Record<stri
   return matchesSearch && matchesStatus;
 };
 
-export default function MentorsPageModular() {
+export default function MentorsExplorePage() {
   const { activeCourse } = useCourse();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedMentor, setSelectedMentor] = useState<Mentor | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [mentors, setMentors] = useState<Mentor[]>([]);
-  const [companies, setCompanies] = useState<Organization[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isCompaniesLoading, setIsCompaniesLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Assignment modal states
-  const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState<boolean>(false);
-  const [isUnassignmentModalOpen, setIsUnassignmentModalOpen] = useState<boolean>(false);
-  const [mentorToAssign, setMentorToAssign] = useState<Mentor | null>(null);
-  const [isAssigning, setIsAssigning] = useState<boolean>(false);
+  // Delete confirmation modal states
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
+  const [mentorToDelete, setMentorToDelete] = useState<Mentor | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
   const isMobile = useIsMobile();
 
@@ -124,7 +118,7 @@ export default function MentorsPageModular() {
       try {
         setIsLoading(true);
         setError(null);
-        const mentorsData = await apiService.getMentors(activeCourse.id);
+        const mentorsData = await apiService.getAllMentorsWithinCourse(activeCourse.id);
         setMentors(mentorsData);
       } catch (err) {
         console.error('Error fetching mentors:', err);
@@ -138,122 +132,31 @@ export default function MentorsPageModular() {
     fetchMentors();
   }, [activeCourse]);
 
-  // Fetch companies when needed for assignment
-  const fetchCompanies = async () => {
-    if (!activeCourse || companies.length > 0) return;
-
-    try {
-      setIsCompaniesLoading(true);
-      const companiesData = await apiService.getCompanies(activeCourse.id);
-      setCompanies(companiesData);
-    } catch (err) {
-      console.error('Error fetching companies:', err);
-    } finally {
-      setIsCompaniesLoading(false);
-    }
-  };
-
-  const handleAssignMentor = (mentor: Mentor) => {
-    setMentorToAssign(mentor);
-    setIsAssignmentModalOpen(true);
-    fetchCompanies();
-  };
-
-  const handleUnassignMentor = (mentor: Mentor) => {
-    setMentorToAssign(mentor);
-    setIsUnassignmentModalOpen(true);
-  };
-
-  const handleConfirmAssignment = async (companyId: string) => {
-    if (!mentorToAssign || !activeCourse) return;
-
-    const selectedCompany = companies.find((company) => company.id === companyId);
-    if (!selectedCompany) {
-      toast.error('La empresa seleccionada no existe o no está disponible');
-      return;
-    }
-
-    try {
-      setIsAssigning(true);
-
-      // Call the API to assign the mentor to a company
-      await apiService.assignMentorToOrganization(activeCourse.id, mentorToAssign.id, companyId);
-
-      // Fetch updated mentor from the API
-      const updatedMentor = await apiService.getMentor(activeCourse.id, mentorToAssign.id);
-
-      // Update local state with the refreshed mentor
-      setMentors((prevMentors) =>
-        prevMentors.map((mentor) => (mentor.id === updatedMentor.id ? updatedMentor : mentor)),
-      );
-
-      setIsAssignmentModalOpen(false);
-      setMentorToAssign(null);
-      toast.success('Mentor asignado exitosamente');
-    } catch (err) {
-      console.error('Error assigning mentor:', err);
-      toast.error('Error al asignar el mentor');
-    } finally {
-      setIsAssigning(false);
-    }
-  };
-
-  const handleConfirmUnassignment = async () => {
-    if (!mentorToAssign || !activeCourse) return;
-
-    // Get the first organization ID to remove (assuming single assignment for now)
-    const organizationId = mentorToAssign.organizationIds?.[0];
-    if (!organizationId) {
-      toast.error('No se encontró una asignación para remover');
-      return;
-    }
-
-    try {
-      setIsAssigning(true);
-
-      // Call the API to unassign the mentor
-      await apiService.removeMentorFromCompany(activeCourse.id, organizationId, mentorToAssign.id);
-
-      // Refetch updated mentor from the API
-      const updatedMentor = await apiService.getMentor(activeCourse.id, mentorToAssign.id);
-
-      // Update local state with the refreshed mentor
-      setMentors((prevMentors) =>
-        prevMentors.map((mentor) => (mentor.id === updatedMentor.id ? updatedMentor : mentor)),
-      );
-
-      setIsUnassignmentModalOpen(false);
-      setMentorToAssign(null);
-      toast.success('Mentor desasignado exitosamente');
-    } catch (err) {
-      console.error('Error unassigning mentor:', err);
-      toast.error('Error al desasignar el mentor');
-    } finally {
-      setIsAssigning(false);
-    }
-  };
-
   const handleViewDetail = (mentor: Mentor) => {
     setSelectedMentor(mentor);
     setIsDetailOpen(true);
   };
 
-  const handleDeleteMentor = async (mentor: Mentor) => {
-    if (!activeCourse) return;
+  const handleDeleteMentor = (mentor: Mentor) => {
+    setMentorToDelete(mentor);
+    setIsDeleteModalOpen(true);
+  };
 
-    if (
-      confirm(
-        `¿Estás seguro de que quieres eliminar al mentor "${mentor.firstNames} ${mentor.lastNameFather} ${mentor.lastNameMother}"?`,
-      )
-    ) {
-      try {
-        await apiService.deleteMentor(activeCourse.id, mentor.id);
-        setMentors(mentors.filter((m) => m.id !== mentor.id));
-        toast.success('Mentor eliminado exitosamente');
-      } catch (err) {
-        console.error('Error deleting mentor:', err);
-        toast.error('Error al eliminar el mentor');
-      }
+  const handleConfirmDelete = async () => {
+    if (!mentorToDelete || !activeCourse) return;
+
+    try {
+      setIsDeleting(true);
+      await apiService.deleteMentorWithinCourse(activeCourse.id, mentorToDelete.id);
+      setMentors(mentors.filter((m) => m.id !== mentorToDelete.id));
+      toast.success('Mentor eliminado exitosamente');
+    } catch (err) {
+      console.error('Error deleting mentor:', err);
+      toast.error('Error al eliminar el mentor');
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteModalOpen(false);
+      setMentorToDelete(null);
     }
   };
 
@@ -407,14 +310,6 @@ export default function MentorsPageModular() {
                         {getDocTypeLabel(mentor.documentType)}: {mentor.document}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <StatusBadge
-                        entity={mentor}
-                        status={(mentor as any).organizationStatus || 'unassigned'}
-                        onAssign={handleAssignMentor}
-                        onUnassign={handleUnassignMentor}
-                      />
-                    </div>
                   </div>
                 </Card>
               ))}
@@ -492,33 +387,6 @@ export default function MentorsPageModular() {
         />
       </Card>
 
-      {/* Assignment Modal */}
-      <AssignmentModal
-        isOpen={isAssignmentModalOpen}
-        onClose={() => {
-          setIsAssignmentModalOpen(false);
-          setMentorToAssign(null);
-        }}
-        assignee={mentorToAssign}
-        assignableEntities={companies}
-        onAssign={handleConfirmAssignment}
-        isLoading={isCompaniesLoading || isAssigning}
-        config={mentorAssignmentConfig}
-      />
-
-      {/* Unassignment Modal */}
-      <UnassignmentModal
-        isOpen={isUnassignmentModalOpen}
-        onClose={() => {
-          setIsUnassignmentModalOpen(false);
-          setMentorToAssign(null);
-        }}
-        entity={mentorToAssign}
-        onUnassign={handleConfirmUnassignment}
-        isLoading={isAssigning}
-        config={mentorUnassignmentConfig}
-      />
-
       {/* Detail Sheet */}
       <Sheet open={isDetailOpen} onOpenChange={setIsDetailOpen}>
         <SheetContent className={`${isMobile ? 'w-full' : 'w-[600px] sm:w-[800px]'}`}>
@@ -591,6 +459,30 @@ export default function MentorsPageModular() {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setMentorToDelete(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        isDeleting={isDeleting}
+        description={
+          mentorToDelete && (
+            <>
+              Esta acción no se puede deshacer. Esto eliminará al mentor{' '}
+              <strong>
+                {mentorToDelete.firstNames} {mentorToDelete.lastNameFather}{' '}
+                {mentorToDelete.lastNameMother}
+              </strong>{' '}
+              y removerá todos sus datos del sistema.
+            </>
+          )
+        }
+        confirmButtonText="Eliminar mentor"
+      />
     </div>
   );
 }
