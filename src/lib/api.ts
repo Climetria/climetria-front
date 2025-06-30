@@ -17,7 +17,7 @@ export interface Organization {
   maximumNumberOfInterns?: number;
   placeOfResidenceFilter?: string;
   studiedMajorFilter?: string[];
-  genderFilter?: string[];
+  genderFilter?: 'MALE_ONLY' | 'FEMALE_ONLY' | 'BOTH';
   courseIds?: string[];
   mentorIds?: string[];
   internIds?: string[];
@@ -46,8 +46,10 @@ export interface Intern {
   lastNameFather: string;
   lastNameMother: string;
   phone: string;
+  gender: string;
   universityName: string;
   profession: string;
+  majorInProgress: string;
   graduationYear: number;
   referralSource: string;
   country: string;
@@ -78,6 +80,33 @@ export interface Mentor {
   organizationIds?: string[];
 }
 
+export interface Grade {
+  id: string;
+  internId: string;
+  courseId: string;
+  mentorId: string;
+  s1?: Attendance;
+  s2?: Attendance;
+  s3?: Attendance;
+  s4?: Attendance;
+  s5?: Attendance;
+  s6?: Attendance;
+  initialCommitment?: number;
+  assertiveCommunication?: number;
+  punctuality?: number;
+  classParticipation?: number;
+  proactivity?: number;
+  communicationSkills?: number;
+  punctualityOfDelivery?: number;
+  redaction?: number;
+  performance?: number;
+  recommendation?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type Attendance = 'A' | 'M' | 'F' | 'FJ';
+
 // Utility to read cookies from the client
 function getCookieValue(name: string): string | null {
   if (typeof document === 'undefined') return null;
@@ -89,7 +118,6 @@ class ApiService {
   private async fetchWithErrorHandling(url: string, options?: RequestInit) {
     try {
       const token = getCookieValue('accessToken');
-
       const requestOptions = {
         headers: {
           'Content-Type': 'application/json',
@@ -290,6 +318,16 @@ class ApiService {
     return response.json();
   }
 
+  // NEW: Get interns that match with an organization
+  async getInternsMatchingOrganization(
+    courseId: string,
+    organizationId: string,
+  ): Promise<Intern[]> {
+    return this.fetchWithErrorHandling(
+      `/courses/${courseId}/interns/organizations/${organizationId}`,
+    );
+  }
+
   // Mentors
   async getAllMentorsWithinCourse(courseId: string): Promise<Mentor[]> {
     return this.fetchWithErrorHandling(`/courses/${courseId}/mentors`);
@@ -425,6 +463,42 @@ class ApiService {
       this.assignMentorToOrganization(courseId, organizationId, mentorId),
     );
     await Promise.all(promises);
+  }
+
+  /**
+   * Assign multiple interns to a organization at once
+   */
+  async assignMultipleInternsToOrganization(
+    courseId: string,
+    organizationId: string,
+    internIds: string[],
+  ): Promise<void> {
+    const promises = internIds.map((internId) =>
+      this.assignInternToOrganization(courseId, organizationId, internId),
+    );
+    await Promise.all(promises);
+  }
+
+  // Grades
+  async getInternGrade(courseId: string, internId: string): Promise<Grade> {
+    return this.fetchWithErrorHandling(`/courses/${courseId}/interns/${internId}/grade`);
+  }
+
+  async createInternGrade(courseId: string, internId: string): Promise<Grade> {
+    return this.fetchWithErrorHandling(`/courses/${courseId}/interns/${internId}/grade`, {
+      method: 'POST',
+    });
+  }
+
+  async updateInternGrade(
+    courseId: string,
+    internId: string,
+    gradeData: Partial<Grade>,
+  ): Promise<Grade> {
+    return this.fetchWithErrorHandling(`/courses/${courseId}/interns/${internId}/grade`, {
+      method: 'PATCH',
+      body: JSON.stringify(gradeData),
+    });
   }
 }
 

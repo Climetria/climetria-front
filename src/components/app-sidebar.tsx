@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Activity, Building2, Frame, User, UsersRound } from 'lucide-react';
+import { Building2, Frame, NotebookPen, User, UsersRound } from 'lucide-react';
 
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -38,9 +38,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             {
               title: 'Explorar',
               url: '/dashboard/organizations/',
+              url: '/dashboard/organizations/',
             },
             {
               title: 'Registrar',
+              url: '/dashboard/organizations/create/',
               url: '/dashboard/organizations/create/',
             },
           ],
@@ -87,9 +89,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           {
             title: 'Explorar',
             url: `/dashboard/organizations/`,
+            url: `/dashboard/organizations/`,
           },
           {
             title: 'Registrar',
+            url: `/dashboard/organizations/create/`,
             url: `/dashboard/organizations/create/`,
           },
         ],
@@ -141,8 +145,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </Link>
         <Link href="/dashboard/tracking">
           <SidebarMenuButton className="mx-2 cursor-pointer">
-            <Activity className="h-5 w-5" />
-            <span>Seguimiento</span>
+            <NotebookPen className="h-5 w-5" />
+            <span>Notas</span>
           </SidebarMenuButton>
         </Link>
         <NavMain items={navMain} />

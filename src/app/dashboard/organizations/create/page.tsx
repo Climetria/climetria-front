@@ -43,6 +43,7 @@ import { apiService } from '@/lib/api';
 import { useCourse } from '@/context/CourseContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { departments } from '@/components/residency-fields';
 
 const formSchema = z.object({
   ruc: z
@@ -67,7 +68,7 @@ const formSchema = z.object({
     .string()
     .min(1, { message: 'El filtro por lugar de residencia es obligatorio' }),
   studiedMajorFilter: z.array(z.string()).min(1, { message: 'Selecciona al menos una carrera' }),
-  genderFilter: z.array(z.string()).min(1, { message: 'Selecciona al menos una opción de género' }),
+  genderFilter: z.enum(['MALE_ONLY', 'FEMALE_ONLY', 'BOTH']),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -112,9 +113,9 @@ export default function CreateOrganizationPage() {
       sector: '',
       topicsOfInterest: [],
       maximumNumberOfInterns: undefined,
-      placeOfResidenceFilter: '',
+      placeOfResidenceFilter: 'LIMA_METROPOLITANA',
       studiedMajorFilter: [],
-      genderFilter: [],
+      genderFilter: 'BOTH',
     },
   });
 
@@ -698,20 +699,15 @@ function PreferencesStep({ form }: { form: ReturnType<typeof useForm<FormValues>
                   <SelectValue placeholder="Selecciona un departamento" />
                 </SelectTrigger>
               </FormControl>
-              {/* TODO: Fetch real values */}
               <SelectContent>
-                <SelectItem value="LIMA">Lima</SelectItem>
-                <SelectItem value="AREQUIPA">Arequipa</SelectItem>
-                <SelectItem value="CUSCO">Cusco</SelectItem>
-                <SelectItem value="PIURA">Piura</SelectItem>
-                <SelectItem value="LA_LIBERTAD">La Libertad</SelectItem>
-                <SelectItem value="LAMBAYEQUE">Lambayeque</SelectItem>
-                <SelectItem value="JUNIN">Junín</SelectItem>
-                <SelectItem value="ANCASH">Áncash</SelectItem>
-                <SelectItem value="ICA">Ica</SelectItem>
-                <SelectItem value="CAJAMARCA">Cajamarca</SelectItem>
+                {departments.map((department) => (
+                  <SelectItem key={department.value} value={department.value}>
+                    {department.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
+
             <FormDescription>Filtra internos por su lugar de residencia</FormDescription>
             <FormMessage />
           </FormItem>
@@ -773,45 +769,36 @@ function PreferencesStep({ form }: { form: ReturnType<typeof useForm<FormValues>
       <FormField
         control={form.control}
         name="genderFilter"
-        render={() => (
+        render={({ field }) => (
           <FormItem>
             <div className="mb-4">
               <FormLabel>Filtro por género</FormLabel>
-              <FormDescription>Selecciona las opciones de género que prefieres</FormDescription>
+              <FormDescription>
+                Selecciona la opción de género de pasantes que prefieres
+              </FormDescription>
             </div>
             <div className="flex flex-wrap gap-4">
-              {[
-                { value: 'MALE', label: 'Masculino' },
-                { value: 'FEMALE', label: 'Femenino' },
-                { value: 'BOTH', label: 'Ambos' },
-              ].map((gender) => (
-                <FormField
-                  key={gender.value}
-                  control={form.control}
-                  name="genderFilter"
-                  render={({ field }) => {
-                    return (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value?.includes(gender.value)}
-                            onCheckedChange={(checked) => {
-                              return checked
-                                ? field.onChange([...(field.value || []), gender.value])
-                                : field.onChange(
-                                    field.value?.filter((value) => value !== gender.value) || [],
-                                  );
-                            }}
-                          />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel className="text-sm font-normal">{gender.label}</FormLabel>
-                        </div>
-                      </FormItem>
-                    );
-                  }}
-                />
-              ))}
+              <FormControl>
+                <RadioGroup
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                  className="flex flex-col space-y-1"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="MALE_ONLY" id="small" />
+                    <Label htmlFor="male_only">Solo Hombres</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="FEMALE_ONLY" id="large" />
+                    <Label htmlFor="female_only">Solo Mujeres</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="BOTH" id="large" />
+                    <Label htmlFor="both"> Ambos</Label>
+                  </div>
+                </RadioGroup>
+              </FormControl>
+              <FormMessage />
             </div>
             <FormMessage />
           </FormItem>

@@ -3,25 +3,19 @@
 import { Badge } from '@/components/ui/badge';
 import { UserCheck, UserX } from 'lucide-react';
 
-type StatusBadgeProps<T> = {
-  entity: T;
+type StatusBadgeProps = {
   status: string;
-  onAssign: (entity: T) => void;
-  onUnassign: (entity: T) => void;
 };
 
-export function StatusBadge<T>({ entity, status, onAssign, onUnassign }: StatusBadgeProps<T>) {
+export function StatusBadge({ status }: StatusBadgeProps) {
   const isAssigned = status === 'assigned';
 
   return (
     <Badge
       variant={isAssigned ? 'default' : 'secondary'}
-      className={`cursor-pointer transition-colors ${
-        isAssigned
-          ? 'bg-green-100 text-green-800 hover:bg-green-200'
-          : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+      className={`transition-colors ${
+        isAssigned ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
       }`}
-      onClick={() => (isAssigned ? onUnassign(entity) : onAssign(entity))}
     >
       {isAssigned ? (
         <>

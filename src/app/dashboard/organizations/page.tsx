@@ -39,8 +39,13 @@ import {
   Building,
   Loader2,
   AlertCircle,
+  Users,
+  GraduationCap,
+  PersonStanding,
+  MapPin,
+  UsersRound,
 } from 'lucide-react';
-import { apiService, type Mentor, type Organization } from '@/lib/api';
+import { apiService, type Mentor, type Intern, type Organization } from '@/lib/api';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useCourse } from '@/context/CourseContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -51,9 +56,20 @@ import { PaginationControls } from '@/components/data-table/pagination-controls'
 import { usePagination } from '@/hooks/use-pagination';
 import { BulkUploadDialog } from '@/components/batch-upload/bulk-upload';
 import { SearchAndActions } from '@/components/data-table/search-actions';
-import { getOrganizationSizeLabel, getTopicLabel } from '@/lib/helper-functions';
-import { DynamicMentorModal } from '@/components/assignment/dynamic-mentor-modal';
+import {
+  getDepartmentLabel,
+  getGenderLabel,
+  getMajorLabel,
+  getOrganizationSizeLabel,
+  getTopicLabel,
+} from '@/lib/helper-functions';
+import { DynamicAssignmentModal } from '@/components/assignment/dynamic-assignment-modal';
 import { DeleteConfirmationModal } from '@/components/delete-confirmation-modal';
+import {
+  organizationInternAssignmentConfig,
+  organizationMentorAssignmentConfig,
+} from '@/config/assignment-config';
+import { LoadingListSkeleton } from '@/components/loading-list-skeleton';
 
 // Helper function for filtering organizations
 const organizationFilterFn = (organization: Organization, searchTerm: string) => {
@@ -70,18 +86,26 @@ export default function OrganizationsExplorePage() {
   const { activeCourse } = useCourse();
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedOrganization, setSelectedOrganization] = useState<Organization | null>(null);
+  const [detailInterns, setDetailInterns] = useState<Intern[]>([]);
+  const [detailMentors, setDetailMentors] = useState<Mentor[]>([]);
+  const [isDetailLoading, setIsDetailLoading] = useState<boolean>(false);
   const [isDetailOpen, setIsDetailOpen] = useState<boolean>(false);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [mentors, setMentors] = useState<Mentor[]>([]);
+  const [interns, setInterns] = useState<Intern[]>([]);
+  const [assignedInterns, setAssignedInterns] = useState<Intern[]>([]);
   const [isMentorsLoading, setIsMentorsLoading] = useState<boolean>(false);
+  const [isInternsLoading, setIsInternsLoading] = useState<boolean>(false);
   const [mentorsLoaded, setMentorsLoaded] = useState<boolean>(false);
+  const [, /*internsLoaded*/ setInternsLoaded] = useState<boolean>(false);
   const isMobile = useIsMobile();
 
   // Dynamic modal states
   const [isDynamicModalOpen, setIsDynamicModalOpen] = useState<boolean>(false);
   const [organizationForModal, setOrganizationForModal] = useState<Organization | null>(null);
+  const [modalType, setModalType] = useState<'mentor' | 'intern'>('mentor');
   const [isAssigning, setIsAssigning] = useState<boolean>(false);
 
   // Delete confirmation modal states
@@ -127,12 +151,12 @@ export default function OrganizationsExplorePage() {
         setOrganizations([]);
       } finally {
         setIsLoading(false);
-        setMentorsLoaded(false); // Reset mentors loaded state
+        setMentorsLoaded(false);
+        setInternsLoaded(false);
       }
     };
 
     fetchOrganizations();
-
   }, [activeCourse]);
 
   // Fetch mentors when needed for assignment
@@ -152,11 +176,63 @@ export default function OrganizationsExplorePage() {
     }
   };
 
-  // Handle opening the dynamic modal
+  const fetchOrganizationDetails = async (organization: Organization) => {
+    if (!activeCourse) return;
+
+    try {
+      setIsDetailLoading(true);
+      const [interns, mentors] = await Promise.all([
+        apiService.getAllOrganizationInternsWithinCourse(activeCourse.id, organization.id),
+        apiService.getAllOrganizationMentorsWithinCourse(activeCourse.id, organization.id),
+      ]);
+      setDetailInterns(interns);
+      setDetailMentors(mentors);
+    } catch (err) {
+      console.error('Error fetching detail data:', err);
+      toast.error('Error al cargar detalles de la organización');
+    } finally {
+      setIsDetailLoading(false);
+    }
+  };
+
+  // Fetch interns when needed for assignment
+  const fetchInterns = async (organizationId: string) => {
+    if (!activeCourse) return;
+
+    try {
+      setIsInternsLoading(true);
+
+      // Fetch both available interns that match the organization AND currently assigned interns
+      const [availableInternsData, assignedInternsData] = await Promise.all([
+        apiService.getInternsMatchingOrganization(activeCourse.id, organizationId),
+        apiService.getAllOrganizationInternsWithinCourse(activeCourse.id, organizationId),
+      ]);
+
+      setInterns(availableInternsData);
+      setAssignedInterns(assignedInternsData);
+      setInternsLoaded(true);
+    } catch (err) {
+      console.error('Error fetching interns:', err);
+      toast.error('Error al cargar los pasantes');
+    } finally {
+      setIsInternsLoading(false);
+    }
+  };
+
+  // Handle opening the dynamic modal for mentors
   const handleOpenMentorModal = (organization: Organization) => {
     setOrganizationForModal(organization);
+    setModalType('mentor');
     setIsDynamicModalOpen(true);
     fetchMentors();
+  };
+
+  // Handle opening the dynamic modal for interns
+  const handleOpenInternModal = (organization: Organization) => {
+    setOrganizationForModal(organization);
+    setModalType('intern');
+    setIsDynamicModalOpen(true);
+    fetchInterns(organization.id);
   };
 
   // Handle mentor assignment
@@ -166,7 +242,7 @@ export default function OrganizationsExplorePage() {
     try {
       setIsAssigning(true);
 
-      // Assign each mentor to the organization
+      // For mentors, we only assign one at a time (replace existing)
       for (const mentorId of mentorIds) {
         await apiService.assignMentorToOrganization(
           activeCourse.id,
@@ -175,28 +251,40 @@ export default function OrganizationsExplorePage() {
         );
       }
 
-      // Fetch updated organization from the API
-      const updatedOrganization = await apiService.getOrganizationWithinCourse(
-        activeCourse.id,
-        organizationForModal.id,
-      );
+      await refreshOrganization();
+      toast.success('Mentor asignado exitosamente');
+    } catch (err) {
+      console.error('Error assigning mentor:', err);
+      toast.error('Error al asignar el mentor');
+    } finally {
+      setIsAssigning(false);
+    }
+  };
 
-      // Update local state with the refreshed organization
-      setOrganizations((prevOrganizations) =>
-        prevOrganizations.map((organization) =>
-          organization.id === updatedOrganization.id ? updatedOrganization : organization,
-        ),
-      );
+  // Handle intern assignment
+  const handleAssignInterns = async (internIds: string[]) => {
+    if (!organizationForModal || !activeCourse) return;
 
-      // Update the modal organization state
-      setOrganizationForModal(updatedOrganization);
+    try {
+      setIsAssigning(true);
 
+      for (const internId of internIds) {
+        await apiService.assignInternToOrganization(
+          activeCourse.id,
+          organizationForModal.id,
+          internId,
+        );
+      }
+
+      await refreshOrganization();
+      // Refresh the interns data to update the modal
+      await fetchInterns(organizationForModal.id);
       toast.success(
-        `${mentorIds.length} mentor${mentorIds.length > 1 ? 'es asignados' : ' asignado'} exitosamente`,
+        `${internIds.length} pasante${internIds.length > 1 ? 's asignados' : ' asignado'} exitosamente`,
       );
     } catch (err) {
-      console.error('Error assigning mentors:', err);
-      toast.error('Error al asignar los mentores');
+      console.error('Error assigning interns:', err);
+      toast.error('Error al asignar los pasantes');
     } finally {
       setIsAssigning(false);
     }
@@ -209,7 +297,6 @@ export default function OrganizationsExplorePage() {
     try {
       setIsAssigning(true);
 
-      // Unassign each mentor from the organization
       for (const mentorId of mentorIds) {
         await apiService.removeMentorFromOrganizationWithinCourse(
           activeCourse.id,
@@ -218,36 +305,78 @@ export default function OrganizationsExplorePage() {
         );
       }
 
-      // Fetch updated organization from the API
+      await refreshOrganization();
+      toast.success('Mentor desasignado exitosamente');
+    } catch (err) {
+      console.error('Error unassigning mentor:', err);
+      toast.error('Error al desasignar el mentor');
+    } finally {
+      setIsAssigning(false);
+    }
+  };
+
+  // Handle intern unassignment
+  const handleUnassignInterns = async (internIds: string[]) => {
+    if (!organizationForModal || !activeCourse) return;
+
+    try {
+      setIsAssigning(true);
+
+      for (const internId of internIds) {
+        await apiService.removeInternFromOrganizationWithinCourse(
+          activeCourse.id,
+          organizationForModal.id,
+          internId,
+        );
+      }
+
+      await refreshOrganization();
+      // Refresh the interns data to update the modal
+      await fetchInterns(organizationForModal.id);
+      toast.success(
+        `${internIds.length} pasante${internIds.length > 1 ? 's desasignados' : ' desasignado'} exitosamente`,
+      );
+    } catch (err) {
+      console.error('Error unassigning interns:', err);
+      toast.error('Error al desasignar los pasantes');
+    } finally {
+      setIsAssigning(false);
+    }
+  };
+
+  // Refresh organization data
+  const refreshOrganization = async () => {
+    if (!organizationForModal || !activeCourse) return;
+
+    try {
       const updatedOrganization = await apiService.getOrganizationWithinCourse(
         activeCourse.id,
         organizationForModal.id,
       );
 
-      // Update local state with the refreshed organization
       setOrganizations((prevOrganizations) =>
         prevOrganizations.map((organization) =>
           organization.id === updatedOrganization.id ? updatedOrganization : organization,
         ),
       );
 
-      // Update the modal organization state
       setOrganizationForModal(updatedOrganization);
-
-      toast.success(
-        `${mentorIds.length} mentor${mentorIds.length > 1 ? 'es desasignados' : ' desasignado'} exitosamente`,
-      );
     } catch (err) {
-      console.error('Error unassigning mentors:', err);
-      toast.error('Error al desasignar los mentores');
-    } finally {
-      setIsAssigning(false);
+      console.error('Error refreshing organization:', err);
     }
   };
 
   const handleViewDetail = (organization: Organization) => {
     setSelectedOrganization(organization);
+    fetchOrganizationDetails(organization);
     setIsDetailOpen(true);
+  };
+
+  const handleCloseDetail = () => {
+    setIsDetailOpen(false);
+    setSelectedOrganization(null);
+    setDetailMentors([]);
+    setDetailInterns([]);
   };
 
   const handleDeleteOrganization = (organization: Organization) => {
@@ -277,11 +406,8 @@ export default function OrganizationsExplorePage() {
     if (!activeCourse) return;
 
     try {
-      // TODO: Implement API call for bulk upload organizations
       console.log('Uploading organizations file:', file.name);
       toast.success('Organizaciones cargadas exitosamente');
-
-      // Refresh organizations list
       const organizationsData = await apiService.getAllOrganizationsWithinCourse(activeCourse.id);
       setOrganizations(organizationsData);
     } catch (error) {
@@ -290,17 +416,9 @@ export default function OrganizationsExplorePage() {
     }
   };
 
-  // Helper function to get mentor assignment status
-  const getMentorAssignmentStatus = (organization: Organization) => {
-    const mentorCount = organization.mentorIds?.length || 0;
-    if (mentorCount === 0) return 'unassigned';
-    return 'assigned';
-  };
-
   // Helper function to render mentor status badge (clickable)
   const renderMentorStatusBadge = (organization: Organization) => {
     const mentorCount = organization.mentorIds?.length || 0;
-    const status = getMentorAssignmentStatus(organization);
 
     return (
       <Button
@@ -309,13 +427,49 @@ export default function OrganizationsExplorePage() {
         className="h-auto p-1 hover:bg-muted/50"
         onClick={() => handleOpenMentorModal(organization)}
       >
-        {status === 'assigned' ? (
+        {mentorCount > 0 ? (
           <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-200">
+            <Users className="h-3 w-3 mr-1" />
             {mentorCount} Mentor{mentorCount > 1 ? 'es' : ''}
           </Badge>
         ) : (
           <Badge variant="secondary" className="hover:bg-muted">
+            <Users className="h-3 w-3 mr-1" />
             Sin Mentores
+          </Badge>
+        )}
+      </Button>
+    );
+  };
+
+  // Helper function to render intern status badge (clickable)
+  const renderInternStatusBadge = (organization: Organization) => {
+    const internCount = organization.internIds?.length || 0;
+    const maxInterns = organization.maximumNumberOfInterns || 0;
+
+    return (
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-auto p-1 hover:bg-muted/50"
+        onClick={() => handleOpenInternModal(organization)}
+      >
+        {internCount > 0 ? (
+          <Badge
+            variant="default"
+            className={`${
+              internCount >= maxInterns
+                ? 'bg-orange-100 text-orange-800 hover:bg-orange-200'
+                : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+            }`}
+          >
+            <GraduationCap className="h-3 w-3 mr-1" />
+            {internCount}/{maxInterns} Pasantes
+          </Badge>
+        ) : (
+          <Badge variant="secondary" className="hover:bg-muted">
+            <GraduationCap className="h-3 w-3 mr-1" />
+            0/{maxInterns} Pasantes
           </Badge>
         )}
       </Button>
@@ -364,6 +518,25 @@ export default function OrganizationsExplorePage() {
     </>
   );
 
+  // Get current modal config and entities
+  const currentConfig =
+    modalType === 'mentor'
+      ? {
+          ...organizationMentorAssignmentConfig,
+          assignedEntityIds: organizationForModal?.mentorIds || [],
+        }
+      : {
+          ...organizationInternAssignmentConfig,
+          maxAssignments: organizationForModal?.maximumNumberOfInterns || 0,
+          assignedEntityIds: organizationForModal?.internIds || [],
+        };
+
+  // For interns, we need to combine available and assigned interns
+  const currentEntities = modalType === 'mentor' ? mentors : [...interns, ...assignedInterns];
+  const currentIsLoading = modalType === 'mentor' ? isMentorsLoading : isInternsLoading;
+  const currentOnAssign = modalType === 'mentor' ? handleAssignMentors : handleAssignInterns;
+  const currentOnUnassign = modalType === 'mentor' ? handleUnassignMentors : handleUnassignInterns;
+
   return (
     <div className="container mx-auto p-6">
       <div className="flex items-center gap-4 mb-6">
@@ -404,12 +577,12 @@ export default function OrganizationsExplorePage() {
               <>
                 Mostrando {startIndex + 1}-{Math.min(endIndex, totalItems)} de {totalItems}{' '}
                 organización
-                {totalItems !== 1 ? 's' : ''}. Haz clic en el estado de mentores para gestionar
-                asignaciones.
+                {totalItems !== 1 ? 's' : ''}. Haz clic en los estados para gestionar asignaciones.
               </>
             )}
           </CardDescription>
         </CardHeader>
+
         <CardContent>
           {isLoading ? (
             <div className="flex justify-center py-8">
@@ -476,6 +649,7 @@ export default function OrganizationsExplorePage() {
                     </div>
                     <div className="flex items-center gap-2">
                       {renderMentorStatusBadge(organization)}
+                      {renderInternStatusBadge(organization)}
                     </div>
                   </div>
                 </Card>
@@ -506,8 +680,7 @@ export default function OrganizationsExplorePage() {
                       </div>
                     </TableCell>
                     <TableCell>{renderMentorStatusBadge(organization)}</TableCell>
-                    {/*TODO: Implement Pasantes logic*/}
-                    <TableCell>{renderMentorStatusBadge(organization)}</TableCell>
+                    <TableCell>{renderInternStatusBadge(organization)}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -555,18 +728,19 @@ export default function OrganizationsExplorePage() {
         />
       </Card>
 
-      {/* Dynamic Mentor Modal */}
-      <DynamicMentorModal
+      {/* Dynamic Assignment Modal */}
+      <DynamicAssignmentModal
         isOpen={isDynamicModalOpen}
         onClose={() => {
           setIsDynamicModalOpen(false);
           setOrganizationForModal(null);
         }}
         organization={organizationForModal}
-        mentors={mentors}
-        onAssign={handleAssignMentors}
-        onUnassign={handleUnassignMentors}
-        isLoading={isMentorsLoading || isAssigning}
+        entities={currentEntities}
+        onAssign={currentOnAssign}
+        onUnassign={currentOnUnassign}
+        isLoading={currentIsLoading || isAssigning}
+        config={currentConfig}
       />
 
       {/* Delete Confirmation Modal */}
@@ -592,9 +766,15 @@ export default function OrganizationsExplorePage() {
       />
 
       {/* Detail Sheet */}
-      <Sheet open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+      <Sheet
+        open={isDetailOpen}
+        onOpenChange={(open) => {
+          setIsDetailOpen(open);
+          if (!open) handleCloseDetail();
+        }}
+      >
         <SheetContent
-          className={`${isMobile ? 'w-full' : 'w-[800px] sm:w-[800px]'} overflow-y-auto`}
+          className={`${isMobile ? 'w-full' : 'w-[800px] sm:w-[800px]'} overflow-y-auto p-5`}
         >
           {selectedOrganization && (
             <>
@@ -613,33 +793,75 @@ export default function OrganizationsExplorePage() {
                     <CardTitle className="text-lg">Información General</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    {selectedOrganization.ruc && (
+                      <div className="flex items-center gap-2">
+                        <Building className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">RUC: {selectedOrganization.ruc}</span>
+                      </div>
+                    )}
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{selectedOrganization.contactName}</span>
+                      <span className="text-sm">Contacto: {selectedOrganization.contactName}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{selectedOrganization.phone}</span>
+                      <span className="text-sm">Teléfono: {selectedOrganization.phone}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{selectedOrganization.email}</span>
+                      <span className="text-sm">Correo: {selectedOrganization.email}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Building className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">
-                        {selectedOrganization.sector} |{' '}
+                        Sector {selectedOrganization.sector} | Organización{' '}
                         {getOrganizationSizeLabel(selectedOrganization.organizationSize)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Globe className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{selectedOrganization.country}</span>
+                      <span className="text-sm">País: {selectedOrganization.country}</span>
                     </div>
-                    {selectedOrganization.ruc && (
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Preferencias de Pasantes</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {selectedOrganization.placeOfResidenceFilter && (
                       <div className="flex items-center gap-2">
-                        <Building className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">RUC: {selectedOrganization.ruc}</span>
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">
+                          Lugar de residencia:{' '}
+                          {getDepartmentLabel(selectedOrganization.placeOfResidenceFilter)}
+                        </span>
+                      </div>
+                    )}
+                    {selectedOrganization.genderFilter && (
+                      <div className="flex items-center gap-2">
+                        <PersonStanding className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">
+                          Género: {getGenderLabel(selectedOrganization.genderFilter)}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">
+                        Carreras:{' '}
+                        {selectedOrganization.studiedMajorFilter
+                          ?.map((major) => getMajorLabel(major))
+                          .join(', ')}
+                      </span>
+                    </div>
+                    {selectedOrganization.maximumNumberOfInterns && (
+                      <div className="flex items-center gap-2">
+                        <UsersRound className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">
+                          Máximo de pasantes: {selectedOrganization.maximumNumberOfInterns}
+                        </span>
                       </div>
                     )}
                   </CardContent>
@@ -650,30 +872,59 @@ export default function OrganizationsExplorePage() {
                   <CardHeader>
                     <CardTitle className="text-lg">Mentores Asignados</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    {selectedOrganization.mentorIds && selectedOrganization.mentorIds.length > 0 ? (
-                      <div className="space-y-2">
-                        {selectedOrganization.mentorIds.map((mentorId, index) => {
-                          const mentor = mentors.find((m) => m.id === mentorId);
-                          return (
+                  {isDetailLoading ? (
+                    <LoadingListSkeleton count={2} />
+                  ) : (
+                    <CardContent>
+                      {detailMentors.length > 0 ? (
+                        <div className="space-y-2">
+                          {detailMentors.map((mentor, index) => (
                             <div
                               key={index}
                               className="flex items-center gap-2 p-2 bg-muted rounded"
                             >
                               <User className="h-4 w-4 text-muted-foreground" />
                               <span className="text-sm">
-                                {mentor
-                                  ? `${mentor.firstNames} ${mentor.lastNameFather} ${mentor.lastNameMother}`
-                                  : `Mentor ID: ${mentorId}`}
+                                {mentor.firstNames} {mentor.lastNameFather} {mentor.lastNameMother}
                               </span>
                             </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">No hay mentores asignados</p>
-                    )}
-                  </CardContent>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No hay mentores asignados</p>
+                      )}
+                    </CardContent>
+                  )}
+                </Card>
+
+                {/* Interns Assigned */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Pasantes Asignados</CardTitle>
+                  </CardHeader>
+                  {isDetailLoading ? (
+                    <LoadingListSkeleton count={4} />
+                  ) : (
+                    <CardContent>
+                      {detailInterns.length > 0 ? (
+                        <div className="space-y-2">
+                          {detailInterns.map((intern, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center gap-2 p-2 bg-muted rounded"
+                            >
+                              <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm">
+                                {intern.firstNames} {intern.lastNameFather} {intern.lastNameMother}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No hay pasantes asignados</p>
+                      )}
+                    </CardContent>
+                  )}
                 </Card>
 
                 {/* Topics of Interest */}

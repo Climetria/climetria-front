@@ -10,7 +10,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { useWatch, Control, UseFormSetValue } from 'react-hook-form';
 
-const departments = [
+export const departments = [
   { label: 'Amazonas', value: 'AMAZONAS' },
   { label: 'Ancash', value: 'ANCASH' },
   { label: 'Apurímac', value: 'APURIMAC' },
@@ -56,7 +56,7 @@ export function ResidencyFields({ control, setValue }: ResidencyFieldsProps) {
         name="countrySelector"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>País *</FormLabel>
+            <FormLabel>País de Residencia *</FormLabel>
             <Select
               onValueChange={(value) => {
                 field.onChange(value);
@@ -119,7 +119,7 @@ export function ResidencyFields({ control, setValue }: ResidencyFieldsProps) {
           name="country"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Especifica tu país *</FormLabel>
+              <FormLabel>Especifica tu país de residencia*</FormLabel>
               <FormControl>
                 <Input
                   placeholder="Ingresa tu país"

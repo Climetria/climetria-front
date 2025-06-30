@@ -6,5 +6,6 @@ export const breadcrumbMap: Record<string, string> = {
   explore: 'Explorar',
   courses: 'Cursos',
   interns: 'Pasantes',
-  tracking: 'Seguimiento',
+  tracking: 'Notas',
+  edit: 'Editar',
 };

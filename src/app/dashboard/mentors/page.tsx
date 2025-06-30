@@ -1,4 +1,3 @@
- 
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -51,7 +50,7 @@ import { toast } from 'sonner';
 import { PaginationControls } from '@/components/data-table/pagination-controls';
 import { useFilteredPagination } from '@/hooks/use-filtered-pagination';
 import { SearchWithFilters } from '@/components/data-table/search-filters';
-import { getDocTypeLabel } from '@/lib/helper-functions';
+import { getDepartmentLabel, getDocTypeLabel } from '@/lib/helper-functions';
 import { DeleteConfirmationModal } from '@/components/delete-confirmation-modal';
 
 const mentorFilterFn = (mentor: Mentor, searchTerm: string, filters: Record<string, string>) => {
@@ -148,7 +147,7 @@ export default function MentorsExplorePage() {
     try {
       setIsDeleting(true);
       await apiService.deleteMentorWithinCourse(activeCourse.id, mentorToDelete.id);
-      setMentors(mentors.filter((m) => m.id !== mentorToDelete.id));
+      setMentors((prev) => prev.filter((m) => m.id !== mentorToDelete.id));
       toast.success('Mentor eliminado exitosamente');
     } catch (err) {
       console.error('Error deleting mentor:', err);
@@ -280,7 +279,7 @@ export default function MentorsExplorePage() {
                           Ver Detalle
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link href={`/dashboard/mentors/${mentor.id}/edit`}>
+                          <Link href={`/dashboard/mentors/edit?id=${mentor.id}`}>
                             <Edit className="h-4 w-4 mr-2" />
                             Editar
                           </Link>
@@ -353,7 +352,7 @@ export default function MentorsExplorePage() {
                             Ver Detalle
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
-                            <Link href={`/dashboard/mentors/${mentor.id}/edit`}>
+                            <Link href={`/dashboard/mentors/edit?id=${mentor.id}`}>
                               <Edit className="h-4 w-4 mr-2" />
                               Editar
                             </Link>
@@ -389,7 +388,9 @@ export default function MentorsExplorePage() {
 
       {/* Detail Sheet */}
       <Sheet open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <SheetContent className={`${isMobile ? 'w-full' : 'w-[600px] sm:w-[800px]'}`}>
+        <SheetContent
+          className={`${isMobile ? 'w-full' : 'w-[600px] sm:w-[800px]'} p-5 overflow-y-auto`}
+        >
           {selectedMentor && (
             <>
               <SheetHeader>
@@ -410,24 +411,24 @@ export default function MentorsExplorePage() {
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">
-                        {selectedMentor.firstNames} {selectedMentor.lastNameFather}{' '}
+                        Nombre Completo: {selectedMentor.firstNames} {selectedMentor.lastNameFather}{' '}
                         {selectedMentor.lastNameMother}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{selectedMentor.email}</span>
+                      <span className="text-sm">Correo: {selectedMentor.email}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{selectedMentor.phone}</span>
+                      <span className="text-sm">Teléfono: {selectedMentor.phone}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Globe className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">
                         {selectedMentor.peruDepartment
-                          ? `${selectedMentor.peruDepartment}, ${selectedMentor.country}`
-                          : selectedMentor.country}
+                          ? `Lugar de Residencia: ${getDepartmentLabel(selectedMentor.peruDepartment)}, ${selectedMentor.country}`
+                          : `País de Residencia: ${selectedMentor.country}`}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">

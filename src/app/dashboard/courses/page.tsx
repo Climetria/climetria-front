@@ -20,7 +20,6 @@ import {
   Trash2,
   BookMarked,
   Calendar,
-  User,
   Loader2,
 } from 'lucide-react';
 import { apiService, type Course, type Intern, type Mentor, type Organization } from '@/lib/api';
@@ -33,6 +32,8 @@ import {
 } from '@/components/ui/sheet';
 import { toast } from 'sonner';
 import { DeleteConfirmationModal } from '@/components/delete-confirmation-modal';
+import { DetailSection } from '@/components/course-detail';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function CoursesPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -41,14 +42,41 @@ export default function CoursesPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState<boolean>(false);
-  const [mentors /*setMentors*/] = useState<Mentor[]>([]);
-  const [interns /*setInterns*/] = useState<Intern[]>([]);
-  const [organizations /*setOrganizations*/] = useState<Organization[]>([]);
+  const [mentors, setMentors] = useState<Mentor[]>([]);
+  const [interns, setInterns] = useState<Intern[]>([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const isMobile = useIsMobile();
 
   // Delete confirmation modal states
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
   const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
+
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  useEffect(() => {
+    async function fetchDetailData() {
+      if (!selectedCourse?.id) return;
+
+      setDetailLoading(true);
+      try {
+        const [mentorsData, internsData, orgsData] = await Promise.all([
+          apiService.getAllMentorsWithinCourse(selectedCourse.id),
+          apiService.getAllInternsWithinCourse(selectedCourse.id),
+          apiService.getAllOrganizationsWithinCourse(selectedCourse.id),
+        ]);
+        setMentors(mentorsData);
+        setInterns(internsData);
+        setOrganizations(orgsData);
+      } catch (err) {
+        console.error('Error al cargar detalles del curso:', err);
+      } finally {
+        setDetailLoading(false);
+      }
+    }
+
+    fetchDetailData();
+  }, [selectedCourse]);
 
   useEffect(() => {
     async function fetchCourses() {
@@ -157,7 +185,7 @@ export default function CoursesPage() {
                       Ver Detalle
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href={`/dashboard/courses/${course.id}/edit`}>
+                      <Link href={`/dashboard/courses/edit?id=${course.id}`}>
                         <Edit className="h-4 w-4 mr-2" />
                         Editar
                       </Link>
@@ -213,7 +241,9 @@ export default function CoursesPage() {
 
       {/* Detail Sheet */}
       <Sheet open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <SheetContent className={`w-[800px] sm:w-[800px] overflow-y-auto`}>
+        <SheetContent
+          className={`${isMobile ? 'w-full' : 'w-[800px] sm:w-[800px]'} overflow-y-auto p-5`}
+        >
           {selectedCourse && (
             <>
               <SheetHeader>
@@ -242,99 +272,31 @@ export default function CoursesPage() {
                 </Card>
 
                 {/* Organizations Assigned */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Organizaciones Asignadas</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {selectedCourse.organizationIds && selectedCourse.organizationIds.length > 0 ? (
-                      <div className="space-y-2">
-                        {selectedCourse.organizationIds.map((organizationId, index) => {
-                          const organization = organizations.find((i) => i.id === organizationId);
-                          return (
-                            <div
-                              key={index}
-                              className="flex items-center gap-2 p-2 bg-muted rounded"
-                            >
-                              <User className="h-4 w-4 text-muted-foreground" />
-                              <span className="text-sm">
-                                {organization
-                                  ? `${organization.organizationName}`
-                                  : `ID de la Organización: ${organizationId}`}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        No hay organizaciones asignadas
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
+                <DetailSection
+                  title="Organizaciones Asignadas"
+                  loading={detailLoading}
+                  type="organization"
+                  ids={selectedCourse?.organizationIds || []}
+                  data={organizations}
+                />
 
                 {/* Mentors Assigned */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Mentores Asignados</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {selectedCourse.mentorIds && selectedCourse.mentorIds.length > 0 ? (
-                      <div className="space-y-2">
-                        {selectedCourse.mentorIds.map((mentorId, index) => {
-                          const mentor = mentors.find((m) => m.id === mentorId);
-                          return (
-                            <div
-                              key={index}
-                              className="flex items-center gap-2 p-2 bg-muted rounded"
-                            >
-                              <User className="h-4 w-4 text-muted-foreground" />
-                              <span className="text-sm">
-                                {mentor
-                                  ? `${mentor.firstNames} ${mentor.lastNameFather} ${mentor.lastNameMother}`
-                                  : `ID del Mentor: ${mentorId}`}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">No hay mentores asignados</p>
-                    )}
-                  </CardContent>
-                </Card>
+                <DetailSection
+                  title="Mentores Asignados"
+                  loading={detailLoading}
+                  type="mentor"
+                  ids={selectedCourse?.mentorIds || []}
+                  data={mentors}
+                />
 
                 {/* Interns Assigned */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Pasantes Asignados</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {selectedCourse.internIds && selectedCourse.internIds.length > 0 ? (
-                      <div className="space-y-2">
-                        {selectedCourse.internIds.map((internId, index) => {
-                          const intern = interns.find((i) => i.id === internId);
-                          return (
-                            <div
-                              key={index}
-                              className="flex items-center gap-2 p-2 bg-muted rounded"
-                            >
-                              <User className="h-4 w-4 text-muted-foreground" />
-                              <span className="text-sm">
-                                {intern
-                                  ? `${intern.firstNames} ${intern.lastNameFather} ${intern.lastNameMother}`
-                                  : `Intern ID: ${internId}`}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">No hay pasantes asignados</p>
-                    )}
-                  </CardContent>
-                </Card>
+                <DetailSection
+                  title="Pasantes Asignados"
+                  loading={detailLoading}
+                  type="intern"
+                  ids={selectedCourse?.internIds || []}
+                  data={interns}
+                />
 
                 {/* Dates */}
                 <Card>

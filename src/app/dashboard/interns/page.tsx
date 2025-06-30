@@ -34,7 +34,11 @@ import {
   Mail,
   Phone,
   User,
-  Building2,
+  Calendar,
+  Speech,
+  PersonStanding,
+  MapPin,
+  GraduationCap,
 } from 'lucide-react';
 import {
   Sheet,
@@ -44,25 +48,27 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { useCourse } from '@/context/CourseContext';
-import { apiService, type Intern, type Organization } from '@/lib/api';
+import { apiService, type Intern } from '@/lib/api';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
-import { StatusBadge } from '@/components/status-badge';
 
 // Modular components
-import { AssignmentModal } from '@/components/assignment/assignment-modal';
-import { UnassignmentModal } from '@/components/assignment/unassignment-modal';
 import { useFilteredPagination } from '@/hooks/use-filtered-pagination';
 import { PaginationControls } from '@/components/data-table/pagination-controls';
 import { BulkUploadDialog } from '@/components/batch-upload/bulk-upload';
 import { SearchWithFilters } from '@/components/data-table/search-filters';
-import { internAssignmentConfig, internUnassignmentConfig } from '@/config/intern-assignment';
-import { getDocTypeLabel, getTopicLabel } from '@/lib/helper-functions';
+import {
+  getDepartmentLabel,
+  getDocTypeLabel,
+  getGenderLabel,
+  getMajorLabel,
+  getReferralSourceLabel,
+  getTopicLabel,
+} from '@/lib/helper-functions';
 import { DeleteConfirmationModal } from '@/components/delete-confirmation-modal';
 
-
-const internFilterFn = (intern: Intern, searchTerm: string, filters: Record<string, string>) => {
+const internFilterFn = (intern: Intern, searchTerm: string) => {
   const matchesSearch =
     intern.firstNames.toLowerCase().includes(searchTerm.toLowerCase()) ||
     intern.lastNameFather.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -72,12 +78,7 @@ const internFilterFn = (intern: Intern, searchTerm: string, filters: Record<stri
     intern.universityName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     intern.country.toLowerCase().includes(searchTerm.toLowerCase());
 
-  const matchesStatus =
-    filters.status === 'all' ||
-    (filters.status === 'assigned' && intern.organizationStatus === 'assigned') ||
-    (filters.status === 'unassigned' && intern.organizationStatus === 'unassigned');
-
-  return matchesSearch && matchesStatus;
+  return matchesSearch;
 };
 
 export default function InternsExplorePage() {
@@ -86,18 +87,8 @@ export default function InternsExplorePage() {
   const [selectedIntern, setSelectedIntern] = useState<Intern | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState<boolean>(false);
   const [interns, setInterns] = useState<Intern[]>([]);
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isOrganizationsLoading, setIsOrganizationsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedStatus, setSelectedStatus] = useState('all');
-  const [organizationsLoaded, setOrganizationsLoaded] = useState<boolean>(false);
-
-  // Assignment modal states
-  const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState<boolean>(false);
-  const [isUnassignmentModalOpen, setIsUnassignmentModalOpen] = useState<boolean>(false);
-  const [internToAssign, setInternToAssign] = useState<Intern | null>(null);
-  const [isAssigning, setIsAssigning] = useState<boolean>(false);
 
   // Delete confirmation modal states
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
@@ -121,7 +112,6 @@ export default function InternsExplorePage() {
     data: interns,
     itemsPerPage: 10,
     searchTerm,
-    filters: { status: selectedStatus },
     filterFn: internFilterFn,
   });
 
@@ -144,117 +134,11 @@ export default function InternsExplorePage() {
         setInterns([]);
       } finally {
         setIsLoading(false);
-        setOrganizationsLoaded(false);
       }
     };
 
     fetchInterns();
   }, [activeCourse]);
-
-  const fetchOrganizations = async () => {
-    if (!activeCourse || organizationsLoaded) return;
-
-    try {
-      setIsOrganizationsLoading(true);
-      const organizationsData = await apiService.getAllOrganizationsWithinCourse(activeCourse.id);
-      setOrganizations(organizationsData);
-      setOrganizationsLoaded(true);
-    } catch (err) {
-      console.error('Error fetching organizations:', err);
-      toast.error('Error al cargar las organizaciones');
-    } finally {
-      setIsOrganizationsLoading(false);
-    }
-  };
-
-  const handleAssignIntern = (intern: Intern) => {
-    setInternToAssign(intern);
-    setIsAssignmentModalOpen(true);
-    fetchOrganizations();
-  };
-
-  const handleUnassignIntern = (intern: Intern) => {
-    setInternToAssign(intern);
-    setIsUnassignmentModalOpen(true);
-  };
-
-  const handleConfirmAssignment = async (organizationId: string) => {
-    if (!internToAssign || !activeCourse) return;
-
-    const selectedOrganization = organizations.find(
-      (organization) => organization.id === organizationId,
-    );
-    if (!selectedOrganization) {
-      toast.error('La organización seleccionada no existe o no está disponible');
-      return;
-    }
-
-    try {
-      setIsAssigning(true);
-
-      await apiService.assignInternToOrganization(
-        activeCourse.id,
-        organizationId,
-        internToAssign.id,
-      );
-
-      const updatedIntern = await apiService.getInternWithinCourse(
-        activeCourse.id,
-        internToAssign.id,
-      );
-
-      setInterns((prevInterns) =>
-        prevInterns.map((intern) => (intern.id === updatedIntern.id ? updatedIntern : intern)),
-      );
-
-      setIsAssignmentModalOpen(false);
-      setInternToAssign(null);
-      toast.success(`Pasante asignado exitosamente a ${selectedOrganization.organizationName}`);
-    } catch (err) {
-      console.error('Error assigning intern:', err);
-      toast.error('Error al asignar el pasante. Por favor, intenta nuevamente.');
-    } finally {
-      setIsAssigning(false);
-    }
-  };
-
-  const handleConfirmUnassignment = async () => {
-    if (!internToAssign || !activeCourse) return;
-
-    const organizationId = internToAssign.organizationIds?.[0];
-    if (!organizationId) {
-      toast.error('No se encontró una asignación para remover');
-      return;
-    }
-
-    try {
-      setIsAssigning(true);
-
-      await apiService.removeInternFromOrganizationWithinCourse(
-        activeCourse.id,
-        organizationId,
-        internToAssign.id,
-      );
-
-      const updatedIntern = await apiService.getInternWithinCourse(
-        activeCourse.id,
-        internToAssign.id,
-      );
-
-      setInterns((prevInterns) =>
-        prevInterns.map((intern) => (intern.id === updatedIntern.id ? updatedIntern : intern)),
-      );
-
-      setIsUnassignmentModalOpen(false);
-      setInternToAssign(null);
-      toast.success('Pasante desasignado exitosamente');
-    } catch (err) {
-      console.error('Error unassigning intern:', err);
-      toast.error('Error al desasignar el pasante. Por favor, intenta nuevamente.');
-    } finally {
-      setIsAssigning(false);
-    }
-  };
 
   const handleViewDetail = (intern: Intern) => {
     setSelectedIntern(intern);
@@ -316,19 +200,6 @@ export default function InternsExplorePage() {
     );
   }
 
-  const statusFilters = [
-    {
-      value: selectedStatus,
-      onChange: setSelectedStatus,
-      placeholder: 'Estado',
-      options: [
-        { value: 'all', label: 'Todos' },
-        { value: 'assigned', label: 'Asignados' },
-        { value: 'unassigned', label: 'No asignados' },
-      ],
-    },
-  ];
-
   const actions = (
     <>
       <BulkUploadDialog
@@ -380,7 +251,6 @@ export default function InternsExplorePage() {
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
           searchPlaceholder="Buscar pasantes..."
-          filters={statusFilters}
           actions={actions}
         />
       </div>
@@ -469,7 +339,7 @@ export default function InternsExplorePage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <University className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-xs">{intern.profession}</span>
+                      <span className="text-xs">{intern.majorInProgress}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Globe className="h-3 w-3 text-muted-foreground" />
@@ -480,15 +350,6 @@ export default function InternsExplorePage() {
                       <span className="text-xs">
                         {getDocTypeLabel(intern.documentType)}: {intern.document}
                       </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Building2 className="h-3 w-3 text-muted-foreground" />
-                      <StatusBadge
-                        entity={intern}
-                        status={intern.organizationStatus}
-                        onAssign={handleAssignIntern}
-                        onUnassign={handleUnassignIntern}
-                      />
                     </div>
                   </div>
                 </Card>
@@ -503,7 +364,6 @@ export default function InternsExplorePage() {
                   <TableHead>Email</TableHead>
                   <TableHead>Teléfono</TableHead>
                   <TableHead>Documento</TableHead>
-                  <TableHead>Status</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -520,14 +380,6 @@ export default function InternsExplorePage() {
                         <div>{getDocTypeLabel(intern.documentType)}</div>
                         <div className="text-muted-foreground">{intern.document}</div>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge
-                        entity={intern}
-                        status={intern.organizationStatus}
-                        onAssign={handleAssignIntern}
-                        onUnassign={handleUnassignIntern}
-                      />
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
@@ -576,31 +428,28 @@ export default function InternsExplorePage() {
         />
       </Card>
 
-      {/* Assignment Modal */}
-      <AssignmentModal
-        isOpen={isAssignmentModalOpen}
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
         onClose={() => {
-          setIsAssignmentModalOpen(false);
-          setInternToAssign(null);
+          setIsDeleteModalOpen(false);
+          setInternToDelete(null);
         }}
-        assignee={internToAssign}
-        assignableEntities={organizations}
-        onAssign={handleConfirmAssignment}
-        isLoading={isOrganizationsLoading || isAssigning}
-        config={internAssignmentConfig}
-      />
-
-      {/* Unassignment Modal */}
-      <UnassignmentModal
-        isOpen={isUnassignmentModalOpen}
-        onClose={() => {
-          setIsUnassignmentModalOpen(false);
-          setInternToAssign(null);
-        }}
-        entity={internToAssign}
-        onUnassign={handleConfirmUnassignment}
-        isLoading={isAssigning}
-        config={internUnassignmentConfig}
+        onConfirm={handleConfirmDelete}
+        isDeleting={isDeleting}
+        description={
+          internToDelete && (
+            <>
+              Esta acción no se puede deshacer. Esto eliminará al pasante{' '}
+              <strong>
+                {internToDelete.firstNames} {internToDelete.lastNameFather}{' '}
+                {internToDelete.lastNameMother}
+              </strong>{' '}
+              y removerá todos sus datos del sistema.
+            </>
+          )
+        }
+        confirmButtonText="Eliminar pasante"
       />
 
       {/* Delete Confirmation Modal */}
@@ -630,7 +479,7 @@ export default function InternsExplorePage() {
       {/* Detail Sheet */}
       <Sheet open={isDetailOpen} onOpenChange={setIsDetailOpen}>
         <SheetContent
-          className={`${isMobile ? 'w-full' : 'w-[600px] sm:w-[800px]'} overflow-y-auto`}
+          className={`${isMobile ? 'w-full' : 'w-[600px] sm:w-[800px]'} p-5 overflow-y-auto`}
         >
           {selectedIntern && (
             <>
@@ -652,25 +501,18 @@ export default function InternsExplorePage() {
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">
+                        Nombre Completo: {''}
                         {selectedIntern.firstNames} {selectedIntern.lastNameFather}{' '}
                         {selectedIntern.lastNameMother}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{selectedIntern.email}</span>
+                      <span className="text-sm">Correo: {selectedIntern.email}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{selectedIntern.phone}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Globe className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">
-                        {selectedIntern.peruDepartment
-                          ? `${selectedIntern.peruDepartment}, ${selectedIntern.country}`
-                          : selectedIntern.country}
-                      </span>
+                      <span className="text-sm">Teléfono: {selectedIntern.phone}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <IdCard className="h-4 w-4 text-muted-foreground" />
@@ -679,18 +521,47 @@ export default function InternsExplorePage() {
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <University className="h-4 w-4 text-muted-foreground" />
+                      <PersonStanding className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">
-                        {selectedIntern.profession}, {selectedIntern.universityName}
+                        Género: {getGenderLabel(selectedIntern.gender)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Building2 className="h-4 w-4 text-muted-foreground" />
+                      <MapPin className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">
-                        Estado:{' '}
-                        {selectedIntern.organizationStatus === 'assigned'
-                          ? `Asignado a ${selectedIntern.organizationIds?.[0]}`
-                          : 'No asignado'}
+                        {selectedIntern.peruDepartment
+                          ? `Lugar de Residencia: ${getDepartmentLabel(selectedIntern.peruDepartment)}, ${selectedIntern.country}`
+                          : `Lugar de Residencia: ${selectedIntern.country}`}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Información Académica y Preferencias</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">
+                        Carrera: {getMajorLabel(selectedIntern.majorInProgress)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <University className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">Universidad: {selectedIntern.universityName}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">
+                        Año de Egreso: {selectedIntern.graduationYear}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Speech className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">
+                        Referencia: {getReferralSourceLabel(selectedIntern.referralSource)}
                       </span>
                     </div>
                   </CardContent>

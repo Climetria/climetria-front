@@ -104,7 +104,7 @@ async function fetchCourses(token: string): Promise<Course[]> {
   return data.map((course: CourseAPIResponse) => ({
     id: course.id,
     name: course.name || `Course ${course.id}`,
-    description: course.description || 'No description',
+    description: course.description || 'Sin descripción',
   }));
 }
 
