@@ -1,9 +1,9 @@
-import type { Mentor, Organization } from '@/lib/api';
+import type { Mentor, Organization, OrganizationWithFilter } from '@/lib/api';
 
 export const organizationMentorAssignmentConfig = {
   title: 'Asignar Mentores a Organización',
-  description: (organization: Organization) =>
-    `Selecciona uno o varios mentores para asignar a ${organization.organizationName}`,
+  description: (organization: OrganizationWithFilter) =>
+    `Selecciona uno o varios mentores para asignar a ${organization.organization.organizationName}`,
   searchPlaceholder: 'Buscar mentores...',
   assignButtonText: 'Asignar Mentores',
   loadingText: 'Asignando...',

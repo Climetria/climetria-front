@@ -45,7 +45,7 @@ import {
   MapPin,
   UsersRound,
 } from 'lucide-react';
-import { apiService, type Mentor, type Intern, type Organization } from '@/lib/api';
+import { apiService, type Mentor, type Intern, OrganizationWithFilter } from '@/lib/api';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useCourse } from '@/context/CourseContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -72,25 +72,27 @@ import {
 import { LoadingListSkeleton } from '@/components/loading-list-skeleton';
 
 // Helper function for filtering organizations
-const organizationFilterFn = (organization: Organization, searchTerm: string) => {
+const organizationFilterFn = (organization: OrganizationWithFilter, searchTerm: string) => {
   return (
-    organization.organizationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    organization.contactName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    organization.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    organization.sector.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    organization.country.toLowerCase().includes(searchTerm.toLowerCase())
+    organization.organization.organizationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    organization.organization.contactName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    organization.organization.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    organization.organization.sector.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    organization.organization.country.toLowerCase().includes(searchTerm.toLowerCase())
   );
 };
 
 export default function OrganizationsExplorePage() {
   const { activeCourse } = useCourse();
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [selectedOrganization, setSelectedOrganization] = useState<Organization | null>(null);
+  const [selectedOrganization, setSelectedOrganization] = useState<OrganizationWithFilter | null>(
+    null,
+  );
   const [detailInterns, setDetailInterns] = useState<Intern[]>([]);
   const [detailMentors, setDetailMentors] = useState<Mentor[]>([]);
   const [isDetailLoading, setIsDetailLoading] = useState<boolean>(false);
   const [isDetailOpen, setIsDetailOpen] = useState<boolean>(false);
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [organizations, setOrganizations] = useState<OrganizationWithFilter[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [mentors, setMentors] = useState<Mentor[]>([]);
@@ -104,13 +106,17 @@ export default function OrganizationsExplorePage() {
 
   // Dynamic modal states
   const [isDynamicModalOpen, setIsDynamicModalOpen] = useState<boolean>(false);
-  const [organizationForModal, setOrganizationForModal] = useState<Organization | null>(null);
+  const [organizationForModal, setOrganizationForModal] = useState<OrganizationWithFilter | null>(
+    null,
+  );
   const [modalType, setModalType] = useState<'mentor' | 'intern'>('mentor');
   const [isAssigning, setIsAssigning] = useState<boolean>(false);
 
   // Delete confirmation modal states
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
-  const [organizationToDelete, setOrganizationToDelete] = useState<Organization | null>(null);
+  const [organizationToDelete, setOrganizationToDelete] = useState<OrganizationWithFilter | null>(
+    null,
+  );
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
   // Use pagination hook
@@ -124,7 +130,7 @@ export default function OrganizationsExplorePage() {
     endIndex,
     paginatedData: paginatedOrganizations,
     totalItems,
-  } = usePagination({
+  } = usePagination<OrganizationWithFilter>({
     data: organizations,
     itemsPerPage: 10,
     searchTerm,
@@ -176,14 +182,20 @@ export default function OrganizationsExplorePage() {
     }
   };
 
-  const fetchOrganizationDetails = async (organization: Organization) => {
+  const fetchOrganizationDetails = async (organization: OrganizationWithFilter) => {
     if (!activeCourse) return;
 
     try {
       setIsDetailLoading(true);
       const [interns, mentors] = await Promise.all([
-        apiService.getAllOrganizationInternsWithinCourse(activeCourse.id, organization.id),
-        apiService.getAllOrganizationMentorsWithinCourse(activeCourse.id, organization.id),
+        apiService.getAllOrganizationInternsWithinCourse(
+          activeCourse.id,
+          organization.organization.id,
+        ),
+        apiService.getAllOrganizationMentorsWithinCourse(
+          activeCourse.id,
+          organization.organization.id,
+        ),
       ]);
       setDetailInterns(interns);
       setDetailMentors(mentors);
@@ -220,7 +232,7 @@ export default function OrganizationsExplorePage() {
   };
 
   // Handle opening the dynamic modal for mentors
-  const handleOpenMentorModal = (organization: Organization) => {
+  const handleOpenMentorModal = (organization: OrganizationWithFilter) => {
     setOrganizationForModal(organization);
     setModalType('mentor');
     setIsDynamicModalOpen(true);
@@ -228,11 +240,11 @@ export default function OrganizationsExplorePage() {
   };
 
   // Handle opening the dynamic modal for interns
-  const handleOpenInternModal = (organization: Organization) => {
+  const handleOpenInternModal = (organization: OrganizationWithFilter) => {
     setOrganizationForModal(organization);
     setModalType('intern');
     setIsDynamicModalOpen(true);
-    fetchInterns(organization.id);
+    fetchInterns(organization.organization.id);
   };
 
   // Handle mentor assignment
@@ -247,7 +259,7 @@ export default function OrganizationsExplorePage() {
         await apiService.assignMentorToOrganization(
           activeCourse.id,
           mentorId,
-          organizationForModal.id,
+          organizationForModal.organization.id,
         );
       }
 
@@ -271,14 +283,14 @@ export default function OrganizationsExplorePage() {
       for (const internId of internIds) {
         await apiService.assignInternToOrganization(
           activeCourse.id,
-          organizationForModal.id,
+          organizationForModal.organization.id,
           internId,
         );
       }
 
       await refreshOrganization();
       // Refresh the interns data to update the modal
-      await fetchInterns(organizationForModal.id);
+      await fetchInterns(organizationForModal.organization.id);
       toast.success(
         `${internIds.length} pasante${internIds.length > 1 ? 's asignados' : ' asignado'} exitosamente`,
       );
@@ -300,7 +312,7 @@ export default function OrganizationsExplorePage() {
       for (const mentorId of mentorIds) {
         await apiService.removeMentorFromOrganizationWithinCourse(
           activeCourse.id,
-          organizationForModal.id,
+          organizationForModal.organization.id,
           mentorId,
         );
       }
@@ -325,14 +337,14 @@ export default function OrganizationsExplorePage() {
       for (const internId of internIds) {
         await apiService.removeInternFromOrganizationWithinCourse(
           activeCourse.id,
-          organizationForModal.id,
+          organizationForModal.organization.id,
           internId,
         );
       }
 
       await refreshOrganization();
       // Refresh the interns data to update the modal
-      await fetchInterns(organizationForModal.id);
+      await fetchInterns(organizationForModal.organization.id);
       toast.success(
         `${internIds.length} pasante${internIds.length > 1 ? 's desasignados' : ' desasignado'} exitosamente`,
       );
@@ -351,22 +363,29 @@ export default function OrganizationsExplorePage() {
     try {
       const updatedOrganization = await apiService.getOrganizationWithinCourse(
         activeCourse.id,
-        organizationForModal.id,
+        organizationForModal.organization.id,
       );
 
-      setOrganizations((prevOrganizations) =>
-        prevOrganizations.map((organization) =>
-          organization.id === updatedOrganization.id ? updatedOrganization : organization,
+      // Actualizar el array de organizaciones
+      setOrganizations((prev) =>
+        prev.map((o) =>
+          o.organization.id === updatedOrganization.id
+            ? { ...o, organization: updatedOrganization }
+            : o,
         ),
       );
 
-      setOrganizationForModal(updatedOrganization);
+      // Mantener el filtro actual, solo actualizar la organización
+      setOrganizationForModal({
+        ...organizationForModal,
+        organization: updatedOrganization,
+      });
     } catch (err) {
       console.error('Error refreshing organization:', err);
     }
   };
 
-  const handleViewDetail = (organization: Organization) => {
+  const handleViewDetail = (organization: OrganizationWithFilter) => {
     setSelectedOrganization(organization);
     fetchOrganizationDetails(organization);
     setIsDetailOpen(true);
@@ -379,7 +398,7 @@ export default function OrganizationsExplorePage() {
     setDetailInterns([]);
   };
 
-  const handleDeleteOrganization = (organization: Organization) => {
+  const handleDeleteOrganization = (organization: OrganizationWithFilter) => {
     setOrganizationToDelete(organization);
     setIsDeleteModalOpen(true);
   };
@@ -389,8 +408,13 @@ export default function OrganizationsExplorePage() {
 
     try {
       setIsDeleting(true);
-      await apiService.deleteOrganizationWithinCourse(activeCourse.id, organizationToDelete.id);
-      setOrganizations(organizations.filter((c) => c.id !== organizationToDelete.id));
+      await apiService.deleteOrganizationWithinCourse(
+        activeCourse.id,
+        organizationToDelete.organization.id,
+      );
+      setOrganizations(
+        organizations.filter((c) => c.organization.id !== organizationToDelete.organization.id),
+      );
       toast.success('Organización eliminada exitosamente');
     } catch (err) {
       console.error('Error deleting organization:', err);
@@ -417,8 +441,8 @@ export default function OrganizationsExplorePage() {
   };
 
   // Helper function to render mentor status badge (clickable)
-  const renderMentorStatusBadge = (organization: Organization) => {
-    const mentorCount = organization.mentorIds?.length || 0;
+  const renderMentorStatusBadge = (organization: OrganizationWithFilter) => {
+    const mentorCount = organization.organization.mentorIds?.length || 0;
 
     return (
       <Button
@@ -443,9 +467,9 @@ export default function OrganizationsExplorePage() {
   };
 
   // Helper function to render intern status badge (clickable)
-  const renderInternStatusBadge = (organization: Organization) => {
-    const internCount = organization.internIds?.length || 0;
-    const maxInterns = organization.maximumNumberOfInterns || 0;
+  const renderInternStatusBadge = (organization: OrganizationWithFilter) => {
+    const internCount = organization.organization.internIds?.length || 0;
+    const maxInterns = organization.filter.maximumNumberOfInterns || 0;
 
     return (
       <Button
@@ -523,12 +547,12 @@ export default function OrganizationsExplorePage() {
     modalType === 'mentor'
       ? {
           ...organizationMentorAssignmentConfig,
-          assignedEntityIds: organizationForModal?.mentorIds || [],
+          assignedEntityIds: organizationForModal?.organization.mentorIds || [],
         }
       : {
           ...organizationInternAssignmentConfig,
-          maxAssignments: organizationForModal?.maximumNumberOfInterns || 0,
-          assignedEntityIds: organizationForModal?.internIds || [],
+          maxAssignments: organizationForModal?.organization.maximumNumberOfInterns || 0,
+          assignedEntityIds: organizationForModal?.organization.internIds || [],
         };
 
   // For interns, we need to combine available and assigned interns
@@ -601,11 +625,15 @@ export default function OrganizationsExplorePage() {
             // Cards for mobile view
             <div className="space-y-4">
               {paginatedOrganizations.map((organization) => (
-                <Card key={organization.id} className="p-4">
+                <Card key={organization.organization.id} className="p-4">
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex-1">
-                      <h3 className="font-medium text-sm">{organization.organizationName}</h3>
-                      <p className="text-xs text-muted-foreground">{organization.sector}</p>
+                      <h3 className="font-medium text-sm">
+                        {organization.organization.organizationName}
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        {organization.organization.sector}
+                      </p>
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -619,7 +647,9 @@ export default function OrganizationsExplorePage() {
                           Ver Detalle
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link href={`/dashboard/organizations/${organization.id}/edit`}>
+                          <Link
+                            href={`/dashboard/organizations/${organization.organization.id}/edit`}
+                          >
                             <Edit className="h-4 w-4 mr-2" />
                             Editar
                           </Link>
@@ -637,15 +667,15 @@ export default function OrganizationsExplorePage() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <User className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-xs">{organization.contactName}</span>
+                      <span className="text-xs">{organization.organization.contactName}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Phone className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-xs">{organization.phone}</span>
+                      <span className="text-xs">{organization.organization.phone}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Mail className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-xs">{organization.email}</span>
+                      <span className="text-xs">{organization.organization.email}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       {renderMentorStatusBadge(organization)}
@@ -670,13 +700,17 @@ export default function OrganizationsExplorePage() {
               </TableHeader>
               <TableBody>
                 {paginatedOrganizations.map((organization) => (
-                  <TableRow key={organization.id}>
-                    <TableCell className="font-medium">{organization.organizationName}</TableCell>
-                    <TableCell>{organization.ruc || 'N/A'}</TableCell>
+                  <TableRow key={organization.organization.id}>
+                    <TableCell className="font-medium">
+                      {organization.organization.organizationName}
+                    </TableCell>
+                    <TableCell>{organization.organization.ruc || 'N/A'}</TableCell>
                     <TableCell>
                       <div>
-                        <div>{organization.contactName}</div>
-                        <div className="text-sm text-muted-foreground">{organization.phone}</div>
+                        <div>{organization.organization.contactName}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {organization.organization.phone}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>{renderMentorStatusBadge(organization)}</TableCell>
@@ -694,7 +728,9 @@ export default function OrganizationsExplorePage() {
                             Ver Detalle
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
-                            <Link href={`/dashboard/organizations/${organization.id}/edit`}>
+                            <Link
+                              href={`/dashboard/organizations/${organization.organization.id}/edit`}
+                            >
                               <Edit className="h-4 w-4 mr-2" />
                               Editar
                             </Link>
@@ -756,8 +792,8 @@ export default function OrganizationsExplorePage() {
           organizationToDelete && (
             <>
               Esta acción no se puede deshacer. Esto eliminará la organización{' '}
-              <strong>{organizationToDelete.organizationName}</strong> y removerá todos sus datos
-              del sistema.
+              <strong>{organizationToDelete.organization.organizationName}</strong> y removerá todos
+              sus datos del sistema.
             </>
           )
         }
@@ -781,7 +817,7 @@ export default function OrganizationsExplorePage() {
               <SheetHeader>
                 <SheetTitle className="flex items-center gap-2">
                   <Building2 className="h-5 w-5" />
-                  {selectedOrganization.organizationName}
+                  {selectedOrganization.organization.organizationName}
                 </SheetTitle>
                 <SheetDescription>Información detallada de la organización</SheetDescription>
               </SheetHeader>
@@ -793,34 +829,46 @@ export default function OrganizationsExplorePage() {
                     <CardTitle className="text-lg">Información General</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {selectedOrganization.ruc && (
+                    {selectedOrganization.organization.ruc && (
                       <div className="flex items-center gap-2">
                         <Building className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">RUC: {selectedOrganization.ruc}</span>
+                        <span className="text-sm">
+                          RUC: {selectedOrganization.organization.ruc}
+                        </span>
                       </div>
                     )}
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">Contacto: {selectedOrganization.contactName}</span>
+                      <span className="text-sm">
+                        Contacto: {selectedOrganization.organization.contactName}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">Teléfono: {selectedOrganization.phone}</span>
+                      <span className="text-sm">
+                        Teléfono: {selectedOrganization.organization.phone}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">Correo: {selectedOrganization.email}</span>
+                      <span className="text-sm">
+                        Correo: {selectedOrganization.organization.email}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Building className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">
-                        Sector {selectedOrganization.sector} | Organización{' '}
-                        {getOrganizationSizeLabel(selectedOrganization.organizationSize)}
+                        Sector {selectedOrganization.organization.sector} | Organización{' '}
+                        {getOrganizationSizeLabel(
+                          selectedOrganization.organization.organizationSize,
+                        )}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Globe className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">País: {selectedOrganization.country}</span>
+                      <span className="text-sm">
+                        País: {selectedOrganization.organization.country}
+                      </span>
                     </div>
                   </CardContent>
                 </Card>
@@ -830,20 +878,20 @@ export default function OrganizationsExplorePage() {
                     <CardTitle className="text-lg">Preferencias de Pasantes</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {selectedOrganization.placeOfResidenceFilter && (
+                    {selectedOrganization.filter.placeOfResidenceFilter && (
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm">
                           Lugar de residencia:{' '}
-                          {getDepartmentLabel(selectedOrganization.placeOfResidenceFilter)}
+                          {getDepartmentLabel(selectedOrganization.filter.placeOfResidenceFilter)}
                         </span>
                       </div>
                     )}
-                    {selectedOrganization.genderFilter && (
+                    {selectedOrganization.filter.genderFilter && (
                       <div className="flex items-center gap-2">
                         <PersonStanding className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm">
-                          Género: {getGenderLabel(selectedOrganization.genderFilter)}
+                          Género: {getGenderLabel(selectedOrganization.filter.genderFilter)}
                         </span>
                       </div>
                     )}
@@ -851,16 +899,16 @@ export default function OrganizationsExplorePage() {
                       <GraduationCap className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">
                         Carreras:{' '}
-                        {selectedOrganization.studiedMajorFilter
+                        {selectedOrganization.filter.studiedMajorFilter
                           ?.map((major) => getMajorLabel(major))
                           .join(', ')}
                       </span>
                     </div>
-                    {selectedOrganization.maximumNumberOfInterns && (
+                    {selectedOrganization.filter.maximumNumberOfInterns && (
                       <div className="flex items-center gap-2">
                         <UsersRound className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm">
-                          Máximo de pasantes: {selectedOrganization.maximumNumberOfInterns}
+                          Máximo de pasantes: {selectedOrganization.filter.maximumNumberOfInterns}
                         </span>
                       </div>
                     )}
@@ -934,7 +982,7 @@ export default function OrganizationsExplorePage() {
                   </CardHeader>
                   <CardContent>
                     <div className="flex flex-wrap gap-2">
-                      {selectedOrganization.topicsOfInterest.map((topic, index) => (
+                      {selectedOrganization.organization.topicsOfInterest.map((topic, index) => (
                         <Badge key={index} variant="outline">
                           {getTopicLabel(topic)}
                         </Badge>
@@ -951,11 +999,15 @@ export default function OrganizationsExplorePage() {
                   <CardContent className="space-y-2">
                     <div className="text-sm">
                       <span className="font-medium">Fecha de registro:</span>{' '}
-                      {new Date(selectedOrganization.createdAt).toLocaleDateString('es-ES')}
+                      {new Date(selectedOrganization.organization.createdAt).toLocaleDateString(
+                        'es-ES',
+                      )}
                     </div>
                     <div className="text-sm">
                       <span className="font-medium">Última actualización:</span>{' '}
-                      {new Date(selectedOrganization.updatedAt).toLocaleDateString('es-ES')}
+                      {new Date(selectedOrganization.organization.updatedAt).toLocaleDateString(
+                        'es-ES',
+                      )}
                     </div>
                   </CardContent>
                 </Card>

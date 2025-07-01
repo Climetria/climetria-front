@@ -106,6 +106,21 @@ export interface Grade {
 
 export type Attendance = 'A' | 'T' | 'F' | 'FJ';
 
+export interface OrganizationWithFilter {
+  organization: Organization;
+  filter: {
+    id: string;
+    courseId: string;
+    organizationId: string;
+    maximumNumberOfInterns: number;
+    placeOfResidenceFilter: string;
+    studiedMajorFilter: string[];
+    genderFilter: 'MALE_ONLY' | 'FEMALE_ONLY' | 'BOTH';
+    createdAt: string;
+    updatedAt: string;
+  };
+}
+
 // Utility to read cookies from the client
 function getCookieValue(name: string): string | null {
   if (typeof document === 'undefined') return null;
@@ -201,7 +216,7 @@ class ApiService {
   }
 
   // Organizations
-  async getAllOrganizationsWithinCourse(courseId: string): Promise<Organization[]> {
+  async getAllOrganizationsWithinCourse(courseId: string): Promise<OrganizationWithFilter[]> {
     return this.fetchWithErrorHandling(`/courses/${courseId}/organizations`);
   }
 

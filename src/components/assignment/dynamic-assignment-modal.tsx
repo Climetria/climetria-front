@@ -17,7 +17,7 @@ import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Search, User, Mail, Phone, AlertCircle } from 'lucide-react';
-import type { Mentor, Intern, Organization } from '@/lib/api';
+import type { Mentor, Intern, OrganizationWithFilter } from '@/lib/api';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 type AssignableEntity = Mentor | Intern;
@@ -25,14 +25,14 @@ type AssignableEntity = Mentor | Intern;
 interface DynamicAssignmentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  organization: Organization | null;
+  organization: OrganizationWithFilter | null;
   entities: AssignableEntity[];
   onAssign: (entityIds: string[]) => Promise<void>;
   onUnassign: (entityIds: string[]) => Promise<void>;
   isLoading: boolean;
   config: {
     title: string;
-    description: (organization: Organization) => string;
+    description: (organization: OrganizationWithFilter) => string;
     searchPlaceholder: string;
     assignButtonText: string;
     loadingText: string;
@@ -253,7 +253,7 @@ export function DynamicAssignmentModal({
                   </div>
 
                   {/* Available Entities */}
-                  <ScrollArea className="h-64">
+                  <ScrollArea className="max-h-[300px] overflow-y-auto pr-1">
                     {filteredAvailableEntities.length === 0 ? (
                       <div className="text-center py-8">
                         <AlertCircle className="h-8 w-8 mx-auto text-muted-foreground mb-2" />

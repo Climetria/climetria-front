@@ -1,4 +1,4 @@
-import type { Mentor, Intern, Organization } from '@/lib/api';
+import type { Mentor, Intern, OrganizationWithFilter } from '@/lib/api';
 
 // Tipo unión para entidades asignables
 type AssignableEntity = Mentor | Intern;
@@ -15,8 +15,8 @@ export function isMentor(entity: AssignableEntity): entity is Mentor {
 
 export const organizationMentorAssignmentConfig = {
   title: 'Asignar Mentor a Organización',
-  description: (organization: Organization) =>
-    `Selecciona un mentor para asignar a ${organization.organizationName}`,
+  description: (organization: OrganizationWithFilter) =>
+    `Selecciona un mentor para asignar a ${organization.organization.organizationName}`,
   searchPlaceholder: 'Buscar mentores...',
   assignButtonText: 'Asignar Mentor',
   loadingText: 'Asignando...',
@@ -33,8 +33,8 @@ export const organizationMentorAssignmentConfig = {
 
 export const organizationInternAssignmentConfig = {
   title: 'Asignar Pasantes a Organización',
-  description: (organization: Organization) =>
-    `Selecciona pasantes para asignar a ${organization.organizationName}`,
+  description: (organization: OrganizationWithFilter) =>
+    `Selecciona pasantes para asignar a ${organization.organization.organizationName}`,
   searchPlaceholder: 'Buscar pasantes...',
   assignButtonText: 'Asignar Pasantes',
   loadingText: 'Asignando...',
