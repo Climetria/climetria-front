@@ -446,7 +446,7 @@ export default function InternshipEvaluation() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-auto max-h-[70vh]">
-              <div className="min-w-[1200px]">
+              <div className="max-w-[1200px]">
                 <Table>
                   <TableHeader className="sticky top-0 z-20 bg-white">
                     {/* First row - Main group headers */}
