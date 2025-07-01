@@ -216,8 +216,7 @@ class ApiService {
     courseId: string,
     organizationData: Partial<Organization>,
   ): Promise<Organization> {
-    // Include all the new optional fields
-    const cleanData = {
+    const organization = {
       ruc: organizationData.ruc,
       email: organizationData.email,
       contactName: organizationData.contactName,
@@ -227,19 +226,22 @@ class ApiService {
       organizationSize: organizationData.organizationSize,
       sector: organizationData.sector,
       topicsOfInterest: organizationData.topicsOfInterest,
-      // Include optional preference fields
+    };
+
+    const filter = {
       maximumNumberOfInterns: organizationData.maximumNumberOfInterns,
       placeOfResidenceFilter: organizationData.placeOfResidenceFilter,
       studiedMajorFilter: organizationData.studiedMajorFilter,
       genderFilter: organizationData.genderFilter,
-      courseIds: organizationData.courseIds,
     };
 
-    console.log('Clean organization data to send:', cleanData);
+    const payload = { organization, filter };
+
+    console.log('Payload enviado a la API:', payload);
 
     return this.fetchWithErrorHandling(`/courses/${courseId}/organizations`, {
       method: 'POST',
-      body: JSON.stringify(cleanData),
+      body: JSON.stringify(payload),
     });
   }
 
