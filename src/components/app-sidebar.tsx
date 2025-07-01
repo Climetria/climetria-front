@@ -38,11 +38,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             {
               title: 'Explorar',
               url: '/dashboard/organizations/',
-              url: '/dashboard/organizations/',
             },
             {
               title: 'Registrar',
-              url: '/dashboard/organizations/create/',
               url: '/dashboard/organizations/create/',
             },
           ],
@@ -89,11 +87,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           {
             title: 'Explorar',
             url: `/dashboard/organizations/`,
-            url: `/dashboard/organizations/`,
           },
           {
             title: 'Registrar',
-            url: `/dashboard/organizations/create/`,
             url: `/dashboard/organizations/create/`,
           },
         ],
