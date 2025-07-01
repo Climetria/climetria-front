@@ -48,7 +48,6 @@ export interface Intern {
   phone: string;
   gender: string;
   universityName: string;
-  profession: string;
   majorInProgress: string;
   graduationYear: number;
   referralSource: string;
@@ -105,7 +104,7 @@ export interface Grade {
   updatedAt: string;
 }
 
-export type Attendance = 'A' | 'M' | 'F' | 'FJ';
+export type Attendance = 'A' | 'T' | 'F' | 'FJ';
 
 // Utility to read cookies from the client
 function getCookieValue(name: string): string | null {

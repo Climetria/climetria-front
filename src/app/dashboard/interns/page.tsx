@@ -74,7 +74,6 @@ const internFilterFn = (intern: Intern, searchTerm: string) => {
     intern.lastNameFather.toLowerCase().includes(searchTerm.toLowerCase()) ||
     intern.lastNameMother.toLowerCase().includes(searchTerm.toLowerCase()) ||
     intern.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    intern.profession.toLowerCase().includes(searchTerm.toLowerCase()) ||
     intern.universityName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     intern.country.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -216,7 +215,6 @@ export default function InternsExplorePage() {
           'lastNameMother',
           'phone',
           'universityName',
-          'profession',
           'graduationYear',
           'referralSource',
           'topicsOfInterest',

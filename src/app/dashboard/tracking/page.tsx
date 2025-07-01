@@ -88,7 +88,6 @@ export default function InternshipEvaluation() {
   // Map API attendance to component attendance
   const mapApiAttendanceToComponent = (apiAttendance?: Attendance): AttendanceValue => {
     if (!apiAttendance) return '';
-    if (apiAttendance === 'M') return 'T'; // Map 'M' (tardiness) to 'T'
     return apiAttendance as AttendanceValue;
   };
 
@@ -97,7 +96,6 @@ export default function InternshipEvaluation() {
     componentAttendance: AttendanceValue,
   ): Attendance | undefined => {
     if (!componentAttendance) return undefined;
-    if (componentAttendance === 'T') return 'M'; // Map 'T' to 'M' for API
     return componentAttendance as Attendance;
   };
 

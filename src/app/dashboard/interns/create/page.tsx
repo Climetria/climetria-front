@@ -66,7 +66,6 @@ const formSchema = z
     // Datos Adicionales (Paso 2)
     universityName: z.string().min(1, { message: 'La universidad es obligatoria' }),
     majorInProgress: z.string().min(1, { message: 'La carrera en curso es obligatoria' }),
-    profession: z.string().min(1, { message: 'La profesión estudiada es obligatoria' }),
     graduationYear: z.string().min(1, { message: 'El año de graduación es obligatorio' }),
     referralSource: z
       .string()
@@ -129,7 +128,6 @@ export default function CreateInternPage() {
       department: '',
       universityName: '',
       majorInProgress: '',
-      profession: '',
       graduationYear: '',
       referralSource: '',
       topicsOfInterest: [],
@@ -164,7 +162,6 @@ export default function CreateInternPage() {
           | 'BIOLOGY'
           | 'ENVIRONMENTAL_MANAGEMENT'
           | 'OTHERS',
-        profession: data.profession.trim(),
         graduationYear: Number.parseInt(data.graduationYear),
         referralSource: data.referralSource,
         topicsOfInterest: data.topicsOfInterest,
@@ -206,7 +203,6 @@ export default function CreateInternPage() {
         : [
             'universityName',
             'majorInProgress',
-            'profession',
             'graduationYear',
             'referralSource',
             'topicsOfInterest',
@@ -647,19 +643,6 @@ function AdditionalInfoStep({ form }: { form: ReturnType<typeof useForm<FormValu
 
       {/* Profesión y Año de graduación */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FormField
-          control={form.control}
-          name="profession"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Profesión *</FormLabel>
-              <FormControl>
-                <Input placeholder="Ingeniería Ambiental" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
         <FormField
           control={form.control}
           name="graduationYear"

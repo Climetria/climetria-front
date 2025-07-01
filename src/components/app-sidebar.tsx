@@ -62,7 +62,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         },
         {
           title: 'Pasantes',
-          url: '#',
+          url: '/',
           icon: UsersRound,
           items: [
             {
