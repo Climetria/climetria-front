@@ -153,7 +153,7 @@ export function DynamicAssignmentModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+      <DialogContent className="max-w-2xl h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>{config.title}</DialogTitle>
           <DialogDescription>{config.description(organization)}</DialogDescription>
@@ -169,21 +169,20 @@ export function DynamicAssignmentModal({
             </div>
           )}
         </DialogHeader>
-
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin" />
               <span className="ml-2">Cargando...</span>
             </div>
           ) : (
-            <div className="space-y-4">
-              {/* Currently Assigned Section - SIEMPRE VISIBLE */}
+            <div className="space-y-4 flex-1 flex flex-col min-h-0">
+              {/* Currently Assigned Section */}
               {assignedEntities.length > 0 && (
                 <div>
                   <h4 className="text-sm font-medium mb-3">Actualmente Asignados</h4>
                   <ScrollArea className="max-h-48">
-                    <div className="space-y-3">
+                    <div className="space-y-3 pr-1">
                       {assignedEntities.map((entity) => (
                         <Card key={entity.id} className="p-4 border-l-4 border-l-primary">
                           <div className="flex items-start justify-between">
@@ -233,7 +232,7 @@ export function DynamicAssignmentModal({
 
               {/* Assignment Section */}
               {canAssignMore() ? (
-                <div>
+                <div className="flex flex-col flex-1 min-h-0">
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="text-sm font-medium">Disponibles para Asignar</h4>
                     {remainingSlots !== null && (
@@ -252,20 +251,20 @@ export function DynamicAssignmentModal({
                     />
                   </div>
 
-                  {/* Available Entities */}
-                  <ScrollArea className="max-h-[300px] overflow-y-auto pr-1">
-                    {filteredAvailableEntities.length === 0 ? (
-                      <div className="text-center py-8">
-                        <AlertCircle className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                        <p className="text-sm text-muted-foreground">
-                          {availableEntities.length === 0
-                            ? config.noEntitiesMessage
-                            : config.noResultsMessage}
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {filteredAvailableEntities.map((entity) => {
+                  {/* Scrollable List */}
+                  <ScrollArea className="flex-1">
+                    <div className="space-y-2 pr-1">
+                      {filteredAvailableEntities.length === 0 ? (
+                        <div className="text-center py-8">
+                          <AlertCircle className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                          <p className="text-sm text-muted-foreground">
+                            {availableEntities.length === 0
+                              ? config.noEntitiesMessage
+                              : config.noResultsMessage}
+                          </p>
+                        </div>
+                      ) : (
+                        filteredAvailableEntities.map((entity) => {
                           const isSelected = selectedEntityIds.includes(entity.id);
                           const wouldExceedLimit =
                             config.maxAssignments &&
@@ -312,9 +311,9 @@ export function DynamicAssignmentModal({
                               </div>
                             </Card>
                           );
-                        })}
-                      </div>
-                    )}
+                        })
+                      )}
+                    </div>
                   </ScrollArea>
                 </div>
               ) : (

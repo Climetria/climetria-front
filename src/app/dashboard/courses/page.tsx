@@ -22,7 +22,13 @@ import {
   Calendar,
   Loader2,
 } from 'lucide-react';
-import { apiService, type Course, type Intern, type Mentor, type Organization } from '@/lib/api';
+import {
+  apiService,
+  OrganizationWithFilter,
+  type Course,
+  type Intern,
+  type Mentor,
+} from '@/lib/api';
 import {
   Sheet,
   SheetContent,
@@ -44,7 +50,7 @@ export default function CoursesPage() {
   const [isDetailOpen, setIsDetailOpen] = useState<boolean>(false);
   const [mentors, setMentors] = useState<Mentor[]>([]);
   const [interns, setInterns] = useState<Intern[]>([]);
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [organizations, setOrganizations] = useState<OrganizationWithFilter[]>([]);
   const isMobile = useIsMobile();
 
   // Delete confirmation modal states
