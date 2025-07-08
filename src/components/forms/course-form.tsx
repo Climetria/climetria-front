@@ -30,6 +30,19 @@ interface CourseFormProps {
   onSuccess?: () => void;
 }
 
+const dateToLocalString = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const stringToLocalDate = (dateString: string): Date | undefined => {
+  if (!dateString) return undefined;
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(year, month - 1, day, 12, 0, 0, 0);
+};
+
 export function CourseForm({ mode, courseId, initialData, onSuccess }: CourseFormProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -222,11 +235,11 @@ export function CourseForm({ mode, courseId, initialData, onSuccess }: CourseFor
                 <div className="space-y-2">
                   <Label htmlFor="startDate">Fecha de Inicio *</Label>
                   <DatePicker
-                    date={formData.startDate ? new Date(formData.startDate) : undefined}
+                    date={stringToLocalDate(formData.startDate)}
                     onChange={(date) =>
                       setFormData({
                         ...formData,
-                        startDate: date ? date.toISOString().split('T')[0] : '',
+                        startDate: date ? dateToLocalString(date) : '',
                       })
                     }
                     placeholder="Seleccionar fecha de inicio"
@@ -237,11 +250,11 @@ export function CourseForm({ mode, courseId, initialData, onSuccess }: CourseFor
                 <div className="space-y-2">
                   <Label htmlFor="endDate">Fecha de Fin *</Label>
                   <DatePicker
-                    date={formData.endDate ? new Date(formData.endDate) : undefined}
+                    date={stringToLocalDate(formData.endDate)}
                     onChange={(date) =>
                       setFormData({
                         ...formData,
-                        endDate: date ? date.toISOString().split('T')[0] : '',
+                        endDate: date ? dateToLocalString(date) : '',
                       })
                     }
                     placeholder="Seleccionar fecha de fin"

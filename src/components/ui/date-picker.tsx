@@ -1,4 +1,3 @@
-// components/ui/date-picker.tsx
 'use client';
 
 import * as React from 'react';
@@ -23,6 +22,25 @@ export function DatePicker({
   placeholder = 'Seleccionar fecha',
   disabled,
 }: DatePickerProps) {
+  // Función para manejar el cambio de fecha y evitar problemas de timezone
+  const handleDateChange = (selectedDate: Date | undefined) => {
+    if (selectedDate) {
+      // Método más confiable: crear fecha local sin conversión UTC
+      const localDate = new Date(
+        selectedDate.getFullYear(),
+        selectedDate.getMonth(),
+        selectedDate.getDate(),
+        12, // Usar mediodía para evitar cambios de DST
+        0,
+        0,
+        0,
+      );
+      onChange(localDate);
+    } else {
+      onChange(undefined);
+    }
+  };
+
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -39,7 +57,14 @@ export function DatePicker({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0">
-        <Calendar locale={es} mode="single" selected={date} onSelect={onChange} />
+        <Calendar
+          locale={es}
+          mode="single"
+          selected={date}
+          onSelect={handleDateChange}
+          // Opcional: deshabilitar fechas futuras si es necesario
+          // disabled={(date) => date > new Date()}
+        />
       </PopoverContent>
     </Popover>
   );
