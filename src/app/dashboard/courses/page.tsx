@@ -177,7 +177,7 @@ export default function CoursesPage() {
               <div className="flex justify-between items-start">
                 <div>
                   <CardTitle className="text-lg">{course.name}</CardTitle>
-                  <CardDescription>{course.startDate}</CardDescription>
+                  <CardDescription>{course.description}</CardDescription>
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -208,7 +208,8 @@ export default function CoursesPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">{course.description}</p>
+              <p className="text-muted-foreground text-sm">Fecha de Inicio: {course.startDate}</p>
+              <p className="text-muted-foreground text-sm">Fecha de Fin: {course.endDate}</p>
             </CardContent>
           </Card>
         ))}
@@ -272,7 +273,11 @@ export default function CoursesPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">Año: {selectedCourse.startDate}</span>
+                      <span className="text-sm">Fecha de Inicio: {selectedCourse.startDate}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">Fecha de Fin: {selectedCourse.endDate}</span>
                     </div>
                   </CardContent>
                 </Card>

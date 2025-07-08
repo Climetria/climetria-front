@@ -14,11 +14,13 @@ import { apiService, type Course } from '@/lib/api';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { LoadingCardContent } from './loading-card-content';
+import { DatePicker } from '@/components/ui/date-picker';
 
-type CourseFormData = {
+export type CourseFormData = {
   name: string;
   description: string;
-  year: number;
+  startDate: string;
+  endDate: string;
 };
 
 interface CourseFormProps {
@@ -36,10 +38,10 @@ export function CourseForm({ mode, courseId, initialData, onSuccess }: CourseFor
   const [formData, setFormData] = useState<CourseFormData>({
     name: '',
     description: '',
-    year: new Date().getFullYear(),
+    startDate: '',
+    endDate: '',
   });
 
-  // Load course data for edit mode
   useEffect(() => {
     const loadCourseData = async () => {
       if (mode === 'edit' && courseId) {
@@ -47,11 +49,11 @@ export function CourseForm({ mode, courseId, initialData, onSuccess }: CourseFor
           setIsLoadingData(true);
           setError(null);
           const course = await apiService.getCourse(courseId);
-
           setFormData({
             name: course.name,
             description: course.description || '',
-            year: course.year,
+            startDate: course.startDate || '',
+            endDate: course.endDate || '',
           });
         } catch (err) {
           console.error('Error loading course data:', err);
@@ -64,11 +66,11 @@ export function CourseForm({ mode, courseId, initialData, onSuccess }: CourseFor
           setIsLoadingData(false);
         }
       } else if (initialData) {
-        // Use provided initial data
         setFormData({
           name: initialData.name || '',
           description: initialData.description || '',
-          year: initialData.year || new Date().getFullYear(),
+          startDate: initialData.startDate || '',
+          endDate: initialData.endDate || '',
         });
         setIsLoadingData(false);
       } else if (mode === 'edit') {
@@ -76,9 +78,28 @@ export function CourseForm({ mode, courseId, initialData, onSuccess }: CourseFor
         setError('ID de curso no proporcionado.');
       }
     };
-
     loadCourseData();
   }, [mode, courseId, initialData]);
+
+  const validateDates = (startDate: string, endDate: string): string | null => {
+    if (!startDate || !endDate) {
+      return 'Las fechas de inicio y fin son obligatorias.';
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    if (start >= end) {
+      return 'La fecha de inicio debe ser anterior a la fecha de fin.';
+    }
+
+    const currentYear = new Date().getFullYear();
+    const minYear = currentYear - 10;
+    if (start.getFullYear() < minYear) {
+      return `La fecha de inicio no puede ser anterior al año ${minYear}.`;
+    }
+
+    return null;
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -88,8 +109,9 @@ export function CourseForm({ mode, courseId, initialData, onSuccess }: CourseFor
       return;
     }
 
-    if (!formData.year || formData.year < 2000) {
-      setError('Por favor, ingresa un año válido.');
+    const dateError = validateDates(formData.startDate, formData.endDate);
+    if (dateError) {
+      setError(dateError);
       return;
     }
 
@@ -100,7 +122,8 @@ export function CourseForm({ mode, courseId, initialData, onSuccess }: CourseFor
       const courseData = {
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
-        year: formData.year,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
       };
 
       if (mode === 'create') {
@@ -111,7 +134,6 @@ export function CourseForm({ mode, courseId, initialData, onSuccess }: CourseFor
         toast.success('Curso actualizado exitosamente');
       }
 
-      // Call success callback or redirect
       if (onSuccess) {
         onSuccess();
       } else {
@@ -167,7 +189,6 @@ export function CourseForm({ mode, courseId, initialData, onSuccess }: CourseFor
           <CardTitle>{titles[mode].card}</CardTitle>
           <CardDescription>{titles[mode].cardDescription}</CardDescription>
         </CardHeader>
-
         {isLoadingData ? (
           <LoadingCardContent type="course" />
         ) : (
@@ -197,18 +218,36 @@ export function CourseForm({ mode, courseId, initialData, onSuccess }: CourseFor
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="year">Año *</Label>
-                <Input
-                  id="year"
-                  type="number"
-                  min={2000}
-                  max={2100}
-                  value={formData.year || ''}
-                  onChange={(e) => setFormData({ ...formData, year: Number(e.target.value) })}
-                  required
-                  disabled={isLoading}
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="startDate">Fecha de Inicio *</Label>
+                  <DatePicker
+                    date={formData.startDate ? new Date(formData.startDate) : undefined}
+                    onChange={(date) =>
+                      setFormData({
+                        ...formData,
+                        startDate: date ? date.toISOString().split('T')[0] : '',
+                      })
+                    }
+                    placeholder="Seleccionar fecha de inicio"
+                    disabled={isLoading}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="endDate">Fecha de Fin *</Label>
+                  <DatePicker
+                    date={formData.endDate ? new Date(formData.endDate) : undefined}
+                    onChange={(date) =>
+                      setFormData({
+                        ...formData,
+                        endDate: date ? date.toISOString().split('T')[0] : '',
+                      })
+                    }
+                    placeholder="Seleccionar fecha de fin"
+                    disabled={isLoading}
+                  />
+                </div>
               </div>
 
               <div className="flex gap-4 pt-4">
