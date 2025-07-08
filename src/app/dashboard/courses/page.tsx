@@ -177,7 +177,7 @@ export default function CoursesPage() {
               <div className="flex justify-between items-start">
                 <div>
                   <CardTitle className="text-lg">{course.name}</CardTitle>
-                  <CardDescription>{course.year}</CardDescription>
+                  <CardDescription>{course.startDate}</CardDescription>
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -228,7 +228,7 @@ export default function CoursesPage() {
             <>
               Esta acción no se puede deshacer. Esto eliminará el curso{' '}
               <strong>
-                {courseToDelete.name} ({courseToDelete.year})
+                {courseToDelete.name} ({courseToDelete.startDate})
               </strong>
               {}
               y removerá todos sus datos del sistema.
@@ -272,7 +272,7 @@ export default function CoursesPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">Año: {selectedCourse.year}</span>
+                      <span className="text-sm">Año: {selectedCourse.startDate}</span>
                     </div>
                   </CardContent>
                 </Card>

@@ -19,17 +19,22 @@ export interface Organization {
   studiedMajorFilter?: string[];
   genderFilter?: 'MALE_ONLY' | 'FEMALE_ONLY' | 'BOTH';
   courseIds?: string[];
+  courseStatus?: string;
   mentorIds?: string[];
+  mentorStatus?: string;
   internIds?: string[];
+  internStatus?: string;
   createdAt: string;
   updatedAt: string;
+  deletedAt?: string;
 }
 
 export interface Course {
   id: string;
   name: string;
   description?: string;
-  year: number;
+  startDate: string;
+  endDate: string;
   createdAt: string;
   updatedAt: string;
   mentorIds?: string[];
@@ -100,6 +105,10 @@ export interface Grade {
   redaction?: number;
   performance?: number;
   recommendation?: string;
+  finalReportCheck: boolean;
+  talkCheck: boolean;
+  recommendationCheck: boolean;
+  totalNote: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -115,10 +124,39 @@ export interface OrganizationWithFilter {
     maximumNumberOfInterns: number;
     placeOfResidenceFilter: string;
     studiedMajorFilter: string[];
+    extraRequirements: string;
     genderFilter: 'MALE_ONLY' | 'FEMALE_ONLY' | 'BOTH';
     createdAt: string;
     updatedAt: string;
   };
+}
+
+// Interfaces para el payload de creación/actualización
+export interface CreateOrganizationPayload {
+  organization: {
+    ruc: string;
+    email: string;
+    contactName: string;
+    phone: string;
+    country: string;
+    organizationName: string;
+    organizationSize: 'SMALL' | 'LARGE';
+    sector: string;
+    topicsOfInterest: string[];
+  };
+  filter: {
+    maximumNumberOfInterns: number;
+    placeOfResidenceFilter: string;
+    studiedMajorFilter: string[];
+    extraRequirements: string;
+    genderFilter: 'MALE_ONLY' | 'FEMALE_ONLY' | 'BOTH';
+  };
+}
+
+export interface UpdateOrganizationPayload {
+  organizationId: string;
+  organization?: Partial<CreateOrganizationPayload['organization']>;
+  filter: CreateOrganizationPayload['filter'];
 }
 
 // Utility to read cookies from the client
@@ -227,6 +265,91 @@ class ApiService {
     return this.fetchWithErrorHandling(`/courses/${courseId}/organizations/${organizationId}`);
   }
 
+  // NEW: Get organization by RUC
+  async getOrganizationByRuc(ruc: string): Promise<Organization> {
+    return this.fetchWithErrorHandling(`/organizations/ruc/${ruc}`);
+  }
+
+  // Agregar el nuevo método después de getOrganizationByRuc
+  async assignOrganizationToCourseWithFilter(
+    courseId: string,
+    organizationId: string,
+    filterData: {
+      maximumNumberOfInterns: number;
+      placeOfResidenceFilter: string;
+      studiedMajorFilter: string[];
+      extraRequirements: string;
+      genderFilter: 'MALE_ONLY' | 'FEMALE_ONLY' | 'BOTH';
+    },
+  ): Promise<OrganizationWithFilter> {
+    const payload = {
+      maximumNumberOfInterns: filterData.maximumNumberOfInterns,
+      placeOfResidenceFilter: filterData.placeOfResidenceFilter,
+      studiedMajorFilter: filterData.studiedMajorFilter,
+      extraRequirements: filterData.extraRequirements,
+      genderFilter: filterData.genderFilter,
+    };
+
+    return this.fetchWithErrorHandling(
+      `/courses/${courseId}/organizations/${organizationId}/assign`,
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      },
+    );
+  }
+
+  // Modificar el método createOrUpdateOrganizationWithPreferences
+  async createOrUpdateOrganizationWithPreferences(
+    courseId: string,
+    payload: CreateOrganizationPayload | UpdateOrganizationPayload,
+  ): Promise<Organization> {
+    if ('organizationId' in payload) {
+      // Para organizaciones existentes, usar el nuevo endpoint de asignación
+      const result = await this.assignOrganizationToCourseWithFilter(
+        courseId,
+        payload.organizationId,
+        payload.filter,
+      );
+
+      // Si hay cambios en los datos de la organización, actualizarlos por separado
+      if (payload.organization) {
+        // Actualizar los datos de la organización usando el endpoint directo
+        await this.fetchWithErrorHandling(`/organizations/${payload.organizationId}`, {
+          method: 'PATCH',
+          body: JSON.stringify(payload.organization),
+        });
+      }
+
+      return result.organization;
+    } else {
+      // Para organizaciones nuevas, crear con estructura plana
+      const createPayload = {
+        // Campos de organización
+        ruc: payload.organization.ruc,
+        email: payload.organization.email,
+        contactName: payload.organization.contactName,
+        phone: payload.organization.phone,
+        country: payload.organization.country,
+        organizationName: payload.organization.organizationName,
+        organizationSize: payload.organization.organizationSize,
+        sector: payload.organization.sector,
+        topicsOfInterest: payload.organization.topicsOfInterest,
+        // Campos de filtro/preferencias
+        maximumNumberOfInterns: payload.filter.maximumNumberOfInterns,
+        placeOfResidenceFilter: payload.filter.placeOfResidenceFilter,
+        studiedMajorFilter: payload.filter.studiedMajorFilter,
+        extraRequirements: payload.filter.extraRequirements,
+        genderFilter: payload.filter.genderFilter,
+      };
+
+      return this.fetchWithErrorHandling(`/courses/${courseId}/organizations`, {
+        method: 'POST',
+        body: JSON.stringify(createPayload),
+      });
+    }
+  }
+
   async createOrganizationWithinCourse(
     courseId: string,
     organizationData: Partial<Organization>,
@@ -251,7 +374,6 @@ class ApiService {
     };
 
     const payload = { organization, filter };
-
     console.log('Payload enviado a la API:', payload);
 
     return this.fetchWithErrorHandling(`/courses/${courseId}/organizations`, {
@@ -378,7 +500,6 @@ class ApiService {
   }
 
   // ===== ASSIGNMENT METHODS =====
-
   /**
    * Assign a mentor to a organization within a specific course
    */

@@ -1,13 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Table,
   TableBody,
@@ -71,6 +70,12 @@ interface StudentData {
     desempenoPartner: ScoreValue;
     recomendacionMentoria: string;
   };
+  finalEvaluation: {
+    totalNote: number;
+    finalReportCheck: boolean;
+    talkCheck: boolean;
+    recommendationCheck: boolean;
+  };
 }
 
 export default function InternshipEvaluation() {
@@ -129,6 +134,12 @@ export default function InternshipEvaluation() {
         desempenoPartner: (grade?.performance || 0) as ScoreValue,
         recomendacionMentoria: grade?.recommendation || '',
       },
+      finalEvaluation: {
+        totalNote: grade?.totalNote || 0,
+        finalReportCheck: grade?.finalReportCheck || false,
+        talkCheck: grade?.talkCheck || false,
+        recommendationCheck: grade?.recommendationCheck || false,
+      },
     };
   };
 
@@ -151,6 +162,10 @@ export default function InternshipEvaluation() {
       redaction: studentData.internshipEvaluation.reduccionOrtografia || undefined,
       performance: studentData.internshipEvaluation.desempenoPartner || undefined,
       recommendation: studentData.internshipEvaluation.recomendacionMentoria || undefined,
+      // totalNote is calculated in backend, don't send it
+      finalReportCheck: studentData.finalEvaluation.finalReportCheck,
+      talkCheck: studentData.finalEvaluation.talkCheck,
+      recommendationCheck: studentData.finalEvaluation.recommendationCheck,
     };
   };
 
@@ -161,7 +176,6 @@ export default function InternshipEvaluation() {
     try {
       setLoading(true);
       const interns = await apiService.getAllInternsWithinCourse(activeCourse.id);
-
       const studentsWithGrades = await Promise.all(
         interns.map(async (intern) => {
           try {
@@ -210,17 +224,11 @@ export default function InternshipEvaluation() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasChanges]);
 
-  /* Handle navigation with unsaved changes
-  const handleNavigation = (navigationFn: () => void) => {
-    if (hasChanges) {
-      setPendingNavigation(() => navigationFn)
-      setShowUnsavedDialog(true)
-    } else {
-      navigationFn()
-    }
-  }*/
-
-  const updateStudentData = (studentId: string, field: string, value: string | number) => {
+  const updateStudentData = (
+    studentId: string,
+    field: string,
+    value: string | number | boolean,
+  ) => {
     setData((prev) =>
       prev.map((student) => {
         if (student.id === studentId) {
@@ -249,12 +257,10 @@ export default function InternshipEvaluation() {
 
     try {
       setSaving(true);
-
       // Save each student's grades
       await Promise.all(
         data.map(async (student) => {
           const gradeData = convertComponentDataToApi(student);
-
           try {
             // Try to update existing grade
             await apiService.updateInternGrade(activeCourse.id, student.id, gradeData);
@@ -272,9 +278,23 @@ export default function InternshipEvaluation() {
         }),
       );
 
-      setOriginalData(JSON.parse(JSON.stringify(data)));
-      setHasChanges(false);
+      // Refresh data to get updated totalNote values from backend
+      const interns = await apiService.getAllInternsWithinCourse(activeCourse.id);
+      const updatedStudentsWithGrades = await Promise.all(
+        interns.map(async (intern) => {
+          try {
+            const grade = await apiService.getInternGrade(activeCourse.id, intern.id);
+            return convertApiDataToComponent(intern, grade);
+          } catch (error) {
+            console.log(`No grade found for intern ${intern.id}, using defaults. Error:`, error);
+            return convertApiDataToComponent(intern);
+          }
+        }),
+      );
 
+      setData(updatedStudentsWithGrades);
+      setOriginalData(JSON.parse(JSON.stringify(updatedStudentsWithGrades)));
+      setHasChanges(false);
       toast.success('Las calificaciones se han guardado correctamente.');
     } catch (error) {
       console.error('Error saving grades:', error);
@@ -328,6 +348,26 @@ export default function InternshipEvaluation() {
         <SelectItem value="5">5</SelectItem>
       </SelectContent>
     </Select>
+  );
+
+  // Checkbox component for final evaluation
+  const EvaluationCheckbox = ({
+    checked,
+    onChange,
+  }: {
+    checked: boolean;
+    onChange: (checked: boolean) => void;
+  }) => (
+    <div className="flex justify-center">
+      <Checkbox checked={checked} onCheckedChange={onChange} className="h-5 w-5" />
+    </div>
+  );
+
+  // Total note display component (read-only)
+  const TotalNoteDisplay = ({ value }: { value: number }) => (
+    <div className="w-full h-8 text-sm text-center flex items-center justify-center font-medium">
+      {value ? value.toFixed(1) : '0.0'}
+    </div>
   );
 
   const filteredData = data.filter(
@@ -455,13 +495,13 @@ export default function InternshipEvaluation() {
                         N°
                       </TableHead>
                       <TableHead
-                        className="min-w-[120px] sticky left-12 z-30 bg-white border-r"
+                        className="min-w-[120px] sticky left-8 z-30 bg-white border-r"
                         rowSpan={2}
                       >
                         Nombres
                       </TableHead>
                       <TableHead
-                        className="min-w-[120px] sticky left-[152px] z-30 bg-white border-r"
+                        className="min-w-[120px] sticky left-[150px] z-30 bg-white border-r"
                         rowSpan={2}
                       >
                         Apellidos
@@ -488,51 +528,85 @@ export default function InternshipEvaluation() {
                           EVALUACIÓN DE CLASE
                         </div>
                       </TableHead>
-                      <TableHead className="text-center bg-stone-100" colSpan={3}>
+                      <TableHead
+                        className="text-center bg-stone-100 border-r border-stone-300"
+                        colSpan={3}
+                      >
                         <div className="py-2 px-4 font-semibold text-stone-700">
                           EVALUACIÓN DE PASANTÍA
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-center bg-amber-100" colSpan={4}>
+                        <div className="py-2 px-4 font-semibold text-amber-700">
+                          EVALUACIÓN FINAL
                         </div>
                       </TableHead>
                     </TableRow>
                     {/* Second row - Individual column headers */}
                     <TableRow>
-                      <TableHead className="w-16 text-center bg-slate-50">S1</TableHead>
-                      <TableHead className="w-16 text-center bg-slate-50">S2</TableHead>
-                      <TableHead className="w-16 text-center bg-slate-50">S3</TableHead>
-                      <TableHead className="w-16 text-center bg-slate-50">S4</TableHead>
-                      <TableHead className="w-16 text-center bg-slate-50">S5</TableHead>
-                      <TableHead className="w-16 text-center bg-slate-50 border-r border-slate-300">
+                      {/* Asistencia */}
+                      <TableHead className="w-16 text-center bg-slate-50 whitespace-normal break-words">
+                        S1
+                      </TableHead>
+                      <TableHead className="w-16 text-center bg-slate-50 whitespace-normal break-words">
+                        S2
+                      </TableHead>
+                      <TableHead className="w-16 text-center bg-slate-50 whitespace-normal break-words">
+                        S3
+                      </TableHead>
+                      <TableHead className="w-16 text-center bg-slate-50 whitespace-normal break-words">
+                        S4
+                      </TableHead>
+                      <TableHead className="w-16 text-center bg-slate-50 whitespace-normal break-words">
+                        S5
+                      </TableHead>
+                      <TableHead className="w-16 text-center bg-slate-50 border-r border-slate-300 whitespace-normal break-words text-xs">
                         S6
                       </TableHead>
-                      <TableHead className="w-20 text-center bg-gray-50 text-xs">
+
+                      <TableHead className="w-28 text-center bg-gray-50 whitespace-normal break-words text-xs">
                         Compromiso Inicial
                       </TableHead>
-                      <TableHead className="w-20 text-center bg-gray-50 text-xs">
+                      <TableHead className="w-28 text-center bg-gray-50 whitespace-normal break-words text-xs">
                         Comunicación Asertiva
                       </TableHead>
-                      <TableHead className="w-20 text-center bg-gray-50 text-xs">
+                      <TableHead className="w-28 text-center bg-gray-50 whitespace-normal break-words text-xs">
                         Puntualidad
                       </TableHead>
-                      <TableHead className="w-20 text-center bg-gray-50 text-xs">
+                      <TableHead className="w-28 text-center bg-gray-50 whitespace-normal break-words text-xs">
                         Participación
                       </TableHead>
-                      <TableHead className="w-20 text-center bg-gray-50 text-xs border-r border-gray-300">
+                      <TableHead className="w-28 text-center bg-gray-50 border-r border-gray-300 whitespace-normal break-words text-xs">
                         Proactividad
                       </TableHead>
-                      <TableHead className="w-20 text-center bg-zinc-50 text-xs">
+
+                      <TableHead className="w-28 text-center bg-zinc-50 whitespace-normal break-words text-xs">
                         Hab. Comunicación
                       </TableHead>
-                      <TableHead className="w-20 text-center bg-zinc-50 text-xs border-r border-zinc-300">
+                      <TableHead className="w-28 text-center bg-zinc-50 border-r border-zinc-300 whitespace-normal break-words text-xs">
                         Puntualidad Entrega
                       </TableHead>
-                      <TableHead className="w-20 text-center bg-stone-50 text-xs">
+
+                      <TableHead className="w-28 text-center bg-stone-50 whitespace-normal break-words text-xs">
                         Reducción Ortografía
                       </TableHead>
-                      <TableHead className="w-20 text-center bg-stone-50 text-xs">
+                      <TableHead className="w-28 text-center bg-stone-50 whitespace-normal break-words text-xs">
                         Desempeño Partner
                       </TableHead>
-                      <TableHead className="min-w-[200px] bg-stone-50 text-xs">
+                      <TableHead className="w-48 text-center bg-stone-50 border-r border-stone-300 break-words text-xs">
                         Recomendación Mentoría
+                      </TableHead>
+
+                      {/* Evaluación Final */}
+                      <TableHead className="w-30 text-center bg-amber-50 text-xs">
+                        Informe Final
+                      </TableHead>
+                      <TableHead className="w-30 text-center bg-amber-50 text-xs">Charla</TableHead>
+                      <TableHead className="w-30 text-center bg-amber-50 text-xs">
+                        Recomendación
+                      </TableHead>
+                      <TableHead className="w-30 text-center bg-amber-50 text-xs">
+                        Total Nota
                       </TableHead>
                     </TableRow>
                   </TableHeader>
@@ -543,16 +617,17 @@ export default function InternshipEvaluation() {
                           {index + 1}
                         </TableCell>
                         {/* General Information - Sticky */}
-                        <TableCell className="sticky left-12 z-10 bg-white border-r">
+                        <TableCell className="sticky left-8 z-10 bg-white border-r">
                           <div className="text-sm h-8 p-1 flex items-center">{student.nombres}</div>
                         </TableCell>
-                        <TableCell className="sticky left-[152px] z-10 bg-white border-r">
+                        <TableCell className="sticky left-[150px] z-10 bg-white border-r">
                           <div className="text-sm h-8 p-1 flex items-center">
                             {student.apellidos}
                           </div>
                         </TableCell>
+
                         {/* Attendance */}
-                        <TableCell className="bg-slate-25">
+                        <TableCell className="w-16 bg-slate-25">
                           <AttendanceSelect
                             value={student.attendance.s1}
                             onChange={(value) =>
@@ -560,7 +635,7 @@ export default function InternshipEvaluation() {
                             }
                           />
                         </TableCell>
-                        <TableCell className="bg-slate-25">
+                        <TableCell className="w-16 bg-slate-25">
                           <AttendanceSelect
                             value={student.attendance.s2}
                             onChange={(value) =>
@@ -568,7 +643,7 @@ export default function InternshipEvaluation() {
                             }
                           />
                         </TableCell>
-                        <TableCell className="bg-slate-25">
+                        <TableCell className="w-16 bg-slate-25">
                           <AttendanceSelect
                             value={student.attendance.s3}
                             onChange={(value) =>
@@ -576,7 +651,7 @@ export default function InternshipEvaluation() {
                             }
                           />
                         </TableCell>
-                        <TableCell className="bg-slate-25">
+                        <TableCell className="w-16 bg-slate-25">
                           <AttendanceSelect
                             value={student.attendance.s4}
                             onChange={(value) =>
@@ -584,7 +659,7 @@ export default function InternshipEvaluation() {
                             }
                           />
                         </TableCell>
-                        <TableCell className="bg-slate-25">
+                        <TableCell className="w-16 bg-slate-25">
                           <AttendanceSelect
                             value={student.attendance.s5}
                             onChange={(value) =>
@@ -600,6 +675,7 @@ export default function InternshipEvaluation() {
                             }
                           />
                         </TableCell>
+
                         {/* Inscription Evaluation */}
                         <TableCell className="bg-gray-25">
                           <ScoreSelect
@@ -661,6 +737,7 @@ export default function InternshipEvaluation() {
                             }
                           />
                         </TableCell>
+
                         {/* Class Evaluation */}
                         <TableCell className="bg-zinc-25">
                           <ScoreSelect
@@ -686,6 +763,7 @@ export default function InternshipEvaluation() {
                             }
                           />
                         </TableCell>
+
                         {/* Internship Evaluation */}
                         <TableCell className="bg-stone-25">
                           <ScoreSelect
@@ -711,7 +789,7 @@ export default function InternshipEvaluation() {
                             }
                           />
                         </TableCell>
-                        <TableCell className="bg-stone-25">
+                        <TableCell className="w-48 bg-stone-25 border-r border-stone-300 align-top">
                           <Textarea
                             value={student.internshipEvaluation.recomendacionMentoria}
                             onChange={(e) =>
@@ -721,10 +799,47 @@ export default function InternshipEvaluation() {
                                 e.target.value,
                               )
                             }
-                            className="min-h-[32px] text-sm resize-none"
+                            className="w-full min-h-[32px] max-h-[80px] text-sm resize-none whitespace-normal break-words"
                             placeholder="Comentario..."
                             maxLength={500}
                           />
+                        </TableCell>
+
+                        {/* Final Evaluation */}
+                        <TableCell className="bg-amber-25">
+                          <EvaluationCheckbox
+                            checked={student.finalEvaluation.finalReportCheck}
+                            onChange={(checked) =>
+                              updateStudentData(
+                                student.id,
+                                'finalEvaluation.finalReportCheck',
+                                checked,
+                              )
+                            }
+                          />
+                        </TableCell>
+                        <TableCell className="bg-amber-25">
+                          <EvaluationCheckbox
+                            checked={student.finalEvaluation.talkCheck}
+                            onChange={(checked) =>
+                              updateStudentData(student.id, 'finalEvaluation.talkCheck', checked)
+                            }
+                          />
+                        </TableCell>
+                        <TableCell className="bg-amber-25">
+                          <EvaluationCheckbox
+                            checked={student.finalEvaluation.recommendationCheck}
+                            onChange={(checked) =>
+                              updateStudentData(
+                                student.id,
+                                'finalEvaluation.recommendationCheck',
+                                checked,
+                              )
+                            }
+                          />
+                        </TableCell>
+                        <TableCell className="bg-amber-25">
+                          <TotalNoteDisplay value={student.finalEvaluation.totalNote} />
                         </TableCell>
                       </TableRow>
                     ))}
@@ -732,6 +847,7 @@ export default function InternshipEvaluation() {
                 </Table>
               </div>
             </div>
+
             {/* Footer with legend */}
             <div className="mt-4 pt-4 border-t px-6 pb-6">
               <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
@@ -756,6 +872,12 @@ export default function InternshipEvaluation() {
                   <span className="font-medium">Puntuación:</span>
                   <Badge variant="outline" className="text-xs">
                     1-5 (1 = Muy Bajo, 5 = Excelente)
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Total Nota:</span>
+                  <Badge variant="outline" className="text-xs">
+                    0-20 (Calculada automáticamente)
                   </Badge>
                 </div>
               </div>

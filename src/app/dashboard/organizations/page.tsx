@@ -44,6 +44,7 @@ import {
   PersonStanding,
   MapPin,
   UsersRound,
+  Text,
 } from 'lucide-react';
 import { apiService, type Mentor, type Intern, OrganizationWithFilter } from '@/lib/api';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -909,6 +910,14 @@ export default function OrganizationsExplorePage() {
                         <UsersRound className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm">
                           Máximo de pasantes: {selectedOrganization.filter.maximumNumberOfInterns}
+                        </span>
+                      </div>
+                    )}
+                    {selectedOrganization.filter.extraRequirements && (
+                      <div className="flex items-center gap-2">
+                        <Text className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">
+                          Requisitos adicionales: {selectedOrganization.filter.extraRequirements}
                         </span>
                       </div>
                     )}
