@@ -46,7 +46,7 @@ import {
   UsersRound,
   Text,
 } from 'lucide-react';
-import { apiService, type Mentor, type Intern, OrganizationWithFilter } from '@/lib/api';
+import { apiService, type Mentor, type Intern, type OrganizationWithFilter } from '@/lib/api';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useCourse } from '@/context/CourseContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -105,6 +105,9 @@ export default function OrganizationsExplorePage() {
   const [, /*internsLoaded*/ setInternsLoaded] = useState<boolean>(false);
   const isMobile = useIsMobile();
 
+  // Cache for organizations to avoid multiple API calls
+  const [allOrganizationsCache, setAllOrganizationsCache] = useState<OrganizationWithFilter[]>([]);
+
   // Dynamic modal states
   const [isDynamicModalOpen, setIsDynamicModalOpen] = useState<boolean>(false);
   const [organizationForModal, setOrganizationForModal] = useState<OrganizationWithFilter | null>(
@@ -143,6 +146,7 @@ export default function OrganizationsExplorePage() {
     const fetchOrganizations = async () => {
       if (!activeCourse) {
         setOrganizations([]);
+        setAllOrganizationsCache([]);
         setIsLoading(false);
         return;
       }
@@ -152,10 +156,12 @@ export default function OrganizationsExplorePage() {
         setError(null);
         const organizationsData = await apiService.getAllOrganizationsWithinCourse(activeCourse.id);
         setOrganizations(organizationsData);
+        setAllOrganizationsCache(organizationsData); // Cache for intern filtering
       } catch (err) {
         console.error('Error fetching organizations:', err);
         setError('Error al cargar las organizaciones. Por favor, intenta nuevamente.');
         setOrganizations([]);
+        setAllOrganizationsCache([]);
       } finally {
         setIsLoading(false);
         setMentorsLoaded(false);
@@ -208,20 +214,49 @@ export default function OrganizationsExplorePage() {
     }
   };
 
-  // Fetch interns when needed for assignment
+  // Fetch interns when needed for assignment - UPDATED TO PREVENT DOUBLE ASSIGNMENT
   const fetchInterns = async (organizationId: string) => {
     if (!activeCourse) return;
 
     try {
       setIsInternsLoading(true);
 
-      // Fetch both available interns that match the organization AND currently assigned interns
-      const [availableInternsData, assignedInternsData] = await Promise.all([
-        apiService.getInternsMatchingOrganization(activeCourse.id, organizationId),
-        apiService.getAllOrganizationInternsWithinCourse(activeCourse.id, organizationId),
-      ]);
+      // Fetch all interns that match the organization criteria
+      const matchingInternsData = await apiService.getInternsMatchingOrganization(
+        activeCourse.id,
+        organizationId,
+      );
 
-      setInterns(availableInternsData);
+      // Fetch currently assigned interns to THIS organization
+      const assignedInternsData = await apiService.getAllOrganizationInternsWithinCourse(
+        activeCourse.id,
+        organizationId,
+      );
+
+      // Use cached organizations data or fetch if not available
+      const organizationsToCheck =
+        allOrganizationsCache.length > 0
+          ? allOrganizationsCache
+          : await apiService.getAllOrganizationsWithinCourse(activeCourse.id);
+
+      // Create a Set of intern IDs that are already assigned to OTHER organizations
+      const internsAssignedToOtherOrgs = new Set<string>();
+
+      organizationsToCheck.forEach((org) => {
+        // Skip the current organization we're assigning to
+        if (org.organization.id !== organizationId) {
+          org.organization.internIds?.forEach((internId) => {
+            internsAssignedToOtherOrgs.add(internId);
+          });
+        }
+      });
+
+      // Filter out interns that are already assigned to other organizations
+      const availableInterns = matchingInternsData.filter(
+        (intern) => !internsAssignedToOtherOrgs.has(intern.id),
+      );
+
+      setInterns(availableInterns);
       setAssignedInterns(assignedInternsData);
       setInternsLoaded(true);
     } catch (err) {
@@ -254,7 +289,6 @@ export default function OrganizationsExplorePage() {
 
     try {
       setIsAssigning(true);
-
       // For mentors, we only assign one at a time (replace existing)
       for (const mentorId of mentorIds) {
         await apiService.assignMentorToOrganization(
@@ -263,7 +297,6 @@ export default function OrganizationsExplorePage() {
           organizationForModal.organization.id,
         );
       }
-
       await refreshOrganization();
       toast.success('Mentor asignado exitosamente');
     } catch (err) {
@@ -280,7 +313,6 @@ export default function OrganizationsExplorePage() {
 
     try {
       setIsAssigning(true);
-
       for (const internId of internIds) {
         await apiService.assignInternToOrganization(
           activeCourse.id,
@@ -288,7 +320,6 @@ export default function OrganizationsExplorePage() {
           internId,
         );
       }
-
       await refreshOrganization();
       // Refresh the interns data to update the modal
       await fetchInterns(organizationForModal.organization.id);
@@ -309,7 +340,6 @@ export default function OrganizationsExplorePage() {
 
     try {
       setIsAssigning(true);
-
       for (const mentorId of mentorIds) {
         await apiService.removeMentorFromOrganizationWithinCourse(
           activeCourse.id,
@@ -317,7 +347,6 @@ export default function OrganizationsExplorePage() {
           mentorId,
         );
       }
-
       await refreshOrganization();
       toast.success('Mentor desasignado exitosamente');
     } catch (err) {
@@ -334,7 +363,6 @@ export default function OrganizationsExplorePage() {
 
     try {
       setIsAssigning(true);
-
       for (const internId of internIds) {
         await apiService.removeInternFromOrganizationWithinCourse(
           activeCourse.id,
@@ -342,7 +370,6 @@ export default function OrganizationsExplorePage() {
           internId,
         );
       }
-
       await refreshOrganization();
       // Refresh the interns data to update the modal
       await fetchInterns(organizationForModal.organization.id);
@@ -357,7 +384,7 @@ export default function OrganizationsExplorePage() {
     }
   };
 
-  // Refresh organization data
+  // Refresh organization data - UPDATED TO REFRESH CACHE
   const refreshOrganization = async () => {
     if (!organizationForModal || !activeCourse) return;
 
@@ -367,7 +394,7 @@ export default function OrganizationsExplorePage() {
         organizationForModal.organization.id,
       );
 
-      // Actualizar el array de organizaciones
+      // Update the main organizations array
       setOrganizations((prev) =>
         prev.map((o) =>
           o.organization.id === updatedOrganization.id
@@ -376,7 +403,16 @@ export default function OrganizationsExplorePage() {
         ),
       );
 
-      // Mantener el filtro actual, solo actualizar la organización
+      // Update the cached organizations array
+      setAllOrganizationsCache((prev) =>
+        prev.map((o) =>
+          o.organization.id === updatedOrganization.id
+            ? { ...o, organization: updatedOrganization }
+            : o,
+        ),
+      );
+
+      // Update the modal organization
       setOrganizationForModal({
         ...organizationForModal,
         organization: updatedOrganization,
@@ -416,6 +452,12 @@ export default function OrganizationsExplorePage() {
       setOrganizations(
         organizations.filter((c) => c.organization.id !== organizationToDelete.organization.id),
       );
+      // Also update cache
+      setAllOrganizationsCache(
+        allOrganizationsCache.filter(
+          (c) => c.organization.id !== organizationToDelete.organization.id,
+        ),
+      );
       toast.success('Organización eliminada exitosamente');
     } catch (err) {
       console.error('Error deleting organization:', err);
@@ -435,6 +477,7 @@ export default function OrganizationsExplorePage() {
       toast.success('Organizaciones cargadas exitosamente');
       const organizationsData = await apiService.getAllOrganizationsWithinCourse(activeCourse.id);
       setOrganizations(organizationsData);
+      setAllOrganizationsCache(organizationsData); // Update cache
     } catch (error) {
       toast.error('Error al subir el archivo.');
       throw error;
@@ -444,7 +487,6 @@ export default function OrganizationsExplorePage() {
   // Helper function to render mentor status badge (clickable)
   const renderMentorStatusBadge = (organization: OrganizationWithFilter) => {
     const mentorCount = organization.organization.mentorIds?.length || 0;
-
     return (
       <Button
         variant="ghost"
@@ -471,7 +513,6 @@ export default function OrganizationsExplorePage() {
   const renderInternStatusBadge = (organization: OrganizationWithFilter) => {
     const internCount = organization.organization.internIds?.length || 0;
     const maxInterns = organization.filter.maximumNumberOfInterns || 0;
-
     return (
       <Button
         variant="ghost"
@@ -607,7 +648,6 @@ export default function OrganizationsExplorePage() {
             )}
           </CardDescription>
         </CardHeader>
-
         <CardContent>
           {isLoading ? (
             <div className="flex justify-center py-8">
@@ -752,7 +792,6 @@ export default function OrganizationsExplorePage() {
             </Table>
           )}
         </CardContent>
-
         <PaginationControls
           currentPage={currentPage}
           totalPages={totalPages}

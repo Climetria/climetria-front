@@ -33,10 +33,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Save, Search, Loader2 } from 'lucide-react';
+import { Save, Search, Loader2, Award } from 'lucide-react';
 import { useCourse } from '@/context/CourseContext';
 import { toast } from 'sonner';
 import { apiService, type Intern, type Grade, type Attendance } from '@/lib/api';
+import { useRouter } from 'next/navigation';
 
 // Types for the evaluation data
 type AttendanceValue = 'A' | 'T' | 'F' | 'FJ' | '';
@@ -87,8 +88,8 @@ export default function InternshipEvaluation() {
   const [saving, setSaving] = useState(false);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null);
-
   const { activeCourse } = useCourse();
+  const router = useRouter();
 
   // Map API attendance to component attendance
   const mapApiAttendanceToComponent = (apiAttendance?: Attendance): AttendanceValue => {
@@ -304,6 +305,13 @@ export default function InternshipEvaluation() {
     }
   };
 
+  // Handle certificate button click
+  const handleCertificateClick = (studentId: string) => {
+    // TODO: Define the actual route for certificate generation
+    // For now, we'll use a placeholder route
+    router.push(`/certificate/${studentId}`);
+  };
+
   // Simple attendance select component
   const AttendanceSelect = ({
     value,
@@ -369,6 +377,40 @@ export default function InternshipEvaluation() {
       {value ? value.toFixed(1) : '0.0'}
     </div>
   );
+
+  // Certificate button component
+  const CertificateButton = ({
+    studentId,
+    finalReportCheck,
+    talkCheck,
+  }: {
+    studentId: string;
+    finalReportCheck: boolean;
+    talkCheck: boolean;
+  }) => {
+    const isEnabled = finalReportCheck && talkCheck;
+
+    return (
+      <div className="flex justify-center">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => handleCertificateClick(studentId)}
+          disabled={!isEnabled}
+          className={`h-8 w-8 p-0 ${
+            isEnabled
+              ? 'text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50'
+              : 'text-gray-300 cursor-not-allowed'
+          }`}
+          title={
+            isEnabled ? 'Generar certificado' : 'Complete Informe Final y Charla para habilitar'
+          }
+        >
+          <Award className="h-4 w-4" />
+        </Button>
+      </div>
+    );
+  };
 
   const filteredData = data.filter(
     (student) =>
@@ -536,7 +578,7 @@ export default function InternshipEvaluation() {
                           EVALUACIÓN DE PASANTÍA
                         </div>
                       </TableHead>
-                      <TableHead className="text-center bg-amber-100" colSpan={4}>
+                      <TableHead className="text-center bg-amber-100" colSpan={5}>
                         <div className="py-2 px-4 font-semibold text-amber-700">
                           EVALUACIÓN FINAL
                         </div>
@@ -563,7 +605,6 @@ export default function InternshipEvaluation() {
                       <TableHead className="w-16 text-center bg-slate-50 border-r border-slate-300 whitespace-normal break-words text-xs">
                         S6
                       </TableHead>
-
                       <TableHead className="w-28 text-center bg-gray-50 whitespace-normal break-words text-xs">
                         Compromiso Inicial
                       </TableHead>
@@ -579,14 +620,12 @@ export default function InternshipEvaluation() {
                       <TableHead className="w-28 text-center bg-gray-50 border-r border-gray-300 whitespace-normal break-words text-xs">
                         Proactividad
                       </TableHead>
-
                       <TableHead className="w-28 text-center bg-zinc-50 whitespace-normal break-words text-xs">
                         Hab. Comunicación
                       </TableHead>
                       <TableHead className="w-28 text-center bg-zinc-50 border-r border-zinc-300 whitespace-normal break-words text-xs">
                         Puntualidad Entrega
                       </TableHead>
-
                       <TableHead className="w-28 text-center bg-stone-50 whitespace-normal break-words text-xs">
                         Reducción Ortografía
                       </TableHead>
@@ -596,7 +635,6 @@ export default function InternshipEvaluation() {
                       <TableHead className="w-48 text-center bg-stone-50 border-r border-stone-300 break-words text-xs">
                         Recomendación Mentoría
                       </TableHead>
-
                       {/* Evaluación Final */}
                       <TableHead className="w-30 text-center bg-amber-50 text-xs">
                         Informe Final
@@ -607,6 +645,9 @@ export default function InternshipEvaluation() {
                       </TableHead>
                       <TableHead className="w-30 text-center bg-amber-50 text-xs">
                         Total Nota
+                      </TableHead>
+                      <TableHead className="w-30 text-center bg-amber-50 text-xs">
+                        Certificado
                       </TableHead>
                     </TableRow>
                   </TableHeader>
@@ -625,7 +666,6 @@ export default function InternshipEvaluation() {
                             {student.apellidos}
                           </div>
                         </TableCell>
-
                         {/* Attendance */}
                         <TableCell className="w-16 bg-slate-25">
                           <AttendanceSelect
@@ -675,7 +715,6 @@ export default function InternshipEvaluation() {
                             }
                           />
                         </TableCell>
-
                         {/* Inscription Evaluation */}
                         <TableCell className="bg-gray-25">
                           <ScoreSelect
@@ -737,7 +776,6 @@ export default function InternshipEvaluation() {
                             }
                           />
                         </TableCell>
-
                         {/* Class Evaluation */}
                         <TableCell className="bg-zinc-25">
                           <ScoreSelect
@@ -763,7 +801,6 @@ export default function InternshipEvaluation() {
                             }
                           />
                         </TableCell>
-
                         {/* Internship Evaluation */}
                         <TableCell className="bg-stone-25">
                           <ScoreSelect
@@ -804,7 +841,6 @@ export default function InternshipEvaluation() {
                             maxLength={500}
                           />
                         </TableCell>
-
                         {/* Final Evaluation */}
                         <TableCell className="bg-amber-25">
                           <EvaluationCheckbox
@@ -841,13 +877,19 @@ export default function InternshipEvaluation() {
                         <TableCell className="bg-amber-25">
                           <TotalNoteDisplay value={student.finalEvaluation.totalNote} />
                         </TableCell>
+                        <TableCell className="bg-amber-25">
+                          <CertificateButton
+                            studentId={student.id}
+                            finalReportCheck={student.finalEvaluation.finalReportCheck}
+                            talkCheck={student.finalEvaluation.talkCheck}
+                          />
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               </div>
             </div>
-
             {/* Footer with legend */}
             <div className="mt-4 pt-4 border-t px-6 pb-6">
               <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
@@ -878,6 +920,12 @@ export default function InternshipEvaluation() {
                   <span className="font-medium">Total Nota:</span>
                   <Badge variant="outline" className="text-xs">
                     0-20 (Calculada automáticamente)
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Certificado:</span>
+                  <Badge variant="outline" className="text-xs">
+                    Disponible cuando Informe Final y Charla estén completos
                   </Badge>
                 </div>
               </div>
