@@ -19,6 +19,16 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Save,
   Loader2,
@@ -28,6 +38,9 @@ import {
   Building2,
   Settings,
   Search,
+  X,
+  Check,
+  ChevronsUpDown,
 } from 'lucide-react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -50,6 +63,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { departments } from '@/components/residency-fields';
 import { RucSearchBanner } from '@/components/ruc-search-banner';
+import { cn } from '@/lib/utils';
 
 // Define proper types for search result and error
 interface OrganizationSearchResult {
@@ -85,8 +99,8 @@ const formSchema = z.object({
     .number()
     .min(1, { message: 'El número máximo de internos es obligatorio' }),
   placeOfResidenceFilter: z
-    .string()
-    .min(1, { message: 'El filtro por lugar de residencia es obligatorio' }),
+    .array(z.string())
+    .min(1, { message: 'Selecciona al menos un departamento de preferencia' }),
   studiedMajorFilter: z.array(z.string()).min(1, { message: 'Selecciona al menos una carrera' }),
   extraRequirements: z.string().optional(),
   genderFilter: z.enum(['MALE_ONLY', 'FEMALE_ONLY', 'BOTH']),
@@ -105,6 +119,7 @@ type BasicInfoFields =
   | 'organizationSize'
   | 'sector'
   | 'topicsOfInterest';
+
 type PreferencesFields =
   | 'maximumNumberOfInterns'
   | 'placeOfResidenceFilter'
@@ -156,7 +171,7 @@ export default function CreateOrganizationPage() {
       sector: '',
       topicsOfInterest: [],
       maximumNumberOfInterns: undefined,
-      placeOfResidenceFilter: 'LIMA_METROPOLITANA',
+      placeOfResidenceFilter: [],
       studiedMajorFilter: [],
       extraRequirements: '',
       genderFilter: 'BOTH',
@@ -402,7 +417,6 @@ export default function CreateOrganizationPage() {
           {steps.map((step, index) => {
             const isActive = index === currentStep;
             const isCompleted = index < currentStep;
-
             return (
               <div key={step.id} className="flex flex-col items-start">
                 <div className="flex items-center gap-3">
@@ -820,6 +834,104 @@ function BasicInfoStep({
   );
 }
 
+// Multi-select combobox component for departments
+function DepartmentMultiSelect({
+  value,
+  onChange,
+}: {
+  value: string[];
+  onChange: (value: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const handleSelect = (departmentValue: string) => {
+    if (value.includes(departmentValue)) {
+      onChange(value.filter((v) => v !== departmentValue));
+    } else {
+      onChange([...value, departmentValue]);
+    }
+  };
+
+  const removeDepartment = (departmentValue: string) => {
+    onChange(value.filter((v) => v !== departmentValue));
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Selected departments */}
+      {value.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {value.map((selectedValue) => {
+            const department = departments.find((d) => d.value === selectedValue);
+            return (
+              <Badge
+                key={selectedValue}
+                variant="secondary"
+                className="flex items-center gap-1 px-2 py-1"
+              >
+                {department?.label || selectedValue}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-4 w-4 p-0 hover:bg-transparent"
+                  onClick={() => removeDepartment(selectedValue)}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </Badge>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Combobox */}
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-full justify-between bg-transparent"
+          >
+            <span className="text-sm">
+              {value.length === 0
+                ? 'Selecciona departamentos...'
+                : `${value.length} departamento${value.length > 1 ? 's' : ''} seleccionado${value.length > 1 ? 's' : ''}`}
+            </span>
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-full p-0" align="start">
+          <Command>
+            <CommandInput placeholder="Buscar departamento..." />
+            <CommandList>
+              <CommandEmpty>No se encontraron departamentos.</CommandEmpty>
+              <CommandGroup>
+                {departments.map((department) => (
+                  <CommandItem
+                    key={department.value}
+                    value={department.label}
+                    onSelect={() => handleSelect(department.value)}
+                  >
+                    <Check
+                      className={cn(
+                        'mr-2 h-4 w-4',
+                        value.includes(department.value) ? 'opacity-100' : 'opacity-0',
+                      )}
+                    />
+                    {department.label}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
 // Componente para la segunda sección - Preferencias
 function PreferencesStep({ form }: { form: ReturnType<typeof useForm<FormValues>> }) {
   return (
@@ -862,22 +974,13 @@ function PreferencesStep({ form }: { form: ReturnType<typeof useForm<FormValues>
         name="placeOfResidenceFilter"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Filtro por lugar de residencia *</FormLabel>
-            <Select onValueChange={field.onChange} value={field.value} required>
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecciona un departamento" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {departments.map((department) => (
-                  <SelectItem key={department.value} value={department.value}>
-                    {department.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FormDescription>Filtra internos por su lugar de residencia</FormDescription>
+            <FormLabel>Departamentos de preferencia *</FormLabel>
+            <FormDescription>
+              Selecciona uno o más departamentos donde prefieres que residan los internos
+            </FormDescription>
+            <FormControl>
+              <DepartmentMultiSelect value={field.value} onChange={field.onChange} />
+            </FormControl>
             <FormMessage />
           </FormItem>
         )}
@@ -987,7 +1090,7 @@ function PreferencesStep({ form }: { form: ReturnType<typeof useForm<FormValues>
             <FormControl>
               <Textarea
                 placeholder="Describe cualquier requisito adicional o especial que deba cumplir el interno..."
-                className="min-h-[100px]"
+                className="min-h-[100px] text-xs"
                 {...field}
               />
             </FormControl>

@@ -923,7 +923,9 @@ export default function OrganizationsExplorePage() {
                         <MapPin className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm">
                           Lugar de residencia:{' '}
-                          {getDepartmentLabel(selectedOrganization.filter.placeOfResidenceFilter)}
+                          {selectedOrganization.filter.placeOfResidenceFilter
+                            ?.map((place) => getDepartmentLabel(place))
+                            .join(', ')}
                         </span>
                       </div>
                     )}

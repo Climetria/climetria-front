@@ -15,7 +15,7 @@ export interface Organization {
   topicsOfInterest: string[];
   // Campos opcionales agregados para el formulario
   maximumNumberOfInterns?: number;
-  placeOfResidenceFilter?: string;
+  placeOfResidenceFilter?: string[];
   studiedMajorFilter?: string[];
   genderFilter?: 'MALE_ONLY' | 'FEMALE_ONLY' | 'BOTH';
   courseIds?: string[];
@@ -108,6 +108,8 @@ export interface Grade {
   finalReportCheck: boolean;
   talkCheck: boolean;
   recommendationCheck: boolean;
+  internshipCertificate: boolean;
+  courseCertificate: boolean;
   totalNote: number;
   createdAt: string;
   updatedAt: string;
@@ -122,13 +124,54 @@ export interface OrganizationWithFilter {
     courseId: string;
     organizationId: string;
     maximumNumberOfInterns: number;
-    placeOfResidenceFilter: string;
+    placeOfResidenceFilter: string[];
     studiedMajorFilter: string[];
     extraRequirements: string;
     genderFilter: 'MALE_ONLY' | 'FEMALE_ONLY' | 'BOTH';
     createdAt: string;
     updatedAt: string;
   };
+}
+
+// Interfaces para métricas del dashboard
+export interface TopIntern {
+  id: string;
+  name: string;
+  totalNote: number;
+  recommendationCheck: boolean;
+  recommendation?: string;
+}
+
+export interface CourseMetric {
+  courseId: string;
+  courseName: string;
+  value: number;
+}
+
+export interface CourseCalendarItem {
+  courseId: string;
+  courseName: string;
+  startDate: string;
+  endDate: string;
+  status: 'PENDING' | 'ONGOING' | 'COMPLETED';
+}
+
+export interface InternsAndOrganizations {
+  courseId: string;
+  courseName: string;
+  internsWithOrg: number;
+  organizationsWithTeam: number;
+}
+
+export interface DashboardMetrics {
+  topInterns: TopIntern[];
+  studentsPerCourse: CourseMetric[];
+  finalReportsPerCourse: CourseMetric[];
+  talksPerCourse: CourseMetric[];
+  fullyEvaluatedPerCourse: CourseMetric[];
+  certificatesPerCourse: CourseMetric[];
+  courseCalendar: CourseCalendarItem[];
+  internsAndOrganizations: InternsAndOrganizations[];
 }
 
 // Interfaces para el payload de creación/actualización
@@ -146,7 +189,7 @@ export interface CreateOrganizationPayload {
   };
   filter: {
     maximumNumberOfInterns: number;
-    placeOfResidenceFilter: string;
+    placeOfResidenceFilter: string[];
     studiedMajorFilter: string[];
     extraRequirements: string;
     genderFilter: 'MALE_ONLY' | 'FEMALE_ONLY' | 'BOTH';
@@ -193,7 +236,6 @@ class ApiService {
         } catch (e) {
           console.log('Could not read error response body. Error:', e);
         }
-
         throw new Error(
           `API Error: ${response.status} ${response.statusText}${errorBody ? ` - ${errorBody}` : ''}`,
         );
@@ -222,6 +264,11 @@ class ApiService {
       console.error(`Error fetching ${url}:`, error);
       throw error;
     }
+  }
+
+  // Metrics
+  async getDashboardMetrics(courseId: string): Promise<DashboardMetrics> {
+    return this.fetchWithErrorHandling(`/metrics/summary/${courseId}`);
   }
 
   // Courses
@@ -276,7 +323,7 @@ class ApiService {
     organizationId: string,
     filterData: {
       maximumNumberOfInterns: number;
-      placeOfResidenceFilter: string;
+      placeOfResidenceFilter: string[];
       studiedMajorFilter: string[];
       extraRequirements: string;
       genderFilter: 'MALE_ONLY' | 'FEMALE_ONLY' | 'BOTH';
@@ -325,22 +372,24 @@ class ApiService {
     } else {
       // Para organizaciones nuevas, crear con estructura plana
       const createPayload = {
-        // Campos de organización
-        ruc: payload.organization.ruc,
-        email: payload.organization.email,
-        contactName: payload.organization.contactName,
-        phone: payload.organization.phone,
-        country: payload.organization.country,
-        organizationName: payload.organization.organizationName,
-        organizationSize: payload.organization.organizationSize,
-        sector: payload.organization.sector,
-        topicsOfInterest: payload.organization.topicsOfInterest,
-        // Campos de filtro/preferencias
-        maximumNumberOfInterns: payload.filter.maximumNumberOfInterns,
-        placeOfResidenceFilter: payload.filter.placeOfResidenceFilter,
-        studiedMajorFilter: payload.filter.studiedMajorFilter,
-        extraRequirements: payload.filter.extraRequirements,
-        genderFilter: payload.filter.genderFilter,
+        organization: {
+          ruc: payload.organization.ruc,
+          email: payload.organization.email,
+          contactName: payload.organization.contactName,
+          phone: payload.organization.phone,
+          country: payload.organization.country,
+          organizationName: payload.organization.organizationName,
+          organizationSize: payload.organization.organizationSize,
+          sector: payload.organization.sector,
+          topicsOfInterest: payload.organization.topicsOfInterest,
+        },
+        filter: {
+          maximumNumberOfInterns: payload.filter.maximumNumberOfInterns,
+          placeOfResidenceFilter: payload.filter.placeOfResidenceFilter,
+          studiedMajorFilter: payload.filter.studiedMajorFilter,
+          extraRequirements: payload.filter.extraRequirements,
+          genderFilter: payload.filter.genderFilter,
+        },
       };
 
       return this.fetchWithErrorHandling(`/courses/${courseId}/organizations`, {

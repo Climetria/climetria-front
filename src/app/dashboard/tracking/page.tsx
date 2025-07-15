@@ -33,7 +33,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Save, Search, Loader2, Award } from 'lucide-react';
+import { Save, Search, Loader2, Award, GraduationCap } from 'lucide-react';
 import { useCourse } from '@/context/CourseContext';
 import { toast } from 'sonner';
 import { apiService, type Intern, type Grade, type Attendance } from '@/lib/api';
@@ -76,6 +76,8 @@ interface StudentData {
     finalReportCheck: boolean;
     talkCheck: boolean;
     recommendationCheck: boolean;
+    internshipCertificate: boolean;
+    courseCertificate: boolean;
   };
 }
 
@@ -140,6 +142,8 @@ export default function InternshipEvaluation() {
         finalReportCheck: grade?.finalReportCheck || false,
         talkCheck: grade?.talkCheck || false,
         recommendationCheck: grade?.recommendationCheck || false,
+        internshipCertificate: grade?.internshipCertificate || false,
+        courseCertificate: grade?.courseCertificate || false,
       },
     };
   };
@@ -258,6 +262,7 @@ export default function InternshipEvaluation() {
 
     try {
       setSaving(true);
+
       // Save each student's grades
       await Promise.all(
         data.map(async (student) => {
@@ -279,7 +284,7 @@ export default function InternshipEvaluation() {
         }),
       );
 
-      // Refresh data to get updated totalNote values from backend
+      // Refresh data to get updated values from backend (including certificate flags)
       const interns = await apiService.getAllInternsWithinCourse(activeCourse.id);
       const updatedStudentsWithGrades = await Promise.all(
         interns.map(async (intern) => {
@@ -306,10 +311,14 @@ export default function InternshipEvaluation() {
   };
 
   // Handle certificate button click
-  const handleCertificateClick = (studentId: string) => {
-    // TODO: Define the actual route for certificate generation
-    // For now, we'll use a placeholder route
-    router.push(`/certificate/${studentId}`);
+  const handleInternshipCertificateClick = (studentId: string) => {
+    // TODO: Define the actual route for internship certificate generation
+    router.push(`/internship-certificate/${studentId}`);
+  };
+
+  const handleCourseCertificateClick = (studentId: string) => {
+    // TODO: Define the actual route for course certificate generation
+    router.push(`/course-certificate/${studentId}`);
   };
 
   // Simple attendance select component
@@ -378,35 +387,65 @@ export default function InternshipEvaluation() {
     </div>
   );
 
-  // Certificate button component
-  const CertificateButton = ({
+  // Internship certificate button component
+  const InternshipCertificateButton = ({
     studentId,
-    finalReportCheck,
-    talkCheck,
+    internshipCertificate,
   }: {
     studentId: string;
-    finalReportCheck: boolean;
-    talkCheck: boolean;
+    internshipCertificate: boolean;
   }) => {
-    const isEnabled = finalReportCheck && talkCheck;
-
     return (
       <div className="flex justify-center">
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => handleCertificateClick(studentId)}
-          disabled={!isEnabled}
+          onClick={() => handleInternshipCertificateClick(studentId)}
+          disabled={!internshipCertificate}
           className={`h-8 w-8 p-0 ${
-            isEnabled
+            internshipCertificate
               ? 'text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50'
               : 'text-gray-300 cursor-not-allowed'
           }`}
           title={
-            isEnabled ? 'Generar certificado' : 'Complete Informe Final y Charla para habilitar'
+            internshipCertificate
+              ? 'Generar certificado de pasantía'
+              : 'Certificado de pasantía no disponible'
           }
         >
           <Award className="h-4 w-4" />
+        </Button>
+      </div>
+    );
+  };
+
+  // Course certificate button component
+  const CourseCertificateButton = ({
+    studentId,
+    courseCertificate,
+  }: {
+    studentId: string;
+    courseCertificate: boolean;
+  }) => {
+    return (
+      <div className="flex justify-center">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => handleCourseCertificateClick(studentId)}
+          disabled={!courseCertificate}
+          className={`h-8 w-8 p-0 ${
+            courseCertificate
+              ? 'text-blue-600 hover:text-blue-700 hover:bg-blue-50'
+              : 'text-gray-300 cursor-not-allowed'
+          }`}
+          title={
+            courseCertificate
+              ? 'Generar certificado del curso'
+              : 'Certificado del curso no disponible'
+          }
+        >
+          <GraduationCap className="h-4 w-4" />
         </Button>
       </div>
     );
@@ -578,7 +617,7 @@ export default function InternshipEvaluation() {
                           EVALUACIÓN DE PASANTÍA
                         </div>
                       </TableHead>
-                      <TableHead className="text-center bg-amber-100" colSpan={5}>
+                      <TableHead className="text-center bg-amber-100" colSpan={6}>
                         <div className="py-2 px-4 font-semibold text-amber-700">
                           EVALUACIÓN FINAL
                         </div>
@@ -627,7 +666,7 @@ export default function InternshipEvaluation() {
                         Puntualidad Entrega
                       </TableHead>
                       <TableHead className="w-28 text-center bg-stone-50 whitespace-normal break-words text-xs">
-                        Reducción Ortografía
+                        Redacción Ortografía
                       </TableHead>
                       <TableHead className="w-28 text-center bg-stone-50 whitespace-normal break-words text-xs">
                         Desempeño Partner
@@ -646,8 +685,11 @@ export default function InternshipEvaluation() {
                       <TableHead className="w-30 text-center bg-amber-50 text-xs">
                         Total Nota
                       </TableHead>
-                      <TableHead className="w-30 text-center bg-amber-50 text-xs">
-                        Certificado
+                      <TableHead className="w-30 text-center bg-amber-50 text-xs whitespace-normal break-words">
+                        Certificado Pasantía
+                      </TableHead>
+                      <TableHead className="w-30 text-center bg-amber-50 text-xs whitespace-normal break-words">
+                        Certificado del Curso
                       </TableHead>
                     </TableRow>
                   </TableHeader>
@@ -878,10 +920,15 @@ export default function InternshipEvaluation() {
                           <TotalNoteDisplay value={student.finalEvaluation.totalNote} />
                         </TableCell>
                         <TableCell className="bg-amber-25">
-                          <CertificateButton
+                          <InternshipCertificateButton
                             studentId={student.id}
-                            finalReportCheck={student.finalEvaluation.finalReportCheck}
-                            talkCheck={student.finalEvaluation.talkCheck}
+                            internshipCertificate={student.finalEvaluation.internshipCertificate}
+                          />
+                        </TableCell>
+                        <TableCell className="bg-amber-25">
+                          <CourseCertificateButton
+                            studentId={student.id}
+                            courseCertificate={student.finalEvaluation.courseCertificate}
                           />
                         </TableCell>
                       </TableRow>
@@ -923,9 +970,9 @@ export default function InternshipEvaluation() {
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="font-medium">Certificado:</span>
+                  <span className="font-medium">Certificados:</span>
                   <Badge variant="outline" className="text-xs">
-                    Disponible cuando Informe Final y Charla estén completos
+                    Disponibles según criterios del sistema
                   </Badge>
                 </div>
               </div>
