@@ -689,7 +689,7 @@ export default function OrganizationsExplorePage() {
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                           <Link
-                            href={`/dashboard/organizations/${organization.organization.id}/edit`}
+                            href={`/dashboard/organizations/edit?id=${organization.organization.id}`}
                           >
                             <Edit className="h-4 w-4 mr-2" />
                             Editar
@@ -770,7 +770,7 @@ export default function OrganizationsExplorePage() {
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
                             <Link
-                              href={`/dashboard/organizations/${organization.organization.id}/edit`}
+                              href={`/dashboard/organizations/edit?id=${organization.organization.id}`}
                             >
                               <Edit className="h-4 w-4 mr-2" />
                               Editar

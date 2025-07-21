@@ -315,7 +315,7 @@ export default function InternsExplorePage() {
                           Ver Detalle
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link href={`/dashboard/interns/${intern.id}/edit`}>
+                          <Link href={`/dashboard/interns/edit?id=${intern.id}`}>
                             <Edit className="h-4 w-4 mr-2" />
                             Editar
                           </Link>
@@ -392,7 +392,7 @@ export default function InternsExplorePage() {
                             Ver Detalle
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
-                            <Link href={`/dashboard/interns/${intern.id}/edit`}>
+                            <Link href={`/dashboard/interns/edit?id=${intern.id}`}>
                               <Edit className="h-4 w-4 mr-2" />
                               Editar
                             </Link>
