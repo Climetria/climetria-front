@@ -8,4 +8,5 @@ export const breadcrumbMap: Record<string, string> = {
   interns: 'Pasantes',
   tracking: 'Notas',
   edit: 'Editar',
+  general: 'General',
 };

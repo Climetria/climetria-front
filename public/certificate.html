@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Certificado de Pasantía</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: "Segoe UI", sans-serif;
+        background: #f4f4f4;
+      }
+
+      .certificate {
+        width: 210mm;
+        height: 297mm;
+        padding: 40px;
+        background: white;
+        margin: 20px auto;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+        position: relative;
+        box-sizing: border-box;
+      }
+
+      .title {
+        text-align: center;
+        font-size: 28px;
+        color: #6cc24a;
+        font-weight: bold;
+        margin-bottom: 30px;
+      }
+
+      .section {
+        margin: 30px 40px;
+        font-size: 16px;
+        line-height: 1.6;
+        color: #333;
+      }
+
+      .recipient-name {
+        text-align: center;
+        font-size: 24px;
+        font-weight: bold;
+        margin: 10px 0;
+        color: #000;
+      }
+
+      .logos {
+        position: absolute;
+        right: 40px;
+        top: 100px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        align-items: center;
+      }
+
+      .logos img {
+        max-width: 120px;
+        max-height: 50px;
+      }
+
+      .qr {
+        position: absolute;
+        top: 40px;
+        right: 40px;
+        text-align: center;
+        font-size: 12px;
+      }
+
+      .qr img {
+        width: 80px;
+        height: 80px;
+      }
+
+      .signatures {
+        display: flex;
+        justify-content: space-around;
+        margin-top: 60px;
+      }
+
+      .signature {
+        text-align: center;
+      }
+
+      .signature-name {
+        margin-top: 50px;
+        border-top: 1px solid #333;
+        display: inline-block;
+        padding-top: 5px;
+      }
+
+      .footer {
+        position: absolute;
+        bottom: 30px;
+        width: 100%;
+        text-align: center;
+        font-size: 13px;
+        color: #444;
+      }
+
+      .watermark {
+        position: absolute;
+        opacity: 0.05;
+        font-size: 100px;
+        top: 30%;
+        left: 10%;
+        transform: rotate(-30deg);
+        white-space: nowrap;
+      }
+
+      @media print {
+        body {
+          background: white;
+        }
+        .certificate {
+          margin: 0;
+          box-shadow: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="certificate">
+      <div class="qr">
+        <img id="qrCode" src="" alt="QR code" />
+        <div>ID verificado</div>
+      </div>
+
+      <div class="title">CERTIFICADO DE PASANTÍA</div>
+
+      <div class="section">
+        <p>Otorgado a:</p>
+        <div class="recipient-name" id="recipientName">Cargando...</div>
+        <p id="certificateBody">Cargando texto del certificado...</p>
+      </div>
+
+      <div class="logos">
+        <img
+          src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/UNACEM_logo.svg/2560px-UNACEM_logo.svg.png"
+          alt="Logo UNACEM"
+        />
+        <img
+          src="https://upload.wikimedia.org/wikipedia/commons/2/2b/Placeholder_logo.svg"
+          alt="Logo Aresol"
+        />
+        <img
+          src="https://upload.wikimedia.org/wikipedia/commons/2/2b/Placeholder_logo.svg"
+          alt="Logo Genes Perú"
+        />
+        <img
+          src="https://upload.wikimedia.org/wikipedia/commons/2/2b/Placeholder_logo.svg"
+          alt="Logo Climetría"
+        />
+      </div>
+
+      <div class="signatures">
+        <div class="signature">
+          <div class="signature-name">Carlos Adrianzen</div>
+          <div>Gerente de Seguridad, Medio Ambiente y Sostenibilidad</div>
+          <div>UNACEM</div>
+        </div>
+        <div class="signature">
+          <div class="signature-name">Ximena Gómez</div>
+          <div>Gerente general</div>
+          <div>Climetría</div>
+        </div>
+      </div>
+
+      <div class="footer">
+        Pasantía gracias a:
+        <strong>CLIMETRÍA - Métrica del Cambio Climático</strong>
+      </div>
+
+      <div class="watermark">CLIMETRÍA</div>
+    </div>
+
+    <script>
+      function getCertificateIdFromUrl() {
+        const pathParts = window.location.pathname.split("/");
+        const id = pathParts[pathParts.length - 1];
+        return id;
+      }
+
+      async function loadCertificate() {
+        try {
+          const id = getCertificateIdFromUrl();
+          const res = await fetch(`/certificates/internships/${id}`);
+          const data = await res.json();
+
+          // Insertar nombre
+          document.getElementById("recipientName").textContent = data.fullName;
+
+          // Insertar cuerpo del certificado
+          document.getElementById("certificateBody").innerHTML = `
+          Por haber concluido satisfactoriamente su labor como <strong>pasante en ${data.course}</strong> para la empresa
+          <strong>${data.organization}</strong>, a través del Informe de Resultados de ${data.course}.
+        `;
+
+          // Insertar QR con URL actual
+          const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(
+            window.location.href
+          )}`;
+          document.getElementById("qrCode").src = qrUrl;
+        } catch (error) {
+          console.error("Error cargando el certificado:", error);
+          document.getElementById("recipientName").textContent =
+            "Error al cargar certificado";
+          document.getElementById("certificateBody").textContent = "";
+        }
+      }
+
+      loadCertificate();
+    </script>
+  </body>
+</html>

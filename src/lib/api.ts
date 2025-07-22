@@ -301,6 +301,16 @@ class ApiService {
   }
 
   // Organizations
+  async getAllOrganizations(): Promise<OrganizationWithFilter[]> {
+    return this.fetchWithErrorHandling(`/organizations`);
+  }
+
+  async deleteOrganization(organizationId: string): Promise<void> {
+    return this.fetchWithErrorHandling(`/organizations/${organizationId}`, {
+      method: 'DELETE',
+    });
+  }
+
   async getAllOrganizationsWithinCourse(courseId: string): Promise<OrganizationWithFilter[]> {
     return this.fetchWithErrorHandling(`/courses/${courseId}/organizations`);
   }
@@ -449,6 +459,23 @@ class ApiService {
   }
 
   // Interns
+  async getAllInterns(): Promise<Intern[]> {
+    return this.fetchWithErrorHandling(`/interns`);
+  }
+
+  async updateIntern(internId: string, internData: Partial<Intern>): Promise<Intern> {
+    return this.fetchWithErrorHandling(`/interns/${internId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(internData),
+    });
+  }
+
+  async deleteIntern(internId: string): Promise<void> {
+    return this.fetchWithErrorHandling(`/interns/${internId}`, {
+      method: 'DELETE',
+    });
+  }
+
   async getAllInternsWithinCourse(courseId: string): Promise<Intern[]> {
     return this.fetchWithErrorHandling(`/courses/${courseId}/interns`);
   }
@@ -516,6 +543,10 @@ class ApiService {
   }
 
   // Mentors
+  async getAllMentors(): Promise<Mentor[]> {
+    return this.fetchWithErrorHandling(`/mentors`);
+  }
+
   async getAllMentorsWithinCourse(courseId: string): Promise<Mentor[]> {
     return this.fetchWithErrorHandling(`/courses/${courseId}/mentors`);
   }
@@ -544,6 +575,12 @@ class ApiService {
 
   async deleteMentorWithinCourse(courseId: string, mentorId: string): Promise<void> {
     return this.fetchWithErrorHandling(`/courses/${courseId}/mentors/${mentorId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async deleteMentor(mentorId: string): Promise<void> {
+    return this.fetchWithErrorHandling(`/mentors/${mentorId}`, {
       method: 'DELETE',
     });
   }
