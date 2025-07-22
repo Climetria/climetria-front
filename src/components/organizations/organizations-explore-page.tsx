@@ -46,7 +46,13 @@ import {
   UsersRound,
   Text,
 } from 'lucide-react';
-import { apiService, type Mentor, type Intern, type OrganizationWithFilter } from '@/lib/api';
+import {
+  apiService,
+  type Mentor,
+  type Intern,
+  type Organization,
+  type OrganizationWithFilter,
+} from '@/lib/api';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useCourse } from '@/context/CourseContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -72,8 +78,21 @@ import {
 } from '@/config/assignment-config';
 import { LoadingListSkeleton } from '@/components/loading-list-skeleton';
 
-// Helper function for filtering organizations
-const organizationFilterFn = (organization: OrganizationWithFilter, searchTerm: string) => {
+// Helper functions for filtering
+const organizationFilterFn = (organization: Organization, searchTerm: string) => {
+  return (
+    organization.organizationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    organization.contactName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    organization.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    organization.sector.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    organization.country.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+};
+
+const organizationWithFilterFilterFn = (
+  organization: OrganizationWithFilter,
+  searchTerm: string,
+) => {
   return (
     organization.organization.organizationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     organization.organization.contactName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -90,14 +109,30 @@ interface OrganizationsExplorePageProps {
 export default function OrganizationsExplorePage({ mode }: OrganizationsExplorePageProps) {
   const { activeCourse } = useCourse();
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [selectedOrganization, setSelectedOrganization] = useState<OrganizationWithFilter | null>(
+
+  // States for course mode
+  const [selectedOrganizationWithFilter, setSelectedOrganizationWithFilter] =
+    useState<OrganizationWithFilter | null>(null);
+  const [organizationsWithFilter, setOrganizationsWithFilter] = useState<OrganizationWithFilter[]>(
+    [],
+  );
+  const [organizationForModal, setOrganizationForModal] = useState<OrganizationWithFilter | null>(
     null,
   );
+  const [organizationToDeleteWithFilter, setOrganizationToDeleteWithFilter] =
+    useState<OrganizationWithFilter | null>(null);
+  const [allOrganizationsCache, setAllOrganizationsCache] = useState<OrganizationWithFilter[]>([]);
+
+  // States for general mode
+  const [selectedOrganization, setSelectedOrganization] = useState<Organization | null>(null);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [organizationToDelete, setOrganizationToDelete] = useState<Organization | null>(null);
+
+  // Common states
   const [detailInterns, setDetailInterns] = useState<Intern[]>([]);
   const [detailMentors, setDetailMentors] = useState<Mentor[]>([]);
   const [isDetailLoading, setIsDetailLoading] = useState<boolean>(false);
   const [isDetailOpen, setIsDetailOpen] = useState<boolean>(false);
-  const [organizations, setOrganizations] = useState<OrganizationWithFilter[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [mentors, setMentors] = useState<Mentor[]>([]);
@@ -107,25 +142,15 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
   const [isInternsLoading, setIsInternsLoading] = useState<boolean>(false);
   const [mentorsLoaded, setMentorsLoaded] = useState<boolean>(false);
   const [, setInternsLoaded] = useState<boolean>(false);
-
   const isMobile = useIsMobile();
-
-  // Cache for organizations to avoid multiple API calls
-  const [allOrganizationsCache, setAllOrganizationsCache] = useState<OrganizationWithFilter[]>([]);
 
   // Dynamic modal states (only for course mode)
   const [isDynamicModalOpen, setIsDynamicModalOpen] = useState<boolean>(false);
-  const [organizationForModal, setOrganizationForModal] = useState<OrganizationWithFilter | null>(
-    null,
-  );
   const [modalType, setModalType] = useState<'mentor' | 'intern'>('mentor');
   const [isAssigning, setIsAssigning] = useState<boolean>(false);
 
   // Delete confirmation modal states
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
-  const [organizationToDelete, setOrganizationToDelete] = useState<OrganizationWithFilter | null>(
-    null,
-  );
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
   // Configuration based on mode
@@ -156,8 +181,6 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
       fetchOrganizations: () => apiService.getAllOrganizations(),
       deleteOrganization: (id: string) => apiService.deleteOrganization(id),
       fetchOrganizationDetails: () => {
-        // For general view, we might not have detailed assignment info
-        // Return empty arrays or fetch from a different endpoint if available
         console.warn('Organization details not available in general view');
         return Promise.resolve([[], []] as [Intern[], Mentor[]]);
       },
@@ -170,30 +193,33 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
 
   const currentConfig = config[mode];
 
-  // Use pagination hook
-  const {
-    currentPage,
-    setCurrentPage,
-    itemsPerPage,
-    setItemsPerPage,
-    totalPages,
-    startIndex,
-    endIndex,
-    paginatedData: paginatedOrganizations,
-    totalItems,
-  } = usePagination<OrganizationWithFilter>({
+  // Use pagination hook based on mode
+  const courseModePagination = usePagination<OrganizationWithFilter>({
+    data: organizationsWithFilter,
+    itemsPerPage: 10,
+    searchTerm,
+    filterFn: organizationWithFilterFilterFn,
+  });
+
+  const generalModePagination = usePagination<Organization>({
     data: organizations,
     itemsPerPage: 10,
     searchTerm,
     filterFn: organizationFilterFn,
   });
 
+  const pagination = mode === 'course' ? courseModePagination : generalModePagination;
+
   // Fetch organizations when active course changes
   useEffect(() => {
     const fetchOrganizations = async () => {
       if (currentConfig.requiresCourse && !activeCourse) {
-        setOrganizations([]);
-        setAllOrganizationsCache([]);
+        if (mode === 'course') {
+          setOrganizationsWithFilter([]);
+          setAllOrganizationsCache([]);
+        } else {
+          setOrganizations([]);
+        }
         setIsLoading(false);
         return;
       }
@@ -202,13 +228,22 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
         setIsLoading(true);
         setError(null);
         const organizationsData = await currentConfig.fetchOrganizations();
-        setOrganizations(organizationsData);
-        setAllOrganizationsCache(organizationsData); // Cache for intern filtering
+
+        if (mode === 'course') {
+          setOrganizationsWithFilter(organizationsData as OrganizationWithFilter[]);
+          setAllOrganizationsCache(organizationsData as OrganizationWithFilter[]);
+        } else {
+          setOrganizations(organizationsData as Organization[]);
+        }
       } catch (err) {
         console.error('Error fetching organizations:', err);
         setError('Error al cargar las organizaciones. Por favor, intenta nuevamente.');
-        setOrganizations([]);
-        setAllOrganizationsCache([]);
+        if (mode === 'course') {
+          setOrganizationsWithFilter([]);
+          setAllOrganizationsCache([]);
+        } else {
+          setOrganizations([]);
+        }
       } finally {
         setIsLoading(false);
         setMentorsLoaded(false);
@@ -236,21 +271,16 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
     }
   };
 
-  const fetchOrganizationDetails = async (organization: OrganizationWithFilter) => {
+  const fetchOrganizationDetails = async (organizationId: string) => {
     try {
       setIsDetailLoading(true);
-
       if (mode === 'general') {
-        // For general view, we might not have detailed assignment info
-        // Show basic organization info only
         setDetailInterns([]);
         setDetailMentors([]);
         return;
       }
 
-      const [interns, mentors] = await currentConfig.fetchOrganizationDetails(
-        organization.organization.id,
-      );
+      const [interns, mentors] = await currentConfig.fetchOrganizationDetails(organizationId);
       setDetailInterns(interns);
       setDetailMentors(mentors);
     } catch (err) {
@@ -428,7 +458,7 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
         organizationForModal.organization.id,
       );
 
-      setOrganizations((prev) =>
+      setOrganizationsWithFilter((prev) =>
         prev.map((o) =>
           o.organization.id === updatedOrganization.id
             ? { ...o, organization: updatedOrganization }
@@ -453,39 +483,59 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
     }
   };
 
-  const handleViewDetail = (organization: OrganizationWithFilter) => {
-    setSelectedOrganization(organization);
-    fetchOrganizationDetails(organization);
+  const handleViewDetail = (organization: Organization | OrganizationWithFilter) => {
+    if (mode === 'course') {
+      const orgWithFilter = organization as OrganizationWithFilter;
+      setSelectedOrganizationWithFilter(orgWithFilter);
+      fetchOrganizationDetails(orgWithFilter.organization.id);
+    } else {
+      const org = organization as Organization;
+      setSelectedOrganization(org);
+      fetchOrganizationDetails(org.id);
+    }
     setIsDetailOpen(true);
   };
 
   const handleCloseDetail = () => {
     setIsDetailOpen(false);
     setSelectedOrganization(null);
+    setSelectedOrganizationWithFilter(null);
     setDetailMentors([]);
     setDetailInterns([]);
   };
 
-  const handleDeleteOrganization = (organization: OrganizationWithFilter) => {
-    setOrganizationToDelete(organization);
+  const handleDeleteOrganization = (organization: Organization | OrganizationWithFilter) => {
+    if (mode === 'course') {
+      setOrganizationToDeleteWithFilter(organization as OrganizationWithFilter);
+    } else {
+      setOrganizationToDelete(organization as Organization);
+    }
     setIsDeleteModalOpen(true);
   };
 
   const handleConfirmDelete = async () => {
-    if (!organizationToDelete) return;
+    const orgToDelete = mode === 'course' ? organizationToDeleteWithFilter : organizationToDelete;
+    if (!orgToDelete) return;
     if (currentConfig.requiresCourse && !activeCourse) return;
 
     try {
       setIsDeleting(true);
-      await currentConfig.deleteOrganization(organizationToDelete.organization.id);
-      setOrganizations(
-        organizations.filter((c) => c.organization.id !== organizationToDelete.organization.id),
-      );
-      setAllOrganizationsCache(
-        allOrganizationsCache.filter(
-          (c) => c.organization.id !== organizationToDelete.organization.id,
-        ),
-      );
+      const orgId =
+        mode === 'course'
+          ? (orgToDelete as OrganizationWithFilter).organization.id
+          : (orgToDelete as Organization).id;
+
+      await currentConfig.deleteOrganization(orgId);
+
+      if (mode === 'course') {
+        setOrganizationsWithFilter(
+          organizationsWithFilter.filter((c) => c.organization.id !== orgId),
+        );
+        setAllOrganizationsCache(allOrganizationsCache.filter((c) => c.organization.id !== orgId));
+      } else {
+        setOrganizations(organizations.filter((c) => c.id !== orgId));
+      }
+
       toast.success('Organización eliminada exitosamente');
     } catch (err) {
       console.error('Error deleting organization:', err);
@@ -494,6 +544,7 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
       setIsDeleting(false);
       setIsDeleteModalOpen(false);
       setOrganizationToDelete(null);
+      setOrganizationToDeleteWithFilter(null);
     }
   };
 
@@ -504,7 +555,7 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
       console.log('Uploading organizations file:', file.name);
       toast.success('Organizaciones cargadas exitosamente');
       const organizationsData = await apiService.getAllOrganizationsWithinCourse(activeCourse.id);
-      setOrganizations(organizationsData);
+      setOrganizationsWithFilter(organizationsData);
       setAllOrganizationsCache(organizationsData);
     } catch (error) {
       toast.error('Error al subir el archivo.');
@@ -513,8 +564,13 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
   };
 
   // Helper function to render mentor status badge (clickable only in course mode)
-  const renderMentorStatusBadge = (organization: OrganizationWithFilter) => {
-    const mentorCount = organization.organization.mentorIds?.length || 0;
+  const renderMentorStatusBadge = (organization: Organization | OrganizationWithFilter) => {
+    const org =
+      mode === 'course'
+        ? (organization as OrganizationWithFilter).organization
+        : (organization as Organization);
+
+    const mentorCount = org.mentorIds?.length || 0;
     const content =
       mentorCount > 0 ? (
         <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-200">
@@ -523,8 +579,7 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
         </Badge>
       ) : (
         <Badge variant="secondary" className="hover:bg-muted">
-          <Users className="h-3 w-3 mr-1" />
-          Sin Mentores
+          <Users className="h-3 w-3 mr-1" /> Sin Mentores
         </Badge>
       );
 
@@ -534,7 +589,7 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
           variant="ghost"
           size="sm"
           className="h-auto p-1 hover:bg-muted/50"
-          onClick={() => handleOpenMentorModal(organization)}
+          onClick={() => handleOpenMentorModal(organization as OrganizationWithFilter)}
         >
           {content}
         </Button>
@@ -545,9 +600,18 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
   };
 
   // Helper function to render intern status badge (clickable only in course mode)
-  const renderInternStatusBadge = (organization: OrganizationWithFilter) => {
-    const internCount = organization.organization.internIds?.length || 0;
-    const maxInterns = organization.filter.maximumNumberOfInterns || 0;
+  const renderInternStatusBadge = (organization: Organization | OrganizationWithFilter) => {
+    const org =
+      mode === 'course'
+        ? (organization as OrganizationWithFilter).organization
+        : (organization as Organization);
+
+    const internCount = org.internIds?.length || 0;
+    const maxInterns =
+      mode === 'course'
+        ? (organization as OrganizationWithFilter).filter.maximumNumberOfInterns
+        : org.maximumNumberOfInterns || 0;
+
     const content =
       internCount > 0 ? (
         <Badge
@@ -563,8 +627,7 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
         </Badge>
       ) : (
         <Badge variant="secondary" className="hover:bg-muted">
-          <GraduationCap className="h-3 w-3 mr-1" />
-          0/{maxInterns} Pasantes
+          <GraduationCap className="h-3 w-3 mr-1" /> 0/{maxInterns} Pasantes
         </Badge>
       );
 
@@ -574,7 +637,7 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
           variant="ghost"
           size="sm"
           className="h-auto p-1 hover:bg-muted/50"
-          onClick={() => handleOpenInternModal(organization)}
+          onClick={() => handleOpenInternModal(organization as OrganizationWithFilter)}
         >
           {content}
         </Button>
@@ -629,8 +692,7 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
       {currentConfig.showCreateButton && (
         <Button asChild className="w-full sm:w-auto">
           <Link href={currentConfig.createUrl}>
-            <Building2 className="h-4 w-4 mr-2" />
-            Registrar Organización
+            <Building2 className="h-4 w-4 mr-2" /> Registrar Organización
           </Link>
         </Button>
       )}
@@ -654,6 +716,25 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
   const currentIsLoading = modalType === 'mentor' ? isMentorsLoading : isInternsLoading;
   const currentOnAssign = modalType === 'mentor' ? handleAssignMentors : handleAssignInterns;
   const currentOnUnassign = modalType === 'mentor' ? handleUnassignMentors : handleUnassignInterns;
+
+  // Get current data for rendering
+  const currentData = mode === 'course' ? organizationsWithFilter : organizations;
+  const paginatedData = pagination.paginatedData;
+
+  // Get selected organization for detail view
+  const selectedOrgForDetail =
+    mode === 'course' ? selectedOrganizationWithFilter : selectedOrganization;
+  const selectedOrgData =
+    mode === 'course' ? selectedOrganizationWithFilter?.organization : selectedOrganization;
+  const selectedOrgFilter = mode === 'course' ? selectedOrganizationWithFilter?.filter : null;
+
+  // Get organization to delete for modal
+  const orgToDeleteForModal =
+    mode === 'course' ? organizationToDeleteWithFilter : organizationToDelete;
+  const orgToDeleteName =
+    mode === 'course'
+      ? organizationToDeleteWithFilter?.organization.organizationName
+      : organizationToDelete?.organizationName;
 
   return (
     <div className="container mx-auto p-6">
@@ -686,14 +767,13 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
           <CardDescription>
             {isLoading ? (
               <div className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Cargando organizaciones...
+                <Loader2 className="h-4 w-4 animate-spin" /> Cargando organizaciones...
               </div>
             ) : (
               <>
-                Mostrando {startIndex + 1}-{Math.min(endIndex, totalItems)} de {totalItems}{' '}
-                organización
-                {totalItems !== 1 ? 'es' : ''}.{' '}
+                Mostrando {pagination.startIndex + 1}-
+                {Math.min(pagination.endIndex, pagination.totalItems)} de {pagination.totalItems}{' '}
+                organización{pagination.totalItems !== 1 ? 'es' : ''}.{' '}
                 {currentConfig.showAssignments &&
                   'Haz clic en los estados para gestionar asignaciones.'}
               </>
@@ -705,11 +785,11 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
             <div className="flex justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin" />
             </div>
-          ) : paginatedOrganizations.length === 0 ? (
+          ) : paginatedData.length === 0 ? (
             <div className="text-center py-8">
               <Building2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground">
-                {organizations.length === 0
+                {currentData.length === 0
                   ? `No hay organizaciones registradas ${mode === 'course' ? 'en este curso' : 'en el sistema'}.`
                   : 'No se encontraron organizaciones con los criterios de búsqueda.'}
               </p>
@@ -717,64 +797,72 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
           ) : isMobile ? (
             // Cards for mobile view
             <div className="space-y-4">
-              {paginatedOrganizations.map((organization) => (
-                <Card key={organization.organization.id} className="p-4">
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex-1">
-                      <h3 className="font-medium text-sm">
-                        {organization.organization.organizationName}
-                      </h3>
-                      <p className="text-xs text-muted-foreground">
-                        {organization.organization.sector}
-                      </p>
+              {paginatedData.map((organization) => {
+                const org =
+                  mode === 'course'
+                    ? (organization as OrganizationWithFilter).organization
+                    : (organization as Organization);
+                const orgId = org.id;
+
+                return (
+                  <Card key={orgId} className="p-4">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex-1">
+                        <h3 className="font-medium text-sm">{org.organizationName}</h3>
+                        <p className="text-xs text-muted-foreground">{org.sector}</p>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleViewDetail(organization)}>
+                            <Eye className="h-4 w-4 mr-2" /> Ver Detalle
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link href={currentConfig.editUrl(orgId)}>
+                              <Edit className="h-4 w-4 mr-2" /> Editar
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => handleDeleteOrganization(organization)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" /> Eliminar
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleViewDetail(organization)}>
-                          <Eye className="h-4 w-4 mr-2" />
-                          Ver Detalle
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link href={currentConfig.editUrl(organization.organization.id)}>
-                            <Edit className="h-4 w-4 mr-2" />
-                            Editar
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => handleDeleteOrganization(organization)}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Eliminar
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <User className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-xs">{organization.organization.contactName}</span>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <User className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-xs">{org.contactName}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-xs">{org.phone}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-xs">{org.email}</span>
+                      </div>
+                      {mode === 'course' ? (
+                        <div className="flex items-center gap-2">
+                          {renderMentorStatusBadge(organization)}
+                          {renderInternStatusBadge(organization)}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <Globe className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-xs">{org.country}</span>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-xs">{organization.organization.phone}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-xs">{organization.organization.email}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {renderMentorStatusBadge(organization)}
-                      {renderInternStatusBadge(organization)}
-                    </div>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                );
+              })}
             </div>
           ) : (
             // Table for desktop view
@@ -784,71 +872,90 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
                   <TableHead>Organización</TableHead>
                   <TableHead>RUC</TableHead>
                   <TableHead>Contacto</TableHead>
-                  <TableHead>Mentores</TableHead>
-                  <TableHead>Pasantes</TableHead>
+                  {mode === 'course' ? (
+                    <>
+                      <TableHead>Mentores</TableHead>
+                      <TableHead>Pasantes</TableHead>
+                    </>
+                  ) : (
+                    <>
+                      <TableHead>Correo</TableHead>
+                      <TableHead>País</TableHead>
+                    </>
+                  )}
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedOrganizations.map((organization) => (
-                  <TableRow key={organization.organization.id}>
-                    <TableCell className="font-medium">
-                      {organization.organization.organizationName}
-                    </TableCell>
-                    <TableCell>{organization.organization.ruc || 'N/A'}</TableCell>
-                    <TableCell>
-                      <div>
-                        <div>{organization.organization.contactName}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {organization.organization.phone}
+                {paginatedData.map((organization) => {
+                  const org =
+                    mode === 'course'
+                      ? (organization as OrganizationWithFilter).organization
+                      : (organization as Organization);
+                  const orgId = org.id;
+
+                  return (
+                    <TableRow key={orgId}>
+                      <TableCell className="font-medium">{org.organizationName}</TableCell>
+                      <TableCell>{org.ruc || 'N/A'}</TableCell>
+                      <TableCell>
+                        <div>
+                          <div>{org.contactName}</div>
+                          <div className="text-sm text-muted-foreground">{org.phone}</div>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{renderMentorStatusBadge(organization)}</TableCell>
-                    <TableCell>{renderInternStatusBadge(organization)}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleViewDetail(organization)}>
-                            <Eye className="h-4 w-4 mr-2" />
-                            Ver Detalle
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <Link href={currentConfig.editUrl(organization.organization.id)}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Editar
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => handleDeleteOrganization(organization)}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Eliminar
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                      {mode === 'course' ? (
+                        <>
+                          <TableCell>{renderMentorStatusBadge(organization)}</TableCell>
+                          <TableCell>{renderInternStatusBadge(organization)}</TableCell>
+                        </>
+                      ) : (
+                        <>
+                          <TableCell>{org.email}</TableCell>
+                          <TableCell>{org.country}</TableCell>
+                        </>
+                      )}
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleViewDetail(organization)}>
+                              <Eye className="h-4 w-4 mr-2" /> Ver Detalle
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Link href={currentConfig.editUrl(orgId)}>
+                                <Edit className="h-4 w-4 mr-2" /> Editar
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => handleDeleteOrganization(organization)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" /> Eliminar
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
         </CardContent>
         <PaginationControls
-          currentPage={currentPage}
-          totalPages={totalPages}
-          itemsPerPage={itemsPerPage}
-          totalItems={totalItems}
-          onPageChange={setCurrentPage}
-          onItemsPerPageChange={setItemsPerPage}
-          startIndex={startIndex}
-          endIndex={endIndex}
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          itemsPerPage={pagination.itemsPerPage}
+          totalItems={pagination.totalItems}
+          onPageChange={pagination.setCurrentPage}
+          onItemsPerPageChange={pagination.setItemsPerPage}
+          startIndex={pagination.startIndex}
+          endIndex={pagination.endIndex}
         />
       </Card>
 
@@ -875,15 +982,15 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
         onClose={() => {
           setIsDeleteModalOpen(false);
           setOrganizationToDelete(null);
+          setOrganizationToDeleteWithFilter(null);
         }}
         onConfirm={handleConfirmDelete}
         isDeleting={isDeleting}
         description={
-          organizationToDelete && (
+          orgToDeleteForModal && (
             <>
               Esta acción no se puede deshacer. Esto eliminará la organización{' '}
-              <strong>{organizationToDelete.organization.organizationName}</strong> y removerá todos
-              sus datos del sistema.
+              <strong>{orgToDeleteName}</strong> y removerá todos sus datos del sistema.
             </>
           )
         }
@@ -902,16 +1009,15 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
         <SheetContent
           className={`${isMobile ? 'w-full' : 'w-[800px] sm:w-[800px]'} overflow-y-auto p-5`}
         >
-          {selectedOrganization && (
+          {selectedOrgForDetail && selectedOrgData && (
             <>
               <SheetHeader>
                 <SheetTitle className="flex items-center gap-2">
                   <Building2 className="h-5 w-5" />
-                  {selectedOrganization.organization.organizationName}
+                  {selectedOrgData.organizationName}
                 </SheetTitle>
                 <SheetDescription>Información detallada de la organización</SheetDescription>
               </SheetHeader>
-
               <div className="mt-6 space-y-6">
                 {/* Organization Info */}
                 <Card>
@@ -919,101 +1025,92 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
                     <CardTitle className="text-lg">Información General</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {selectedOrganization.organization.ruc && (
+                    {selectedOrgData.ruc && (
                       <div className="flex items-center gap-2">
                         <Building className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">
-                          RUC: {selectedOrganization.organization.ruc}
-                        </span>
+                        <span className="text-sm">RUC: {selectedOrgData.ruc}</span>
                       </div>
                     )}
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">
-                        Contacto: {selectedOrganization.organization.contactName}
-                      </span>
+                      <span className="text-sm">Contacto: {selectedOrgData.contactName}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">
-                        Teléfono: {selectedOrganization.organization.phone}
-                      </span>
+                      <span className="text-sm">Teléfono: {selectedOrgData.phone}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">
-                        Correo: {selectedOrganization.organization.email}
-                      </span>
+                      <span className="text-sm">Correo: {selectedOrgData.email}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Building className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">
-                        Sector {selectedOrganization.organization.sector} | Organización{' '}
-                        {getOrganizationSizeLabel(
-                          selectedOrganization.organization.organizationSize,
-                        )}
+                        Sector {selectedOrgData.sector} | Organización{' '}
+                        {getOrganizationSizeLabel(selectedOrgData.organizationSize)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Globe className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">
-                        País: {selectedOrganization.organization.country}
-                      </span>
+                      <span className="text-sm">País: {selectedOrgData.country}</span>
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Preferencias de Pasantes</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {selectedOrganization.filter.placeOfResidenceFilter && (
+                {/* Filter preferences (only show if available in course mode) */}
+                {selectedOrgFilter && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Preferencias de Pasantes</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {selectedOrgFilter.placeOfResidenceFilter && (
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">
+                            Lugar de residencia:{' '}
+                            {selectedOrgFilter.placeOfResidenceFilter
+                              ?.map((place) => getDepartmentLabel(place))
+                              .join(', ')}
+                          </span>
+                        </div>
+                      )}
+                      {selectedOrgFilter.genderFilter && (
+                        <div className="flex items-center gap-2">
+                          <PersonStanding className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">
+                            Género: {getGenderLabel(selectedOrgFilter.genderFilter)}
+                          </span>
+                        </div>
+                      )}
                       <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        <GraduationCap className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm">
-                          Lugar de residencia:{' '}
-                          {selectedOrganization.filter.placeOfResidenceFilter
-                            ?.map((place) => getDepartmentLabel(place))
+                          Carreras:{' '}
+                          {selectedOrgFilter.studiedMajorFilter
+                            ?.map((major) => getMajorLabel(major))
                             .join(', ')}
                         </span>
                       </div>
-                    )}
-                    {selectedOrganization.filter.genderFilter && (
-                      <div className="flex items-center gap-2">
-                        <PersonStanding className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">
-                          Género: {getGenderLabel(selectedOrganization.filter.genderFilter)}
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2">
-                      <GraduationCap className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">
-                        Carreras:{' '}
-                        {selectedOrganization.filter.studiedMajorFilter
-                          ?.map((major) => getMajorLabel(major))
-                          .join(', ')}
-                      </span>
-                    </div>
-                    {selectedOrganization.filter.maximumNumberOfInterns && (
-                      <div className="flex items-center gap-2">
-                        <UsersRound className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">
-                          Máximo de pasantes: {selectedOrganization.filter.maximumNumberOfInterns}
-                        </span>
-                      </div>
-                    )}
-                    {selectedOrganization.filter.extraRequirements && (
-                      <div className="flex items-center gap-2">
-                        <Text className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">
-                          Requisitos adicionales: {selectedOrganization.filter.extraRequirements}
-                        </span>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                      {selectedOrgFilter.maximumNumberOfInterns && (
+                        <div className="flex items-center gap-2">
+                          <UsersRound className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">
+                            Máximo de pasantes: {selectedOrgFilter.maximumNumberOfInterns}
+                          </span>
+                        </div>
+                      )}
+                      {selectedOrgFilter.extraRequirements && (
+                        <div className="flex items-center gap-2">
+                          <Text className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">
+                            Requisitos adicionales: {selectedOrgFilter.extraRequirements}
+                          </span>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Mentors Assigned */}
                 <Card>
@@ -1094,7 +1191,7 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
                   </CardHeader>
                   <CardContent>
                     <div className="flex flex-wrap gap-2">
-                      {selectedOrganization.organization.topicsOfInterest.map((topic, index) => (
+                      {selectedOrgData.topicsOfInterest.map((topic, index) => (
                         <Badge key={index} variant="outline">
                           {getTopicLabel(topic)}
                         </Badge>
@@ -1111,15 +1208,11 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
                   <CardContent className="space-y-2">
                     <div className="text-sm">
                       <span className="font-medium">Fecha de registro:</span>{' '}
-                      {new Date(selectedOrganization.organization.createdAt).toLocaleDateString(
-                        'es-ES',
-                      )}
+                      {new Date(selectedOrgData.createdAt).toLocaleDateString('es-ES')}
                     </div>
                     <div className="text-sm">
                       <span className="font-medium">Última actualización:</span>{' '}
-                      {new Date(selectedOrganization.organization.updatedAt).toLocaleDateString(
-                        'es-ES',
-                      )}
+                      {new Date(selectedOrgData.updatedAt).toLocaleDateString('es-ES')}
                     </div>
                   </CardContent>
                 </Card>

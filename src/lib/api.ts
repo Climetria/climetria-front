@@ -244,7 +244,6 @@ class ApiService {
       // Avoid parsing .json() if there is no content
       const contentLength = response.headers.get('content-length');
       const contentType = response.headers.get('content-type');
-
       if (
         response.status === 204 ||
         !contentType ||
@@ -301,7 +300,7 @@ class ApiService {
   }
 
   // Organizations
-  async getAllOrganizations(): Promise<OrganizationWithFilter[]> {
+  async getAllOrganizations(): Promise<Organization[]> {
     return this.fetchWithErrorHandling(`/organizations`);
   }
 
