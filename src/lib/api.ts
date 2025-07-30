@@ -1,7 +1,6 @@
 import type { CsvUploadInternResponseDto } from '@/interfaces/csvUploadIntern-response.dto';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-
 export interface Organization {
   id: string;
   ruc: string;
@@ -173,6 +172,11 @@ export interface DashboardMetrics {
   courseCalendar: CourseCalendarItem[];
   internsAndOrganizations: InternsAndOrganizations[];
 }
+export interface InternshipCertificateData {
+  fullName: string;
+  course: string;
+  organization: string;
+}
 
 // Interfaces para el payload de creación/actualización
 export interface CreateOrganizationPayload {
@@ -265,11 +269,15 @@ class ApiService {
     }
   }
 
+  // Internship Certificate
+  async getInternshipCertificateData(internId: string): Promise<InternshipCertificateData> {
+    return this.fetchWithErrorHandling(`/certificates/internships/${internId}`);
+  }
+
   // Metrics
   async getDashboardMetrics(courseId: string): Promise<DashboardMetrics> {
     return this.fetchWithErrorHandling(`/metrics/summary/${courseId}`);
   }
-
   // Courses
   async getAllCourses(): Promise<Course[]> {
     return this.fetchWithErrorHandling('/courses');

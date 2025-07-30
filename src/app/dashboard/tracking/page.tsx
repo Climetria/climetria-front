@@ -45,6 +45,7 @@ type ScoreValue = 1 | 2 | 3 | 4 | 5 | 0;
 
 interface StudentData {
   id: string;
+  gradeId?: string; // Agregar esta línea
   nombres: string;
   apellidos: string;
   attendance: {
@@ -111,6 +112,7 @@ export default function InternshipEvaluation() {
   const convertApiDataToComponent = (intern: Intern, grade?: Grade): StudentData => {
     return {
       id: intern.id,
+      gradeId: grade?.id, // Agregar esta línea
       nombres: intern.firstNames,
       apellidos: `${intern.lastNameFather} ${intern.lastNameMother}`.trim(),
       attendance: {
@@ -311,14 +313,17 @@ export default function InternshipEvaluation() {
   };
 
   // Handle certificate button click
-  const handleInternshipCertificateClick = (studentId: string) => {
-    // TODO: Define the actual route for internship certificate generation
-    router.push(`/internship-certificate/${studentId}`);
+  const handleInternshipCertificateClick = (studentId: string, gradeId?: string) => {
+    if (!gradeId) {
+      toast.error('No se puede generar el certificado. Guarda las calificaciones primero.');
+      return;
+    }
+    router.push(`/internship-certificate/?id=${gradeId}`);
   };
 
   const handleCourseCertificateClick = (studentId: string) => {
     // TODO: Define the actual route for course certificate generation
-    router.push(`/course-certificate/${studentId}`);
+    router.push(`/course-certificate/?id=${studentId}`);
   };
 
   // Simple attendance select component
@@ -390,9 +395,11 @@ export default function InternshipEvaluation() {
   // Internship certificate button component
   const InternshipCertificateButton = ({
     studentId,
+    gradeId,
     internshipCertificate,
   }: {
     studentId: string;
+    gradeId?: string;
     internshipCertificate: boolean;
   }) => {
     return (
@@ -400,17 +407,19 @@ export default function InternshipEvaluation() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => handleInternshipCertificateClick(studentId)}
-          disabled={!internshipCertificate}
+          onClick={() => handleInternshipCertificateClick(studentId, gradeId)}
+          disabled={!internshipCertificate || !gradeId}
           className={`h-8 w-8 p-0 ${
-            internshipCertificate
+            internshipCertificate && gradeId
               ? 'text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50'
               : 'text-gray-300 cursor-not-allowed'
           }`}
           title={
-            internshipCertificate
-              ? 'Generar certificado de pasantía'
-              : 'Certificado de pasantía no disponible'
+            !gradeId
+              ? 'Guarda las calificaciones primero'
+              : internshipCertificate
+                ? 'Generar certificado de pasantía'
+                : 'Certificado de pasantía no disponible'
           }
         >
           <Award className="h-4 w-4" />
@@ -922,6 +931,7 @@ export default function InternshipEvaluation() {
                         <TableCell className="bg-amber-25">
                           <InternshipCertificateButton
                             studentId={student.id}
+                            gradeId={student.gradeId}
                             internshipCertificate={student.finalEvaluation.internshipCertificate}
                           />
                         </TableCell>
