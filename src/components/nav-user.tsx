@@ -1,6 +1,6 @@
 'use client';
 
-import { BadgeCheck, Bell, ChevronsUpDown, LogOut } from 'lucide-react';
+import { BadgeCheck, ChevronsUpDown, LogOut } from 'lucide-react';
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -102,10 +102,6 @@ export function NavUser({
               <DropdownMenuItem>
                 <BadgeCheck />
                 Cuenta
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell />
-                Notificaciones
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />

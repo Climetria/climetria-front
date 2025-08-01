@@ -134,13 +134,12 @@ export interface OrganizationWithFilter {
 
 // Interfaces para métricas del dashboard
 export interface TopIntern {
-  id: string;
-  name: string;
+  internId: string;
+  fullName: string;
   totalNote: number;
-  recommendationCheck: boolean;
-  recommendation?: string;
+  recommended: boolean;
+  recommendationComment?: string;
 }
-
 export interface CourseMetric {
   courseId: string;
   courseName: string;

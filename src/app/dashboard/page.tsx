@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -33,6 +34,33 @@ const chartConfig = {
     label: 'Organizaciones con Equipo',
     color: 'hsl(var(--chart-3))',
   },
+};
+
+interface TickProps {
+  x: number;
+  y: number;
+  payload: {
+    value: string;
+    coordinate: number;
+    index?: number;
+    payload?: any;
+  };
+}
+
+const MultilineTick = ({ x, y, payload }: TickProps) => {
+  const words = payload.value.split(' ');
+
+  return (
+    <g transform={`translate(${x},${y + 10})`}>
+      <text textAnchor="middle" fontSize={12}>
+        {words.map((word, index) => (
+          <tspan key={index} x={0} dy={index === 0 ? 0 : 14}>
+            {word}
+          </tspan>
+        ))}
+      </text>
+    </g>
+  );
 };
 
 export default function DashboardPage() {
@@ -105,12 +133,17 @@ export default function DashboardPage() {
         return 'En Desarrollo';
       case 'PENDING':
         return 'Pendiente';
-      case 'COMPLETED':
-        return 'Completado';
+      case 'FINISHED':
+        return 'Finalizado';
       default:
         return status;
     }
   };
+
+  const parsedStudents = metrics.studentsPerCourse.map((item) => ({
+    ...item,
+    value: Number(item.value),
+  }));
 
   return (
     <div className="space-y-6">
@@ -130,7 +163,7 @@ export default function DashboardPage() {
             <div className="space-y-4">
               {metrics.topInterns.slice(0, 3).map((intern, index) => (
                 <div
-                  key={intern.id}
+                  key={intern.internId}
                   className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors duration-200"
                 >
                   <div className="flex items-center gap-4">
@@ -142,15 +175,15 @@ export default function DashboardPage() {
                       {index + 1}
                     </div>
                     <div>
-                      <p className="font-medium">{intern.name}</p>
+                      <p className="font-medium">{intern.fullName}</p>
                       <div className="flex items-center gap-2 mt-1">
-                        {intern.recommendationCheck && (
+                        {intern.recommended && (
                           <Badge variant="secondary" className="text-xs">
                             <Star className="h-3 w-3 mr-1" />
                             Recomendado como Mentor
                           </Badge>
                         )}
-                        {intern.recommendation && (
+                        {intern.recommendationComment && (
                           <Badge variant="outline" className="text-xs">
                             <MessageSquare className="h-3 w-3 mr-1" />
                             Con Comentarios
@@ -222,14 +255,18 @@ export default function DashboardPage() {
           <CardContent>
             <ChartContainer config={chartConfig} className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={metrics.studentsPerCourse} layout="horizontal">
-                  <XAxis type="number" />
-                  <YAxis dataKey="courseName" type="category" width={120} tick={{ fontSize: 12 }} />
+                <BarChart data={parsedStudents}>
+                  <XAxis
+                    dataKey="courseName"
+                    tick={(props) => <MultilineTick {...props} />}
+                    height={80}
+                  />
+                  <YAxis />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Bar
                     dataKey="value"
-                    fill="var(--color-value)"
-                    radius={[0, 4, 4, 0]}
+                    fill="#519f12"
+                    radius={[4, 4, 0, 0]}
                     className="hover:opacity-80 transition-opacity duration-200"
                   />
                 </BarChart>
@@ -253,16 +290,14 @@ export default function DashboardPage() {
                 <BarChart data={metrics.finalReportsPerCourse}>
                   <XAxis
                     dataKey="courseName"
-                    tick={{ fontSize: 12 }}
-                    angle={-45}
-                    textAnchor="end"
+                    tick={(props) => <MultilineTick {...props} />}
                     height={80}
                   />
                   <YAxis />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Bar
                     dataKey="value"
-                    fill="var(--color-value)"
+                    fill="#519f12"
                     radius={[4, 4, 0, 0]}
                     className="hover:opacity-80 transition-opacity duration-200"
                   />
@@ -289,16 +324,14 @@ export default function DashboardPage() {
                 <BarChart data={metrics.talksPerCourse}>
                   <XAxis
                     dataKey="courseName"
-                    tick={{ fontSize: 12 }}
-                    angle={-45}
-                    textAnchor="end"
-                    height={80}
+                    tick={(props) => <MultilineTick {...props} />}
+                    height={60}
                   />
                   <YAxis />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Bar
                     dataKey="value"
-                    fill="var(--color-value)"
+                    fill="#519f12"
                     radius={[4, 4, 0, 0]}
                     className="hover:opacity-80 transition-opacity duration-200"
                   />
@@ -325,16 +358,14 @@ export default function DashboardPage() {
                 <BarChart data={metrics.fullyEvaluatedPerCourse}>
                   <XAxis
                     dataKey="courseName"
-                    tick={{ fontSize: 12 }}
-                    angle={-45}
-                    textAnchor="end"
+                    tick={(props) => <MultilineTick {...props} />}
                     height={80}
                   />
                   <YAxis />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Bar
                     dataKey="value"
-                    fill="var(--color-value)"
+                    fill="#519f12"
                     radius={[4, 4, 0, 0]}
                     className="hover:opacity-80 transition-opacity duration-200"
                   />
@@ -359,16 +390,14 @@ export default function DashboardPage() {
                 <BarChart data={metrics.certificatesPerCourse}>
                   <XAxis
                     dataKey="courseName"
-                    tick={{ fontSize: 12 }}
-                    angle={-45}
-                    textAnchor="end"
+                    tick={(props) => <MultilineTick {...props} />}
                     height={80}
                   />
                   <YAxis />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Bar
                     dataKey="value"
-                    fill="var(--color-value)"
+                    fill="#519f12"
                     radius={[4, 4, 0, 0]}
                     className="hover:opacity-80 transition-opacity duration-200"
                   />
@@ -395,9 +424,7 @@ export default function DashboardPage() {
                 <BarChart data={metrics.internsAndOrganizations}>
                   <XAxis
                     dataKey="courseName"
-                    tick={{ fontSize: 12 }}
-                    angle={-45}
-                    textAnchor="end"
+                    tick={(props) => <MultilineTick {...props} />}
                     height={80}
                   />
                   <YAxis />
