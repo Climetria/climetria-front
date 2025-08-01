@@ -19,19 +19,71 @@ import Link from 'next/link';
 import { useCourse } from '@/context/CourseContext';
 import { useUser } from '@/context/UserContext';
 
+// Función para decodificar JWT y extraer grupos
+function decodeJWT(token: string) {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join(''),
+    );
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    console.error('Error decoding JWT:', error);
+    return null;
+  }
+}
+
+// Función para obtener el rol del usuario
+function getUserRole(): 'admin' | 'mentor' | null {
+  if (typeof document === 'undefined') return null;
+
+  const token = document.cookie
+    .split('; ')
+    .find((row) => row.startsWith('accessToken='))
+    ?.split('=')[1];
+
+  if (!token) return null;
+
+  const decoded = decodeJWT(token);
+  if (!decoded || !decoded['cognito:groups']) return null;
+
+  const groups = decoded['cognito:groups'];
+  if (groups.includes('mentor')) return 'mentor';
+  if (groups.includes('admin')) return 'admin';
+
+  return null;
+}
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { activeCourse } = useCourse();
   const { user } = useUser();
   const { state } = useSidebar();
   const [activeTab, setActiveTab] = React.useState<'curso' | 'general'>('curso');
+  const [userRole, setUserRole] = React.useState<'admin' | 'mentor' | null>(null);
+
+  // Detectar el rol del usuario
+  React.useEffect(() => {
+    const role = getUserRole();
+    setUserRole(role);
+  }, []);
 
   console.log('AppSidebar user:', user);
+  console.log('User role:', userRole);
 
   const userData = {
     username: user?.username ?? 'default-user-id',
     email: user?.email ?? 'default@mail.com',
   };
 
+  // Cambiar los endpoints de Dashboard y Notas según el tab activo
+  const dashboardUrl = activeTab === 'general' ? '/dashboard' : '/dashboard';
+  const notasUrl = activeTab === 'general' ? '/dashboard/general/tracking' : '/dashboard/tracking';
+
+  // Vista de admin (código original)
   const navMain = React.useMemo(() => {
     // Para el tab "General", botones directos con endpoints diferentes
     if (activeTab === 'general') {
@@ -163,9 +215,30 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     ];
   }, [activeCourse, activeTab]);
 
-  // Cambiar los endpoints de Dashboard y Notas según el tab activo
-  const dashboardUrl = activeTab === 'general' ? '/dashboard' : '/dashboard';
-  const notasUrl = activeTab === 'general' ? '/dashboard/general/tracking' : '/dashboard/tracking';
+  // Si es mentor, mostrar solo el botón de Notas
+  if (userRole === 'mentor') {
+    return (
+      <Sidebar collapsible="icon" className="z-50" {...props}>
+        <SidebarHeader>
+          <div className="p-2">
+            <h2 className="text-lg font-semibold">Panel Mentor</h2>
+          </div>
+        </SidebarHeader>
+        <SidebarContent>
+          <Link href="/dashboard/mentors/tracking">
+            <SidebarMenuButton className="mx-2 cursor-pointer">
+              <NotebookPen className="h-5 w-5" />
+              <span>Notas</span>
+            </SidebarMenuButton>
+          </Link>
+        </SidebarContent>
+        <SidebarFooter>
+          <NavUser user={userData} />
+        </SidebarFooter>
+        <SidebarRail />
+      </Sidebar>
+    );
+  }
 
   return (
     <Sidebar collapsible="icon" className="z-50" {...props}>
