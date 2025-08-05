@@ -265,7 +265,7 @@ export default function DashboardPage() {
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Bar
                     dataKey="value"
-                    fill="#519f12"
+                    fill="#90EE90"
                     radius={[4, 4, 0, 0]}
                     className="hover:opacity-80 transition-opacity duration-200"
                   />
@@ -297,7 +297,7 @@ export default function DashboardPage() {
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Bar
                     dataKey="value"
-                    fill="#519f12"
+                    fill="#90EE90"
                     radius={[4, 4, 0, 0]}
                     className="hover:opacity-80 transition-opacity duration-200"
                   />
@@ -331,7 +331,7 @@ export default function DashboardPage() {
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Bar
                     dataKey="value"
-                    fill="#519f12"
+                    fill="#90EE90"
                     radius={[4, 4, 0, 0]}
                     className="hover:opacity-80 transition-opacity duration-200"
                   />
@@ -365,7 +365,7 @@ export default function DashboardPage() {
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Bar
                     dataKey="value"
-                    fill="#519f12"
+                    fill="#90EE90"
                     radius={[4, 4, 0, 0]}
                     className="hover:opacity-80 transition-opacity duration-200"
                   />
@@ -397,7 +397,7 @@ export default function DashboardPage() {
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Bar
                     dataKey="value"
-                    fill="#519f12"
+                    fill="#90EE90"
                     radius={[4, 4, 0, 0]}
                     className="hover:opacity-80 transition-opacity duration-200"
                   />
@@ -431,13 +431,13 @@ export default function DashboardPage() {
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Bar
                     dataKey="internsWithOrg"
-                    fill="var(--color-internsWithOrg)"
+                    fill="#90EE90"
                     radius={[4, 4, 0, 0]}
                     className="hover:opacity-80 transition-opacity duration-200"
                   />
                   <Bar
                     dataKey="organizationsWithTeam"
-                    fill="var(--color-organizationsWithTeam)"
+                    fill="#2E7D32"
                     radius={[4, 4, 0, 0]}
                     className="hover:opacity-80 transition-opacity duration-200"
                   />

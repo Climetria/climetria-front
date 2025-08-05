@@ -1,6 +1,19 @@
 'use client';
-import { ChevronsUpDown, Plus, Search, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
-
+import {
+  ChevronsUpDown,
+  Plus,
+  Search,
+  Loader2,
+  AlertCircle,
+  RefreshCw,
+  Trees,
+  Sprout,
+  Mountain,
+  Leaf,
+  MountainSnow,
+  TreePine,
+  Command,
+} from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,11 +32,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
-
-import { AudioWaveform, Command, GalleryVerticalEnd } from 'lucide-react';
 import { useCourse } from '@/context/CourseContext';
 
-const defaultIcons = [GalleryVerticalEnd, AudioWaveform, Command];
+const defaultIcons = [Trees, Sprout, Mountain, Leaf, MountainSnow, TreePine];
 
 export function CourseSwitcher() {
   const { isMobile } = useSidebar();
@@ -41,7 +52,7 @@ export function CourseSwitcher() {
   // Función para obtener icono del curso
   const getIconForCourse = (courseId: string) => {
     const index = courses.findIndex((course) => course.id === courseId);
-    return defaultIcons[index % defaultIcons.length] || Command;
+    return defaultIcons[index % defaultIcons.length] || Leaf;
   };
 
   // Loading skeleton para carga inicial
@@ -158,7 +169,7 @@ export function CourseSwitcher() {
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+              <div className="bg-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                 <ActiveIcon className="size-4" />
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">

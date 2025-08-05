@@ -221,7 +221,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <Sidebar collapsible="icon" className="z-50" {...props}>
         <SidebarHeader>
           <div className="p-2">
-            <h2 className="text-lg font-semibold">Panel Mentor</h2>
+            {state !== 'collapsed' && <h2 className="text-lg font-semibold">Panel Mentor</h2>}
           </div>
         </SidebarHeader>
         <SidebarContent>
