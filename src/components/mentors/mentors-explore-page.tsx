@@ -53,7 +53,7 @@ import { SearchWithFilters } from '@/components/data-table/search-filters';
 import { getDepartmentLabel, getDocTypeLabel } from '@/lib/helper-functions';
 import { DeleteConfirmationModal } from '@/components/delete-confirmation-modal';
 
-const mentorFilterFn = (mentor: Mentor, searchTerm: string, filters: Record<string, string>) => {
+const mentorFilterFn = (mentor: Mentor, searchTerm: string) => {
   const matchesSearch =
     mentor.firstNames.toLowerCase().includes(searchTerm.toLowerCase()) ||
     mentor.lastNameFather.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -61,12 +61,7 @@ const mentorFilterFn = (mentor: Mentor, searchTerm: string, filters: Record<stri
     mentor.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     mentor.country.toLowerCase().includes(searchTerm.toLowerCase());
 
-  const matchesStatus =
-    filters.status === 'all' ||
-    (filters.status === 'assigned' && mentor.organizationStatus === 'assigned') ||
-    (filters.status === 'unassigned' && mentor.organizationStatus === 'unassigned');
-
-  return matchesSearch && matchesStatus;
+  return matchesSearch;
 };
 
 interface MentorsExplorePageProps {
@@ -135,6 +130,8 @@ export default function MentorsExplorePage({ mode }: MentorsExplorePageProps) {
 
   useEffect(() => {
     const fetchMentors = async () => {
+      console.log('activeCourse:', activeCourse);
+
       if (currentConfig.requiresCourse && !activeCourse) {
         setMentors([]);
         setIsLoading(false);

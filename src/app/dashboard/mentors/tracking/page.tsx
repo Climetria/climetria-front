@@ -274,10 +274,17 @@ export default function MentorInternshipEvaluation() {
     try {
       setSaving(true);
 
+      data.forEach((student) => {
+        const originalIntern = originalData.find((orig) => orig.id === student.id);
+        if (originalIntern) {
+        }
+      });
+
       // Save each student's grades
       await Promise.all(
         data.map(async (student) => {
           const gradeData = convertComponentDataToApi(student);
+
           const allInterns = await apiService.getAllInterns();
           const internData = allInterns.find((intern) => intern.id === student.id);
 

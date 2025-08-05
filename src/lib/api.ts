@@ -709,6 +709,10 @@ class ApiService {
   }
 
   // Grades
+  async getMentorGrades(mentorCognitoUser: string): Promise<Grade> {
+    return this.fetchWithErrorHandling(`/mentor/${mentorCognitoUser}/grades`);
+  }
+
   async getInternGrade(courseId: string, internId: string): Promise<Grade> {
     return this.fetchWithErrorHandling(`/courses/${courseId}/interns/${internId}/grade`);
   }
