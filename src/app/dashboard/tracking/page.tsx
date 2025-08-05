@@ -186,7 +186,7 @@ export default function InternshipEvaluation() {
       const studentsWithGrades = await Promise.all(
         interns.map(async (intern) => {
           try {
-            const grade = await apiService.getInternGrade(activeCourse.id, intern.id);
+            const grade = await apiService.getInternGradeWithinCourse(activeCourse.id, intern.id);
             return convertApiDataToComponent(intern, grade);
           } catch (error) {
             // If grade doesn't exist, create it with default values
@@ -271,13 +271,17 @@ export default function InternshipEvaluation() {
           const gradeData = convertComponentDataToApi(student);
           try {
             // Try to update existing grade
-            await apiService.updateInternGrade(activeCourse.id, student.id, gradeData);
+            await apiService.updateInternGradeWithinCourse(activeCourse.id, student.id, gradeData);
           } catch (error) {
             console.log(error);
             // If grade doesn't exist, create it first then update
             try {
-              await apiService.createInternGrade(activeCourse.id, student.id);
-              await apiService.updateInternGrade(activeCourse.id, student.id, gradeData);
+              await apiService.createInternGradeWithinCourse(activeCourse.id, student.id);
+              await apiService.updateInternGradeWithinCourse(
+                activeCourse.id,
+                student.id,
+                gradeData,
+              );
             } catch (createError) {
               console.error(`Error saving grade for student ${student.id}:`, createError);
               throw createError;
@@ -291,7 +295,7 @@ export default function InternshipEvaluation() {
       const updatedStudentsWithGrades = await Promise.all(
         interns.map(async (intern) => {
           try {
-            const grade = await apiService.getInternGrade(activeCourse.id, intern.id);
+            const grade = await apiService.getInternGradeWithinCourse(activeCourse.id, intern.id);
             return convertApiDataToComponent(intern, grade);
           } catch (error) {
             console.log(`No grade found for intern ${intern.id}, using defaults. Error:`, error);

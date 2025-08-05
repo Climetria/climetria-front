@@ -709,26 +709,37 @@ class ApiService {
   }
 
   // Grades
-  async getMentorGrades(mentorCognitoUser: string): Promise<Grade> {
+  async getInternGradeForMentor(mentorCognitoUser: string): Promise<Grade> {
     return this.fetchWithErrorHandling(`/mentor/${mentorCognitoUser}/grades`);
   }
 
-  async getInternGrade(courseId: string, internId: string): Promise<Grade> {
+  async getInternGradeWithinCourse(courseId: string, internId: string): Promise<Grade> {
     return this.fetchWithErrorHandling(`/courses/${courseId}/interns/${internId}/grade`);
   }
 
-  async createInternGrade(courseId: string, internId: string): Promise<Grade> {
+  async getInternGradeGlobally(): Promise<Grade> {
+    return this.fetchWithErrorHandling(`/grades`);
+  }
+
+  async createInternGradeWithinCourse(courseId: string, internId: string): Promise<Grade> {
     return this.fetchWithErrorHandling(`/courses/${courseId}/interns/${internId}/grade`, {
       method: 'POST',
     });
   }
 
-  async updateInternGrade(
+  async updateInternGradeWithinCourse(
     courseId: string,
     internId: string,
     gradeData: Partial<Grade>,
   ): Promise<Grade> {
     return this.fetchWithErrorHandling(`/courses/${courseId}/interns/${internId}/grade`, {
+      method: 'PATCH',
+      body: JSON.stringify(gradeData),
+    });
+  }
+
+  async updateInternGradeGlobally(gradeId: string, gradeData: Partial<Grade>): Promise<Grade> {
+    return this.fetchWithErrorHandling(`/grades/${gradeId}`, {
       method: 'PATCH',
       body: JSON.stringify(gradeData),
     });

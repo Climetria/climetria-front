@@ -38,6 +38,61 @@ import { toast } from 'sonner';
 import { apiService, type Intern, type Grade, type Attendance } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 
+// JWT decode function
+function decodeJWT(token: string) {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join(''),
+    );
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    console.error('Error decoding JWT:', error);
+    return null;
+  }
+}
+
+// Function to get access token
+function getAccessToken(): string | null {
+  // Try localStorage first
+  const tokenFromStorage = localStorage.getItem('accessToken');
+  if (tokenFromStorage) {
+    return tokenFromStorage;
+  }
+
+  // Try cookie as fallback
+  const cookies = document.cookie.split(';');
+  for (const cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === 'accessToken') {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+// Function to get mentor username from JWT
+function getMentorUsername(): string | null {
+  const token = getAccessToken();
+  if (!token) {
+    console.error('No access token found');
+    return null;
+  }
+
+  const decoded = decodeJWT(token);
+  if (!decoded) {
+    console.error('Failed to decode JWT');
+    return null;
+  }
+
+  return decoded.username || null;
+}
+
 // Types for the evaluation data
 type AttendanceValue = 'A' | 'T' | 'F' | 'FJ' | '';
 type ScoreValue = 1 | 2 | 3 | 4 | 5 | 0;
@@ -47,7 +102,7 @@ interface StudentData {
   gradeId?: string;
   nombres: string;
   apellidos: string;
-  courseName?: string; // Agregar nombre del curso
+  courseName?: string;
   attendance: {
     s1: AttendanceValue;
     s2: AttendanceValue;
@@ -179,40 +234,72 @@ export default function MentorInternshipEvaluation() {
     };
   };
 
-  // Fetch data from API - usando endpoint general de interns
+  // Fetch data from API using mentor grades endpoint
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
 
-      // Obtener todos los interns (en el futuro esto debería ser filtrado por mentor)
-      const interns = await apiService.getAllInterns();
+      // Get mentor username from JWT
+      const mentorUsername = getMentorUsername();
+      if (!mentorUsername) {
+        toast.error(
+          'No se pudo obtener la información del mentor. Por favor, inicia sesión nuevamente.',
+        );
+        return;
+      }
 
-      // Obtener todos los cursos para mapear nombres
-      const courses = await apiService.getAllCourses();
+      console.log('Fetching grades for mentor:', mentorUsername);
+
+      // Get mentor grades using the new endpoint
+      const mentorGrades = await apiService.getInternGradeForMentor(mentorUsername);
+      console.log('Mentor grades received:', mentorGrades);
+
+      // Get all interns and courses for mapping
+      const [interns, courses] = await Promise.all([
+        apiService.getAllInterns(),
+        apiService.getAllCourses(),
+      ]);
+
       const courseMap = new Map(courses.map((course) => [course.id, course.name]));
 
-      const studentsWithGrades = await Promise.all(
-        interns.map(async (intern) => {
-          try {
-            // Intentar obtener la calificación usando el courseId del intern
-            const grade = await apiService.getInternGrade(intern.courseId, intern.id);
-            const courseName = courseMap.get(intern.courseId) || 'Curso desconocido';
-            return convertApiDataToComponent(intern, grade, courseName);
-          } catch (error) {
-            // Si no existe la calificación, crear con valores por defecto
-            console.log(`No grade found for intern ${intern.id}, using defaults. Error:`, error);
-            const courseName = courseMap.get(intern.courseId) || 'Curso desconocido';
-            return convertApiDataToComponent(intern, undefined, courseName);
+      // Convert mentor grades to student data format
+      // Assuming mentorGrades contains an array of grades with intern information
+      const studentsWithGrades: StudentData[] = [];
+
+      // If mentorGrades is a single Grade object, we need to find the associated intern
+      if (mentorGrades && typeof mentorGrades === 'object') {
+        // Check if it's an array of grades or a single grade
+        const gradesArray = Array.isArray(mentorGrades) ? mentorGrades : [mentorGrades];
+
+        for (const grade of gradesArray) {
+          // Find the intern associated with this grade
+          // This might need adjustment based on how the grade object relates to interns
+          const associatedIntern = interns.find((intern) => {
+            // You might need to adjust this logic based on how grades are linked to interns
+            // For now, assuming there's an internId field in the grade
+            return grade.internId === intern.id || grade.id === intern.id;
+          });
+
+          if (associatedIntern) {
+            const courseName = courseMap.get(associatedIntern.courseId) || 'Curso desconocido';
+            const studentData = convertApiDataToComponent(associatedIntern, grade, courseName);
+            studentsWithGrades.push(studentData);
           }
-        }),
-      );
+        }
+      }
+
+      // If no grades found or the structure is different, show message
+      if (studentsWithGrades.length === 0) {
+        console.log('No grades found for this mentor or different data structure');
+        toast.info('No se encontraron calificaciones para este mentor.');
+      }
 
       setData(studentsWithGrades);
       setOriginalData(JSON.parse(JSON.stringify(studentsWithGrades)));
       setHasChanges(false);
     } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('No se pudieron cargar los datos de los pasantes.');
+      console.error('Error fetching mentor grades:', error);
+      toast.error('No se pudieron cargar los datos de las calificaciones del mentor.');
     } finally {
       setLoading(false);
     }
@@ -270,47 +357,33 @@ export default function MentorInternshipEvaluation() {
     );
   };
 
+  // Handle save
   const handleSave = async () => {
     try {
       setSaving(true);
 
-      data.forEach((student) => {
-        const originalIntern = originalData.find((orig) => orig.id === student.id);
-        if (originalIntern) {
-        }
-      });
-
-      // Save each student's grades
+      // Save each student's grades using the global update endpoint
       await Promise.all(
         data.map(async (student) => {
-          const gradeData = convertComponentDataToApi(student);
-
-          const allInterns = await apiService.getAllInterns();
-          const internData = allInterns.find((intern) => intern.id === student.id);
-
-          if (!internData) {
-            console.error(`Intern not found: ${student.id}`);
+          // Only update if the student has a gradeId
+          if (!student.gradeId) {
+            console.warn(`No gradeId found for student ${student.id}, skipping update`);
             return;
           }
 
+          const gradeData = convertComponentDataToApi(student);
+
           try {
-            // Try to update existing grade
-            await apiService.updateInternGrade(internData.courseId, student.id, gradeData);
+            // Use the global update endpoint
+            await apiService.updateInternGradeGlobally(student.gradeId, gradeData);
           } catch (error) {
-            console.log(error);
-            // If grade doesn't exist, create it first then update
-            try {
-              await apiService.createInternGrade(internData.courseId, student.id);
-              await apiService.updateInternGrade(internData.courseId, student.id, gradeData);
-            } catch (createError) {
-              console.error(`Error saving grade for student ${student.id}:`, createError);
-              throw createError;
-            }
+            console.error(`Error saving grade for student ${student.id}:`, error);
+            throw error;
           }
         }),
       );
 
-      // Refresh data
+      // Refresh data to get updated values from backend
       await fetchData();
       toast.success('Las calificaciones se han guardado correctamente.');
     } catch (error) {
@@ -517,7 +590,7 @@ export default function MentorInternshipEvaluation() {
             <CardDescription>
               <div className="flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Cargando datos de pasantes...
+                Cargando datos de pasantes del mentor...
               </div>
             </CardDescription>
           </CardHeader>
@@ -645,6 +718,7 @@ export default function MentorInternshipEvaluation() {
                         </div>
                       </TableHead>
                     </TableRow>
+
                     {/* Second row - Individual column headers */}
                     <TableRow>
                       {/* Asistencia */}
@@ -666,6 +740,7 @@ export default function MentorInternshipEvaluation() {
                       <TableHead className="w-16 text-center bg-slate-50 border-r border-slate-300 whitespace-normal break-words text-xs">
                         S6
                       </TableHead>
+
                       <TableHead className="w-28 text-center bg-gray-50 whitespace-normal break-words text-xs">
                         Compromiso Inicial
                       </TableHead>
@@ -681,12 +756,14 @@ export default function MentorInternshipEvaluation() {
                       <TableHead className="w-28 text-center bg-gray-50 border-r border-gray-300 whitespace-normal break-words text-xs">
                         Proactividad
                       </TableHead>
+
                       <TableHead className="w-28 text-center bg-zinc-50 whitespace-normal break-words text-xs">
                         Hab. Comunicación
                       </TableHead>
                       <TableHead className="w-28 text-center bg-zinc-50 border-r border-zinc-300 whitespace-normal break-words text-xs">
                         Puntualidad Entrega
                       </TableHead>
+
                       <TableHead className="w-28 text-center bg-stone-50 whitespace-normal break-words text-xs">
                         Redacción Ortografía
                       </TableHead>
@@ -696,6 +773,7 @@ export default function MentorInternshipEvaluation() {
                       <TableHead className="w-48 text-center bg-stone-50 border-r border-stone-300 break-words text-xs">
                         Recomendación Mentoría
                       </TableHead>
+
                       {/* Evaluación Final */}
                       <TableHead className="w-30 text-center bg-amber-50 text-xs">
                         Informe Final
@@ -721,6 +799,7 @@ export default function MentorInternshipEvaluation() {
                         <TableCell className="text-center sticky left-0 z-10 bg-white border-r">
                           {index + 1}
                         </TableCell>
+
                         {/* General Information - Sticky */}
                         <TableCell className="sticky left-8 z-10 bg-white border-r">
                           <div className="text-sm h-8 p-1 flex items-center">{student.nombres}</div>
@@ -735,6 +814,7 @@ export default function MentorInternshipEvaluation() {
                             {student.courseName}
                           </div>
                         </TableCell>
+
                         {/* Attendance */}
                         <TableCell className="w-16 bg-slate-25">
                           <AttendanceSelect
@@ -784,6 +864,7 @@ export default function MentorInternshipEvaluation() {
                             }
                           />
                         </TableCell>
+
                         {/* Inscription Evaluation */}
                         <TableCell className="bg-gray-25">
                           <ScoreSelect
@@ -845,6 +926,7 @@ export default function MentorInternshipEvaluation() {
                             }
                           />
                         </TableCell>
+
                         {/* Class Evaluation */}
                         <TableCell className="bg-zinc-25">
                           <ScoreSelect
@@ -870,6 +952,7 @@ export default function MentorInternshipEvaluation() {
                             }
                           />
                         </TableCell>
+
                         {/* Internship Evaluation */}
                         <TableCell className="bg-stone-25">
                           <ScoreSelect
@@ -910,6 +993,7 @@ export default function MentorInternshipEvaluation() {
                             maxLength={500}
                           />
                         </TableCell>
+
                         {/* Final Evaluation */}
                         <TableCell className="bg-amber-25">
                           <EvaluationCheckbox
@@ -965,6 +1049,7 @@ export default function MentorInternshipEvaluation() {
                 </Table>
               </div>
             </div>
+
             {/* Footer with legend */}
             <div className="mt-4 pt-4 border-t px-6 pb-6">
               <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
