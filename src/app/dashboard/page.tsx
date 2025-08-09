@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -16,52 +16,29 @@ import {
   Building2,
   Star,
 } from 'lucide-react';
-import { Bar, BarChart, XAxis, YAxis, ResponsiveContainer } from 'recharts';
+import { Bar, BarChart, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { apiService, type DashboardMetrics } from '@/lib/api';
 import { useCourse } from '@/context/CourseContext';
 import { DashboardSkeleton } from '@/components/skeletons/dashboard-skeleton';
+import { ChartLegend, ChartLegendContent } from '@/components/ui/chart';
 
 const chartConfig = {
   value: {
     label: 'Cantidad',
-    color: 'hsl(var(--chart-1))',
+    color: '#90EE90',
   },
   internsWithOrg: {
     label: 'Alumnos con Organización',
-    color: 'hsl(var(--chart-2))',
+    color: '#90EE90',
   },
   organizationsWithTeam: {
     label: 'Organizaciones con Equipo',
-    color: 'hsl(var(--chart-3))',
+    color: '#228B22',
   },
 };
 
-interface TickProps {
-  x: number;
-  y: number;
-  payload: {
-    value: string;
-    coordinate: number;
-    index?: number;
-    payload?: any;
-  };
-}
-
-const MultilineTick = ({ x, y, payload }: TickProps) => {
-  const words = payload.value.split(' ');
-
-  return (
-    <g transform={`translate(${x},${y + 10})`}>
-      <text textAnchor="middle" fontSize={12}>
-        {words.map((word, index) => (
-          <tspan key={index} x={0} dy={index === 0 ? 0 : 14}>
-            {word}
-          </tspan>
-        ))}
-      </text>
-    </g>
-  );
-};
+// Green color progression for multiple bars in the same chart
+const greenColors = ['#90EE90', '#32CD32', '#228B22', '#006400', '#004d00'];
 
 export default function DashboardPage() {
   const { activeCourse } = useCourse();
@@ -254,23 +231,26 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfig} className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={parsedStudents}>
-                  <XAxis
-                    dataKey="courseName"
-                    tick={(props) => <MultilineTick {...props} />}
-                    height={80}
-                  />
-                  <YAxis />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar
-                    dataKey="value"
-                    fill="#90EE90"
-                    radius={[4, 4, 0, 0]}
-                    className="hover:opacity-80 transition-opacity duration-200"
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+              <BarChart
+                accessibilityLayer
+                data={parsedStudents}
+                layout="vertical"
+                margin={{
+                  left: 0,
+                }}
+              >
+                <YAxis
+                  dataKey="courseName"
+                  type="category"
+                  tickLine={false}
+                  tickMargin={10}
+                  axisLine={false}
+                  width={120}
+                />
+                <XAxis dataKey="value" type="number" hide />
+                <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                <Bar dataKey="value" fill={greenColors[0]} radius={5} />
+              </BarChart>
             </ChartContainer>
           </CardContent>
         </Card>
@@ -286,23 +266,26 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfig} className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={metrics.finalReportsPerCourse}>
-                  <XAxis
-                    dataKey="courseName"
-                    tick={(props) => <MultilineTick {...props} />}
-                    height={80}
-                  />
-                  <YAxis />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar
-                    dataKey="value"
-                    fill="#90EE90"
-                    radius={[4, 4, 0, 0]}
-                    className="hover:opacity-80 transition-opacity duration-200"
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+              <BarChart
+                accessibilityLayer
+                data={metrics.finalReportsPerCourse}
+                layout="vertical"
+                margin={{
+                  left: 0,
+                }}
+              >
+                <YAxis
+                  dataKey="courseName"
+                  type="category"
+                  tickLine={false}
+                  tickMargin={10}
+                  axisLine={false}
+                  width={120}
+                />
+                <XAxis dataKey="value" type="number" hide />
+                <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                <Bar dataKey="value" fill={greenColors[0]} radius={5} />
+              </BarChart>
             </ChartContainer>
           </CardContent>
         </Card>
@@ -320,23 +303,26 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfig} className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={metrics.talksPerCourse}>
-                  <XAxis
-                    dataKey="courseName"
-                    tick={(props) => <MultilineTick {...props} />}
-                    height={60}
-                  />
-                  <YAxis />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar
-                    dataKey="value"
-                    fill="#90EE90"
-                    radius={[4, 4, 0, 0]}
-                    className="hover:opacity-80 transition-opacity duration-200"
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+              <BarChart
+                accessibilityLayer
+                data={metrics.talksPerCourse}
+                layout="vertical"
+                margin={{
+                  left: 0,
+                }}
+              >
+                <YAxis
+                  dataKey="courseName"
+                  type="category"
+                  tickLine={false}
+                  tickMargin={10}
+                  axisLine={false}
+                  width={120}
+                />
+                <XAxis dataKey="value" type="number" hide />
+                <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                <Bar dataKey="value" fill={greenColors[0]} radius={5} />
+              </BarChart>
             </ChartContainer>
           </CardContent>
         </Card>
@@ -354,23 +340,26 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfig} className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={metrics.fullyEvaluatedPerCourse}>
-                  <XAxis
-                    dataKey="courseName"
-                    tick={(props) => <MultilineTick {...props} />}
-                    height={80}
-                  />
-                  <YAxis />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar
-                    dataKey="value"
-                    fill="#90EE90"
-                    radius={[4, 4, 0, 0]}
-                    className="hover:opacity-80 transition-opacity duration-200"
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+              <BarChart
+                accessibilityLayer
+                data={metrics.fullyEvaluatedPerCourse}
+                layout="vertical"
+                margin={{
+                  left: 0,
+                }}
+              >
+                <YAxis
+                  dataKey="courseName"
+                  type="category"
+                  tickLine={false}
+                  tickMargin={10}
+                  axisLine={false}
+                  width={120}
+                />
+                <XAxis dataKey="value" type="number" hide />
+                <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                <Bar dataKey="value" fill={greenColors[0]} radius={5} />
+              </BarChart>
             </ChartContainer>
           </CardContent>
         </Card>
@@ -386,28 +375,36 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfig} className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={metrics.certificatesPerCourse}>
-                  <XAxis
-                    dataKey="courseName"
-                    tick={(props) => <MultilineTick {...props} />}
-                    height={80}
-                  />
-                  <YAxis />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar
-                    dataKey="value"
-                    fill="#90EE90"
-                    radius={[4, 4, 0, 0]}
-                    className="hover:opacity-80 transition-opacity duration-200"
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+              <BarChart
+                accessibilityLayer
+                data={metrics.certificatesPerCourse}
+                layout="vertical"
+                margin={{
+                  left: 0,
+                }}
+              >
+                <YAxis
+                  dataKey="courseName"
+                  type="category"
+                  tickLine={false}
+                  tickMargin={10}
+                  axisLine={false}
+                  width={120}
+                />
+                <XAxis dataKey="value" type="number" hide />
+                <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                <Bar
+                  dataKey="value"
+                  fill="#90EE90"
+                  radius={5}
+                  className="hover:opacity-80 transition-opacity duration-200"
+                />
+              </BarChart>
             </ChartContainer>
           </CardContent>
         </Card>
 
-        {/* Interns and Organizations */}
+        {/* Interns and Organizations - Stacked Horizontal */}
         <Card className="transition-all duration-200 hover:shadow-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -420,29 +417,39 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfig} className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={metrics.internsAndOrganizations}>
-                  <XAxis
-                    dataKey="courseName"
-                    tick={(props) => <MultilineTick {...props} />}
-                    height={80}
-                  />
-                  <YAxis />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar
-                    dataKey="internsWithOrg"
-                    fill="#90EE90"
-                    radius={[4, 4, 0, 0]}
-                    className="hover:opacity-80 transition-opacity duration-200"
-                  />
-                  <Bar
-                    dataKey="organizationsWithTeam"
-                    fill="#2E7D32"
-                    radius={[4, 4, 0, 0]}
-                    className="hover:opacity-80 transition-opacity duration-200"
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+              <BarChart
+                accessibilityLayer
+                data={metrics.internsAndOrganizations}
+                layout="vertical"
+                margin={{
+                  left: 0,
+                }}
+              >
+                <CartesianGrid horizontal={false} />
+                <YAxis
+                  dataKey="courseName"
+                  type="category"
+                  tickLine={false}
+                  tickMargin={10}
+                  axisLine={false}
+                  width={120}
+                />
+                <XAxis type="number" hide />
+                <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                <ChartLegend content={<ChartLegendContent />} />
+                <Bar
+                  dataKey="internsWithOrg"
+                  stackId="a"
+                  fill="var(--color-internsWithOrg)"
+                  radius={[0, 4, 4, 0]}
+                />
+                <Bar
+                  dataKey="organizationsWithTeam"
+                  stackId="a"
+                  fill="var(--color-organizationsWithTeam)"
+                  radius={[0, 4, 4, 0]}
+                />
+              </BarChart>
             </ChartContainer>
           </CardContent>
         </Card>
