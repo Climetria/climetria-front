@@ -205,6 +205,17 @@ export interface UpdateOrganizationPayload {
   filter: CreateOrganizationPayload['filter'];
 }
 
+export interface OrganizationCertificateInfo {
+  id: string;
+  organizationId: string;
+  signerFullName: string;
+  signerTitle: string;
+  logoUrl: string;
+  signatureUrl: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // Utility to read cookies from the client
 function getCookieValue(name: string): string | null {
   if (typeof document === 'undefined') return null;
@@ -268,9 +279,61 @@ class ApiService {
     }
   }
 
+  private async fetchWithFormData(url: string, formData: FormData) {
+    try {
+      const token = getCookieValue('accessToken');
+      const requestOptions: RequestInit = {
+        method: 'POST',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          // Don't set Content-Type for FormData, let the browser set it with boundary
+        },
+        body: formData,
+      };
+
+      console.log(`Making FormData request to: ${API_BASE_URL}${url}`);
+
+      const response = await fetch(`${API_BASE_URL}${url}`, requestOptions);
+      console.log(`Response status: ${response.status}`);
+
+      if (!response.ok) {
+        let errorBody;
+        try {
+          errorBody = await response.text();
+          console.log('Error response body:', errorBody);
+        } catch (e) {
+          console.log('Could not read error response body. Error:', e);
+        }
+        throw new Error(
+          `API Error: ${response.status} ${response.statusText}${errorBody ? ` - ${errorBody}` : ''}`,
+        );
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const responseData = await response.json();
+        console.log('Response data:', responseData);
+        return responseData;
+      }
+
+      return null;
+    } catch (error) {
+      console.error(`Error fetching ${url}:`, error);
+      throw error;
+    }
+  }
+
   // Internship Certificate
   async getInternshipCertificateData(internId: string): Promise<InternshipCertificateData> {
     return this.fetchWithErrorHandling(`/certificates/internships/${internId}`);
+  }
+
+  // Upload organization certificate info
+  async uploadOrganizationCertificateInfo(
+    organizationId: string,
+    formData: FormData,
+  ): Promise<OrganizationCertificateInfo> {
+    return this.fetchWithFormData(`/organizations/${organizationId}/certificate-info`, formData);
   }
 
   // Metrics

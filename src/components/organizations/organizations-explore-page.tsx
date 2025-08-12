@@ -45,6 +45,7 @@ import {
   MapPin,
   UsersRound,
   Text,
+  Upload,
 } from 'lucide-react';
 import {
   apiService,
@@ -160,6 +161,7 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
       description: `Administra las organizaciones del curso: ${activeCourse?.name || ''}`,
       createUrl: '/dashboard/organizations/create',
       editUrl: (id: string) => `/dashboard/organizations/edit?id=${id}`,
+      uploadImagesUrl: (id: string) => `/dashboard/organizations/certificate/?id=${id}`,
       fetchOrganizations: () => apiService.getAllOrganizationsWithinCourse(activeCourse!.id),
       deleteOrganization: (id: string) =>
         apiService.deleteOrganizationWithinCourse(activeCourse!.id, id),
@@ -178,6 +180,7 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
       description: 'Administra todas las organizaciones registradas en el sistema',
       createUrl: '/dashboard/general/organizations/create',
       editUrl: (id: string) => `/dashboard/general/organizations/edit?id=${id}`,
+      uploadImagesUrl: (id: string) => `/dashboard/organizations/certificate/?id=${id}`,
       fetchOrganizations: () => apiService.getAllOrganizations(),
       deleteOrganization: (id: string) => apiService.deleteOrganization(id),
       fetchOrganizationDetails: () => {
@@ -826,6 +829,11 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
                               <Edit className="h-4 w-4 mr-2" /> Editar
                             </Link>
                           </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link href={currentConfig.uploadImagesUrl(orgId)}>
+                              <Upload className="h-4 w-4 mr-2" /> Cargar imágenes
+                            </Link>
+                          </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-destructive"
                             onClick={() => handleDeleteOrganization(organization)}
@@ -929,6 +937,11 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
                             <DropdownMenuItem asChild>
                               <Link href={currentConfig.editUrl(orgId)}>
                                 <Edit className="h-4 w-4 mr-2" /> Editar
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Link href={currentConfig.uploadImagesUrl(orgId)}>
+                                <Upload className="h-4 w-4 mr-2" /> Cargar imágenes
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem

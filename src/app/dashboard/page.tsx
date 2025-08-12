@@ -1,4 +1,3 @@
- 
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -16,7 +15,7 @@ import {
   Building2,
   Star,
 } from 'lucide-react';
-import { Bar, BarChart, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { Bar, BarChart, XAxis, YAxis, CartesianGrid, Cell } from 'recharts';
 import { apiService, type DashboardMetrics } from '@/lib/api';
 import { useCourse } from '@/context/CourseContext';
 import { DashboardSkeleton } from '@/components/skeletons/dashboard-skeleton';
@@ -116,11 +115,6 @@ export default function DashboardPage() {
         return status;
     }
   };
-
-  const parsedStudents = metrics.studentsPerCourse.map((item) => ({
-    ...item,
-    value: Number(item.value),
-  }));
 
   return (
     <div className="space-y-6">
@@ -230,28 +224,40 @@ export default function DashboardPage() {
             <CardDescription>Distribución de estudiantes por eje temático</CardDescription>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={chartConfig} className="h-64">
-              <BarChart
-                accessibilityLayer
-                data={parsedStudents}
-                layout="vertical"
-                margin={{
-                  left: 0,
-                }}
-              >
-                <YAxis
-                  dataKey="courseName"
-                  type="category"
-                  tickLine={false}
-                  tickMargin={10}
-                  axisLine={false}
-                  width={120}
-                />
-                <XAxis dataKey="value" type="number" hide />
-                <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                <Bar dataKey="value" fill={greenColors[0]} radius={5} />
-              </BarChart>
-            </ChartContainer>
+            {(() => {
+              const parsedStudents = metrics.studentsPerCourse.map((item, index) => ({
+                ...item,
+                value: Number(item.value),
+                fill: greenColors[index % greenColors.length],
+              }));
+
+              return (
+                <ChartContainer config={chartConfig} className="h-64">
+                  <BarChart
+                    accessibilityLayer
+                    data={parsedStudents}
+                    layout="vertical"
+                    margin={{ left: 0 }}
+                  >
+                    <YAxis
+                      dataKey="courseName"
+                      type="category"
+                      tickLine={false}
+                      tickMargin={10}
+                      axisLine={false}
+                      width={120}
+                    />
+                    <XAxis dataKey="value" type="number" hide />
+                    <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                    <Bar dataKey="value" radius={5}>
+                      {parsedStudents.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ChartContainer>
+              );
+            })()}
           </CardContent>
         </Card>
 
@@ -265,28 +271,40 @@ export default function DashboardPage() {
             <CardDescription>Alumnos que completaron su informe final por curso</CardDescription>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={chartConfig} className="h-64">
-              <BarChart
-                accessibilityLayer
-                data={metrics.finalReportsPerCourse}
-                layout="vertical"
-                margin={{
-                  left: 0,
-                }}
-              >
-                <YAxis
-                  dataKey="courseName"
-                  type="category"
-                  tickLine={false}
-                  tickMargin={10}
-                  axisLine={false}
-                  width={120}
-                />
-                <XAxis dataKey="value" type="number" hide />
-                <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                <Bar dataKey="value" fill={greenColors[0]} radius={5} />
-              </BarChart>
-            </ChartContainer>
+            {(() => {
+              const parsedReports = metrics.finalReportsPerCourse.map((item, index) => ({
+                ...item,
+                value: Number(item.value),
+                fill: greenColors[index % greenColors.length],
+              }));
+
+              return (
+                <ChartContainer config={chartConfig} className="h-64">
+                  <BarChart
+                    accessibilityLayer
+                    data={parsedReports}
+                    layout="vertical"
+                    margin={{ left: 0 }}
+                  >
+                    <YAxis
+                      dataKey="courseName"
+                      type="category"
+                      tickLine={false}
+                      tickMargin={10}
+                      axisLine={false}
+                      width={120}
+                    />
+                    <XAxis dataKey="value" type="number" hide />
+                    <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                    <Bar dataKey="value" radius={5}>
+                      {parsedReports.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ChartContainer>
+              );
+            })()}
           </CardContent>
         </Card>
 
@@ -302,28 +320,40 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={chartConfig} className="h-64">
-              <BarChart
-                accessibilityLayer
-                data={metrics.talksPerCourse}
-                layout="vertical"
-                margin={{
-                  left: 0,
-                }}
-              >
-                <YAxis
-                  dataKey="courseName"
-                  type="category"
-                  tickLine={false}
-                  tickMargin={10}
-                  axisLine={false}
-                  width={120}
-                />
-                <XAxis dataKey="value" type="number" hide />
-                <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                <Bar dataKey="value" fill={greenColors[0]} radius={5} />
-              </BarChart>
-            </ChartContainer>
+            {(() => {
+              const parsedTalks = metrics.talksPerCourse.map((item, index) => ({
+                ...item,
+                value: Number(item.value),
+                fill: greenColors[index % greenColors.length],
+              }));
+
+              return (
+                <ChartContainer config={chartConfig} className="h-64">
+                  <BarChart
+                    accessibilityLayer
+                    data={parsedTalks}
+                    layout="vertical"
+                    margin={{ left: 0 }}
+                  >
+                    <YAxis
+                      dataKey="courseName"
+                      type="category"
+                      tickLine={false}
+                      tickMargin={10}
+                      axisLine={false}
+                      width={120}
+                    />
+                    <XAxis dataKey="value" type="number" hide />
+                    <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                    <Bar dataKey="value" radius={5}>
+                      {parsedTalks.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ChartContainer>
+              );
+            })()}
           </CardContent>
         </Card>
 
@@ -339,28 +369,40 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={chartConfig} className="h-64">
-              <BarChart
-                accessibilityLayer
-                data={metrics.fullyEvaluatedPerCourse}
-                layout="vertical"
-                margin={{
-                  left: 0,
-                }}
-              >
-                <YAxis
-                  dataKey="courseName"
-                  type="category"
-                  tickLine={false}
-                  tickMargin={10}
-                  axisLine={false}
-                  width={120}
-                />
-                <XAxis dataKey="value" type="number" hide />
-                <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                <Bar dataKey="value" fill={greenColors[0]} radius={5} />
-              </BarChart>
-            </ChartContainer>
+            {(() => {
+              const parsedEvaluated = metrics.fullyEvaluatedPerCourse.map((item, index) => ({
+                ...item,
+                value: Number(item.value),
+                fill: greenColors[index % greenColors.length],
+              }));
+
+              return (
+                <ChartContainer config={chartConfig} className="h-64">
+                  <BarChart
+                    accessibilityLayer
+                    data={parsedEvaluated}
+                    layout="vertical"
+                    margin={{ left: 0 }}
+                  >
+                    <YAxis
+                      dataKey="courseName"
+                      type="category"
+                      tickLine={false}
+                      tickMargin={10}
+                      axisLine={false}
+                      width={120}
+                    />
+                    <XAxis dataKey="value" type="number" hide />
+                    <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                    <Bar dataKey="value" radius={5}>
+                      {parsedEvaluated.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ChartContainer>
+              );
+            })()}
           </CardContent>
         </Card>
 
@@ -374,33 +416,40 @@ export default function DashboardPage() {
             <CardDescription>Alumnos que recibieron sus certificados por curso</CardDescription>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={chartConfig} className="h-64">
-              <BarChart
-                accessibilityLayer
-                data={metrics.certificatesPerCourse}
-                layout="vertical"
-                margin={{
-                  left: 0,
-                }}
-              >
-                <YAxis
-                  dataKey="courseName"
-                  type="category"
-                  tickLine={false}
-                  tickMargin={10}
-                  axisLine={false}
-                  width={120}
-                />
-                <XAxis dataKey="value" type="number" hide />
-                <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                <Bar
-                  dataKey="value"
-                  fill="#90EE90"
-                  radius={5}
-                  className="hover:opacity-80 transition-opacity duration-200"
-                />
-              </BarChart>
-            </ChartContainer>
+            {(() => {
+              const parsedCertificates = metrics.certificatesPerCourse.map((item, index) => ({
+                ...item,
+                value: Number(item.value),
+                fill: greenColors[index % greenColors.length],
+              }));
+
+              return (
+                <ChartContainer config={chartConfig} className="h-64">
+                  <BarChart
+                    accessibilityLayer
+                    data={parsedCertificates}
+                    layout="vertical"
+                    margin={{ left: 0 }}
+                  >
+                    <YAxis
+                      dataKey="courseName"
+                      type="category"
+                      tickLine={false}
+                      tickMargin={10}
+                      axisLine={false}
+                      width={120}
+                    />
+                    <XAxis dataKey="value" type="number" hide />
+                    <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                    <Bar dataKey="value" radius={5}>
+                      {parsedCertificates.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ChartContainer>
+              );
+            })()}
           </CardContent>
         </Card>
 
