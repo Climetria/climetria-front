@@ -729,207 +729,201 @@ export default function InternshipEvaluation() {
           </div>
         </div>
 
-        <CardContent className="p-0 rounded-none border border-gray-200">
-          {/* Main container with limited width and centered, but no extra side gap */}
-          <div className="flex justify-center">
-            <div className="max-w-screen-xl w-full">
-              {/* Table scroll container - fills parent, no extra margin */}
-              <div
-                className="overflow-x-auto overflow-y-hidden relative max-w-full"
-                style={
-                  {
-                    scrollbarWidth: 'thin' as const,
-                    scrollbarColor: '#c1c1c1 #f1f1f1',
-                    WebkitOverflowScrolling: 'touch',
-                  } as React.CSSProperties
-                }
-              >
-                <div className="min-w-[1200px] relative">
-                  {/* Contenedor vertical - SIN overflow-x-hidden para mantener sticky */}
-                  <div className="overflow-y-auto max-h-[70vh]">
-                    <Table className="border-separate">
-                      <TableHeader className="sticky top-0 z-20 bg-white">
-                        {/* First row - Main group headers */}
-                        <TableRow>
-                          <TableHead
-                            className="w-12 min-w-[48px] max-w-[48px] sticky left-0 z-30 bg-white border-r"
-                            rowSpan={2}
-                          >
-                            N°
-                          </TableHead>
-                          <TableHead
-                            className="w-[180px] min-w-[180px] max-w-[180px] sticky left-12 z-30 bg-white border-r"
-                            rowSpan={2}
-                          >
-                            Nombres
-                          </TableHead>
-                          <TableHead
-                            className="w-[180px] min-w-[180px] max-w-[180px] sticky left-[230px] z-30 bg-white border-r"
-                            rowSpan={2}
-                          >
-                            Apellidos
-                          </TableHead>
-                          <TableHead
-                            className="text-center bg-slate-100 border-r border-slate-300"
-                            colSpan={6}
-                          >
-                            <div className="py-2 px-4 font-semibold text-slate-700">ASISTENCIA</div>
-                          </TableHead>
-                          <TableHead
-                            className="text-center bg-gray-100 border-r border-gray-300"
-                            colSpan={5}
-                          >
-                            <div className="py-2 px-4 font-semibold text-gray-700">
-                              EVALUACIÓN DE INSCRIPCIÓN
-                            </div>
-                          </TableHead>
-                          <TableHead
-                            className="text-center bg-zinc-100 border-r border-zinc-300"
-                            colSpan={2}
-                          >
-                            <div className="py-2 px-4 font-semibold text-zinc-700">
-                              EVALUACIÓN DE CLASE
-                            </div>
-                          </TableHead>
-                          <TableHead
-                            className="text-center bg-stone-100 border-r border-stone-300"
-                            colSpan={3}
-                          >
-                            <div className="py-2 px-4 font-semibold text-stone-700">
-                              EVALUACIÓN DE PASANTÍA
-                            </div>
-                          </TableHead>
-                          <TableHead className="text-center bg-amber-100" colSpan={6}>
-                            <div className="py-2 px-4 font-semibold text-amber-700">
-                              EVALUACIÓN FINAL
-                            </div>
-                          </TableHead>
-                        </TableRow>
-                        {/* Second row - Individual column headers */}
-                        <TableRow>
-                          {/* Asistencia */}
-                          <TableHead className="w-16 text-center bg-slate-50 whitespace-normal break-words">
-                            S1
-                          </TableHead>
-                          <TableHead className="w-16 text-center bg-slate-50 whitespace-normal break-words">
-                            S2
-                          </TableHead>
-                          <TableHead className="w-16 text-center bg-slate-50 whitespace-normal break-words">
-                            S3
-                          </TableHead>
-                          <TableHead className="w-16 text-center bg-slate-50 whitespace-normal break-words">
-                            S4
-                          </TableHead>
-                          <TableHead className="w-16 text-center bg-slate-50 whitespace-normal break-words">
-                            S5
-                          </TableHead>
-                          <TableHead className="w-16 text-center bg-slate-50 border-r border-slate-300 whitespace-normal break-words text-xs">
-                            S6
-                          </TableHead>
-                          <TableHead className="w-28 text-center bg-gray-50 whitespace-normal break-words text-xs">
-                            Compromiso Inicial
-                          </TableHead>
-                          <TableHead className="w-28 text-center bg-gray-50 whitespace-normal break-words text-xs">
-                            Comunicación Asertiva
-                          </TableHead>
-                          <TableHead className="w-28 text-center bg-gray-50 whitespace-normal break-words text-xs">
-                            Puntualidad
-                          </TableHead>
-                          <TableHead className="w-28 text-center bg-gray-50 whitespace-normal break-words text-xs">
-                            Participación
-                          </TableHead>
-                          <TableHead className="w-28 text-center bg-gray-50 border-r border-gray-300 whitespace-normal break-words text-xs">
-                            Proactividad
-                          </TableHead>
-                          <TableHead className="w-28 text-center bg-zinc-50 whitespace-normal break-words text-xs">
-                            Hab. Comunicación
-                          </TableHead>
-                          <TableHead className="w-28 text-center bg-zinc-50 border-r border-zinc-300 whitespace-normal break-words text-xs">
-                            Puntualidad Entrega
-                          </TableHead>
-                          <TableHead className="w-28 text-center bg-stone-50 whitespace-normal break-words text-xs">
-                            Redacción Ortografía
-                          </TableHead>
-                          <TableHead className="w-28 text-center bg-stone-50 whitespace-normal break-words text-xs">
-                            Desempeño Partner
-                          </TableHead>
-                          <TableHead className="w-48 text-center bg-stone-50 border-r border-stone-300 break-words text-xs">
-                            Recomendación Mentoría
-                          </TableHead>
-                          {/* Evaluación Final */}
-                          <TableHead className="w-30 text-center bg-amber-50 text-xs">
-                            Informe Final
-                          </TableHead>
-                          <TableHead className="w-30 text-center bg-amber-50 text-xs">
-                            Charla
-                          </TableHead>
-                          <TableHead className="w-30 text-center bg-amber-50 text-xs">
-                            Recomendación
-                          </TableHead>
-                          <TableHead className="w-30 text-center bg-amber-50 text-xs">
-                            Total Nota
-                          </TableHead>
-                          <TableHead className="w-30 text-center bg-amber-50 text-xs whitespace-normal break-words">
-                            Certificado Pasantía
-                          </TableHead>
-                          <TableHead className="w-30 text-center bg-amber-50 text-xs whitespace-normal break-words">
-                            Certificado del Curso
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredData.map((student, index) => (
-                          <StudentTableRow
-                            key={student.id}
-                            student={student}
-                            index={index}
-                            updateStudentData={updateStudentData}
-                            handleInternshipCertificateClick={handleInternshipCertificateClick}
-                            handleCourseCertificateClick={handleCourseCertificateClick}
-                          />
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                  {/* Footer with legend */}
-                  <div className="mt-4 pt-4 border-t px-6 pb-6">
-                    <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">Asistencia:</span>
-                        <div className="flex gap-1 flex-wrap">
-                          <Badge variant="outline" className="text-xs">
-                            A = Asistió
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            T = Tardanza
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            F = Falta
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            FJ = Falta Justificada
-                          </Badge>
+        <CardContent className="p-0 rounded-none border border-gray-200 max-w-screen-xl mx-auto w-full">
+          {/* Table scroll container - always fills parent, no extra centering divs */}
+          <div
+            className="overflow-x-auto overflow-y-hidden w-full"
+            style={
+              {
+                scrollbarWidth: 'thin' as const,
+                scrollbarColor: '#c1c1c1 #f1f1f1',
+                WebkitOverflowScrolling: 'touch',
+              } as React.CSSProperties
+            }
+          >
+            {/* Table min-width ensures horizontal scroll on small screens, but no extra margin on large screens */}
+            <div className="min-w-[1200px] relative">
+              {/* Contenedor vertical - SIN overflow-x-hidden para mantener sticky */}
+              <div className="overflow-y-auto max-h-[70vh]">
+                <Table className="border-separate">
+                  <TableHeader className="sticky top-0 z-20 bg-white">
+                    {/* First row - Main group headers */}
+                    <TableRow>
+                      <TableHead
+                        className="w-12 min-w-[48px] max-w-[48px] sticky left-0 z-30 bg-white border-r"
+                        rowSpan={2}
+                      >
+                        N°
+                      </TableHead>
+                      <TableHead
+                        className="w-[180px] min-w-[180px] max-w-[180px] sticky left-12 z-30 bg-white border-r"
+                        rowSpan={2}
+                      >
+                        Nombres
+                      </TableHead>
+                      <TableHead
+                        className="w-[180px] min-w-[180px] max-w-[180px] sticky left-[230px] z-30 bg-white border-r"
+                        rowSpan={2}
+                      >
+                        Apellidos
+                      </TableHead>
+                      <TableHead
+                        className="text-center bg-slate-100 border-r border-slate-300"
+                        colSpan={6}
+                      >
+                        <div className="py-2 px-4 font-semibold text-slate-700">ASISTENCIA</div>
+                      </TableHead>
+                      <TableHead
+                        className="text-center bg-gray-100 border-r border-gray-300"
+                        colSpan={5}
+                      >
+                        <div className="py-2 px-4 font-semibold text-gray-700">
+                          EVALUACIÓN DE INSCRIPCIÓN
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">Puntuación:</span>
-                        <Badge variant="outline" className="text-xs">
-                          1-5 (1 = Muy Bajo, 5 = Excelente)
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">Total Nota:</span>
-                        <Badge variant="outline" className="text-xs">
-                          0-20 (Calculada automáticamente)
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">Certificados:</span>
-                        <Badge variant="outline" className="text-xs">
-                          Disponibles según criterios del sistema
-                        </Badge>
-                      </div>
+                      </TableHead>
+                      <TableHead
+                        className="text-center bg-zinc-100 border-r border-zinc-300"
+                        colSpan={2}
+                      >
+                        <div className="py-2 px-4 font-semibold text-zinc-700">
+                          EVALUACIÓN DE CLASE
+                        </div>
+                      </TableHead>
+                      <TableHead
+                        className="text-center bg-stone-100 border-r border-stone-300"
+                        colSpan={3}
+                      >
+                        <div className="py-2 px-4 font-semibold text-stone-700">
+                          EVALUACIÓN DE PASANTÍA
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-center bg-amber-100" colSpan={6}>
+                        <div className="py-2 px-4 font-semibold text-amber-700">
+                          EVALUACIÓN FINAL
+                        </div>
+                      </TableHead>
+                    </TableRow>
+                    {/* Second row - Individual column headers */}
+                    <TableRow>
+                      {/* Asistencia */}
+                      <TableHead className="w-16 text-center bg-slate-50 whitespace-normal break-words">
+                        S1
+                      </TableHead>
+                      <TableHead className="w-16 text-center bg-slate-50 whitespace-normal break-words">
+                        S2
+                      </TableHead>
+                      <TableHead className="w-16 text-center bg-slate-50 whitespace-normal break-words">
+                        S3
+                      </TableHead>
+                      <TableHead className="w-16 text-center bg-slate-50 whitespace-normal break-words">
+                        S4
+                      </TableHead>
+                      <TableHead className="w-16 text-center bg-slate-50 whitespace-normal break-words">
+                        S5
+                      </TableHead>
+                      <TableHead className="w-16 text-center bg-slate-50 border-r border-slate-300 whitespace-normal break-words text-xs">
+                        S6
+                      </TableHead>
+                      <TableHead className="w-28 text-center bg-gray-50 whitespace-normal break-words text-xs">
+                        Compromiso Inicial
+                      </TableHead>
+                      <TableHead className="w-28 text-center bg-gray-50 whitespace-normal break-words text-xs">
+                        Comunicación Asertiva
+                      </TableHead>
+                      <TableHead className="w-28 text-center bg-gray-50 whitespace-normal break-words text-xs">
+                        Puntualidad
+                      </TableHead>
+                      <TableHead className="w-28 text-center bg-gray-50 whitespace-normal break-words text-xs">
+                        Participación
+                      </TableHead>
+                      <TableHead className="w-28 text-center bg-gray-50 border-r border-gray-300 whitespace-normal break-words text-xs">
+                        Proactividad
+                      </TableHead>
+                      <TableHead className="w-28 text-center bg-zinc-50 whitespace-normal break-words text-xs">
+                        Hab. Comunicación
+                      </TableHead>
+                      <TableHead className="w-28 text-center bg-zinc-50 border-r border-zinc-300 whitespace-normal break-words text-xs">
+                        Puntualidad Entrega
+                      </TableHead>
+                      <TableHead className="w-28 text-center bg-stone-50 whitespace-normal break-words text-xs">
+                        Redacción Ortografía
+                      </TableHead>
+                      <TableHead className="w-28 text-center bg-stone-50 whitespace-normal break-words text-xs">
+                        Desempeño Partner
+                      </TableHead>
+                      <TableHead className="w-48 text-center bg-stone-50 border-r border-stone-300 break-words text-xs">
+                        Recomendación Mentoría
+                      </TableHead>
+                      {/* Evaluación Final */}
+                      <TableHead className="w-30 text-center bg-amber-50 text-xs">
+                        Informe Final
+                      </TableHead>
+                      <TableHead className="w-30 text-center bg-amber-50 text-xs">Charla</TableHead>
+                      <TableHead className="w-30 text-center bg-amber-50 text-xs">
+                        Recomendación
+                      </TableHead>
+                      <TableHead className="w-30 text-center bg-amber-50 text-xs">
+                        Total Nota
+                      </TableHead>
+                      <TableHead className="w-30 text-center bg-amber-50 text-xs whitespace-normal break-words">
+                        Certificado Pasantía
+                      </TableHead>
+                      <TableHead className="w-30 text-center bg-amber-50 text-xs whitespace-normal break-words">
+                        Certificado del Curso
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredData.map((student, index) => (
+                      <StudentTableRow
+                        key={student.id}
+                        student={student}
+                        index={index}
+                        updateStudentData={updateStudentData}
+                        handleInternshipCertificateClick={handleInternshipCertificateClick}
+                        handleCourseCertificateClick={handleCourseCertificateClick}
+                      />
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              {/* Footer with legend */}
+              <div className="mt-4 pt-4 border-t px-6 pb-6">
+                <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">Asistencia:</span>
+                    <div className="flex gap-1 flex-wrap">
+                      <Badge variant="outline" className="text-xs">
+                        A = Asistió
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        T = Tardanza
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        F = Falta
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        FJ = Falta Justificada
+                      </Badge>
                     </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">Puntuación:</span>
+                    <Badge variant="outline" className="text-xs">
+                      1-5 (1 = Muy Bajo, 5 = Excelente)
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">Total Nota:</span>
+                    <Badge variant="outline" className="text-xs">
+                      0-20 (Calculada automáticamente)
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">Certificados:</span>
+                    <Badge variant="outline" className="text-xs">
+                      Disponibles según criterios del sistema
+                    </Badge>
                   </div>
                 </div>
               </div>
