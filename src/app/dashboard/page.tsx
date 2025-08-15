@@ -119,7 +119,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Top 3 Students Section */}
-      {metrics.topInterns.length > 0 && (
+      {metrics.topInternsByCourse.length > 0 && (
         <Card className="transition-all duration-200 hover:shadow-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -132,7 +132,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {metrics.topInterns.slice(0, 3).map((intern, index) => (
+              {metrics.topInternsByCourse.slice(0, 3).map((intern, index) => (
                 <div
                   key={intern.internId}
                   className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors duration-200"

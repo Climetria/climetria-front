@@ -120,3 +120,59 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ===== TABLA STICKY Y SCROLL STYLES ===== */
+
+/* Estilos para columnas sticky (fusionadas y optimizadas) */
+.sticky-cell {
+  position: sticky;
+  background-color: white;
+  z-index: 10;
+}
+
+/* Borde derecho para columnas sticky */
+.sticky-cell::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 1px;
+  height: 100%;
+  background: #e5e7eb; /* Tailwind border-gray-200 */
+  z-index: 20;
+}
+
+/* Estilos para scroll horizontal siempre visible y personalizado */
+.table-container-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 #f1f1f1;
+}
+
+.table-container-scroll::-webkit-scrollbar {
+  height: 12px;
+}
+
+.table-container-scroll::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 6px;
+  margin: 2px;
+}
+
+.table-container-scroll::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 6px;
+  border: 1px solid #f1f1f1;
+}
+
+.table-container-scroll::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Soporte para modo oscuro en las celdas sticky */
+.dark .sticky-cell {
+  background-color: oklch(0.205 0 0); /* --card en modo oscuro */
+}
+
+.dark .sticky-cell::after {
+  background: oklch(1 0 0 / 10%); /* --border en modo oscuro */
+}

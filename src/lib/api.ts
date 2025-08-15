@@ -162,7 +162,7 @@ export interface InternsAndOrganizations {
 }
 
 export interface DashboardMetrics {
-  topInterns: TopIntern[];
+  topInternsByCourse: TopIntern[];
   studentsPerCourse: CourseMetric[];
   finalReportsPerCourse: CourseMetric[];
   talksPerCourse: CourseMetric[];
@@ -780,14 +780,12 @@ class ApiService {
     return this.fetchWithErrorHandling(`/courses/${courseId}/interns/${internId}/grade`);
   }
 
-  async getInternGradeGlobally(): Promise<Grade> {
-    return this.fetchWithErrorHandling(`/grades`);
+  async getGradesWithinCourse(courseId: string): Promise<Grade[]> {
+    return this.fetchWithErrorHandling(`/courses/${courseId}/grades`);
   }
 
-  async createInternGradeWithinCourse(courseId: string, internId: string): Promise<Grade> {
-    return this.fetchWithErrorHandling(`/courses/${courseId}/interns/${internId}/grade`, {
-      method: 'POST',
-    });
+  async getInternGradeGlobally(): Promise<Grade> {
+    return this.fetchWithErrorHandling(`/grades`);
   }
 
   async updateInternGradeWithinCourse(

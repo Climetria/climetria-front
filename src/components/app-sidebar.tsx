@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Building2, Frame, NotebookPen, User, UsersRound, BookOpen } from 'lucide-react';
+import { Building2, Frame, NotebookPen, User, UsersRound, BookOpen, FileBadge } from 'lucide-react';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import { CourseSwitcher } from '@/components/course-switcher';
@@ -258,6 +258,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuButton className="mx-2 cursor-pointer">
             <NotebookPen className="h-5 w-5" />
             <span>Notas</span>
+          </SidebarMenuButton>
+        </Link>
+        <Link href={notasUrl}>
+          <SidebarMenuButton className="mx-2 cursor-pointer">
+            <FileBadge className="h-5 w-5" />
+            <span>Certificación</span>
           </SidebarMenuButton>
         </Link>
         <NavMain items={navMain} />
