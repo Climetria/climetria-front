@@ -729,20 +729,21 @@ export default function InternshipEvaluation() {
           </div>
         </div>
 
-        <CardContent className="p-0 rounded-none border border-gray-200 max-w-screen-xl mx-auto w-full">
-          {/* Table scroll container - always fills parent, no extra centering divs */}
+        <CardContent className="p-0 rounded-none border border-gray-200">
+          {/* Contenedor principal con scroll horizontal siempre visible */}
           <div
-            className="overflow-x-auto overflow-y-hidden w-full"
+            className="overflow-x-scroll overflow-y-hidden relative"
             style={
               {
                 scrollbarWidth: 'thin' as const,
                 scrollbarColor: '#c1c1c1 #f1f1f1',
+                // Para webkit browsers
                 WebkitOverflowScrolling: 'touch',
               } as React.CSSProperties
             }
           >
-            {/* Table min-width ensures horizontal scroll on small screens, but no extra margin on large screens */}
-            <div className="w-full relative">
+            {/* Contenedor con ancho mínimo para forzar scroll horizontal */}
+            <div className="min-w-[1800px] relative">
               {/* Contenedor vertical - SIN overflow-x-hidden para mantener sticky */}
               <div className="overflow-y-auto max-h-[70vh]">
                 <Table className="border-separate">
@@ -887,45 +888,45 @@ export default function InternshipEvaluation() {
                   </TableBody>
                 </Table>
               </div>
-              {/* Footer with legend */}
-              <div className="mt-4 pt-4 border-t px-6 pb-6">
-                <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">Asistencia:</span>
-                    <div className="flex gap-1 flex-wrap">
-                      <Badge variant="outline" className="text-xs">
-                        A = Asistió
-                      </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        T = Tardanza
-                      </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        F = Falta
-                      </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        FJ = Falta Justificada
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">Puntuación:</span>
-                    <Badge variant="outline" className="text-xs">
-                      1-5 (1 = Muy Bajo, 5 = Excelente)
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">Total Nota:</span>
-                    <Badge variant="outline" className="text-xs">
-                      0-20 (Calculada automáticamente)
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">Certificados:</span>
-                    <Badge variant="outline" className="text-xs">
-                      Disponibles según criterios del sistema
-                    </Badge>
-                  </div>
+            </div>
+          </div>
+          {/* Footer with legend */}
+          <div className="mt-4 pt-4 border-t px-6 pb-6">
+            <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <span className="font-medium">Asistencia:</span>
+                <div className="flex gap-1 flex-wrap">
+                  <Badge variant="outline" className="text-xs">
+                    A = Asistió
+                  </Badge>
+                  <Badge variant="outline" className="text-xs">
+                    T = Tardanza
+                  </Badge>
+                  <Badge variant="outline" className="text-xs">
+                    F = Falta
+                  </Badge>
+                  <Badge variant="outline" className="text-xs">
+                    FJ = Falta Justificada
+                  </Badge>
                 </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-medium">Puntuación:</span>
+                <Badge variant="outline" className="text-xs">
+                  1-5 (1 = Muy Bajo, 5 = Excelente)
+                </Badge>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-medium">Total Nota:</span>
+                <Badge variant="outline" className="text-xs">
+                  0-20 (Calculada automáticamente)
+                </Badge>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-medium">Certificados:</span>
+                <Badge variant="outline" className="text-xs">
+                  Disponibles según criterios del sistema
+                </Badge>
               </div>
             </div>
           </div>
