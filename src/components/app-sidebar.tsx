@@ -260,10 +260,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <span>Notas</span>
           </SidebarMenuButton>
         </Link>
-        <Link href={notasUrl}>
+        <Link href={'/dashboard/sponsors'}>
           <SidebarMenuButton className="mx-2 cursor-pointer">
             <FileBadge className="h-5 w-5" />
-            <span>Certificación</span>
+            <span>Promotores</span>
           </SidebarMenuButton>
         </Link>
         <NavMain items={navMain} />

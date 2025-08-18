@@ -283,7 +283,7 @@ class ApiService {
     try {
       const token = getCookieValue('accessToken');
       const requestOptions: RequestInit = {
-        method: 'POST',
+        method: 'PATCH',
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
           // Don't set Content-Type for FormData, let the browser set it with boundary

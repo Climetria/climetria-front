@@ -742,7 +742,7 @@ export default function InternshipEvaluation() {
             }
           >
             {/* Table min-width ensures horizontal scroll on small screens, but no extra margin on large screens */}
-            <div className="min-w-[1200px] relative">
+            <div className="w-full relative">
               {/* Contenedor vertical - SIN overflow-x-hidden para mantener sticky */}
               <div className="overflow-y-auto max-h-[70vh]">
                 <Table className="border-separate">
