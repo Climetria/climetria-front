@@ -9,7 +9,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Building2, User, FileText, ImageIcon } from 'lucide-react';
 
 interface PromoterDetailModalProps {
@@ -36,7 +35,10 @@ export function PromoterDetailModal({ open, onOpenChange, promoter }: PromoterDe
 
         <div className="space-y-6">
           {/* Información básica */}
-          <div className="flex items-start gap-4">
+          <div
+            className="flex items-center 
+          gap-4"
+          >
             <Avatar className="h-16 w-16">
               <AvatarImage
                 src={promoter.logoUrl || '/placeholder.svg'}
@@ -48,12 +50,6 @@ export function PromoterDetailModal({ open, onOpenChange, promoter }: PromoterDe
             </Avatar>
             <div className="flex-1">
               <h3 className="text-xl font-semibold">{promoter.organizationName}</h3>
-              <div className="flex items-center gap-2 mt-2">
-                <Badge variant={promoter.status === 'active' ? 'default' : 'secondary'}>
-                  {promoter.status === 'active' ? 'Activo' : 'Inactivo'}
-                </Badge>
-                <Badge variant="outline">{promoter.assignedCourses} cursos asignados</Badge>
-              </div>
             </div>
           </div>
 

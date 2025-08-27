@@ -2,12 +2,24 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Save, Loader2, AlertCircle, ChevronLeft, Upload, FileImage, X } from 'lucide-react';
+import {
+  Save,
+  Loader2,
+  AlertCircle,
+  ChevronLeft,
+  Upload,
+  FileImage,
+  X,
+  Edit3,
+  Eye,
+  Camera,
+  User,
+} from 'lucide-react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
@@ -23,51 +35,37 @@ import { apiService } from '@/lib/api';
 import { useCourse } from '@/context/CourseContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import Link from 'next/link';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
-// Schema de validación corregido
-const formSchema = z
-  .object({
-    signerFullName: z
-      .string()
-      .min(1, { message: 'El nombre completo del firmante es obligatorio' })
-      .min(2, { message: 'El nombre debe tener al menos 2 caracteres' }),
-    signerTitle: z
-      .string()
-      .min(1, { message: 'El cargo del firmante es obligatorio' })
-      .min(2, { message: 'El cargo debe tener al menos 2 caracteres' }),
-    logo: z
-      .instanceof(File, { message: 'El logo es obligatorio' })
-      .refine((file) => file?.size <= MAX_FILE_SIZE, 'El archivo debe ser menor a 5MB')
-      .refine(
-        (file) => ACCEPTED_IMAGE_TYPES.includes(file?.type),
-        'Solo se aceptan archivos .jpg, .jpeg, .png y .webp',
-      )
-      .optional()
-      .or(z.undefined()),
-    signature: z
-      .instanceof(File, { message: 'La firma es obligatoria' })
-      .refine((file) => file?.size <= MAX_FILE_SIZE, 'El archivo debe ser menor a 5MB')
-      .refine(
-        (file) => ACCEPTED_IMAGE_TYPES.includes(file?.type),
-        'Solo se aceptan archivos .jpg, .jpeg, .png y .webp',
-      )
-      .optional()
-      .or(z.undefined()),
-  })
-  .refine((data) => data.logo instanceof File, {
-    message: 'El logo es obligatorio',
-    path: ['logo'],
-  })
-  .refine((data) => data.signature instanceof File, {
-    message: 'La firma es obligatoria',
-    path: ['signature'],
-  });
+const formSchema = z.object({
+  signerFullName: z
+    .string()
+    .min(1, { message: 'El nombre completo del firmante es obligatorio' })
+    .min(2, { message: 'El nombre debe tener al menos 2 caracteres' }),
+  signerTitle: z
+    .string()
+    .min(1, { message: 'El cargo del firmante es obligatorio' })
+    .min(2, { message: 'El cargo debe tener al menos 2 caracteres' }),
+  logo: z
+    .instanceof(File)
+    .refine((file) => file?.size <= MAX_FILE_SIZE, 'El archivo debe ser menor a 5MB')
+    .refine(
+      (file) => ACCEPTED_IMAGE_TYPES.includes(file?.type),
+      'Solo se aceptan archivos .jpg, .jpeg, .png y .webp',
+    )
+    .optional(),
+  signature: z
+    .instanceof(File)
+    .refine((file) => file?.size <= MAX_FILE_SIZE, 'El archivo debe ser menor a 5MB')
+    .refine(
+      (file) => ACCEPTED_IMAGE_TYPES.includes(file?.type),
+      'Solo se aceptan archivos .jpg, .jpeg, .png y .webp',
+    )
+    .optional(),
+});
 
-// Tipo para el formulario con campos opcionales durante la edición
 type FormData = {
   signerFullName: string;
   signerTitle: string;
@@ -79,12 +77,14 @@ function CertificateUploadContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+  const [isEditMode, setIsEditMode] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [signaturePreview, setSignaturePreview] = useState<string | null>(null);
+  const [existingLogoUrl, setExistingLogoUrl] = useState<string | null>(null);
+  const [existingSignatureUrl, setExistingSignatureUrl] = useState<string | null>(null);
+  const [hasLoadedExistingData, setHasLoadedExistingData] = useState(false);
 
-  // Get organization ID from query parameters
   const organizationId = searchParams.get('id');
-
   const {
     activeCourse,
     isLoading: isLoadingCourses,
@@ -92,7 +92,6 @@ function CertificateUploadContent() {
     isInitialized,
   } = useCourse();
 
-  // Query to fetch organization data
   const {
     data: organizationData,
     isLoading: isLoadingOrganization,
@@ -117,29 +116,69 @@ function CertificateUploadContent() {
     mode: 'onChange',
   });
 
-  // Mutation to upload certificate info
+  useEffect(() => {
+    if (organizationData && !hasLoadedExistingData) {
+      const hasExistingData =
+        organizationData.signerFullName ||
+        organizationData.signerTitle ||
+        organizationData.logoUrl ||
+        organizationData.signerSignatureUrl;
+      if (!hasExistingData) {
+        setIsEditMode(true);
+      }
+
+      if (organizationData.signerFullName) {
+        form.setValue('signerFullName', organizationData.signerFullName);
+      }
+      if (organizationData.signerTitle) {
+        form.setValue('signerTitle', organizationData.signerTitle);
+      }
+      if (organizationData.logoUrl) {
+        setExistingLogoUrl(organizationData.logoUrl);
+      }
+      if (organizationData.signerSignatureUrl) {
+        setExistingSignatureUrl(organizationData.signerSignatureUrl);
+      }
+
+      setHasLoadedExistingData(true);
+    }
+  }, [organizationData, hasLoadedExistingData, form]);
+
   const uploadCertificateInfoMutation = useMutation({
     mutationFn: async (data: FormData) => {
       if (!activeCourse || !organizationId) {
         throw new Error('No hay un curso activo seleccionado o ID de organización');
       }
 
-      // Validar que los archivos estén presentes
-      if (!data.logo || !data.signature) {
-        throw new Error('Los archivos de logo y firma son obligatorios');
+      const hasExistingLogo = existingLogoUrl;
+      const hasExistingSignature = existingSignatureUrl;
+
+      if (!data.logo && !hasExistingLogo) {
+        throw new Error('El logo es obligatorio');
+      }
+
+      if (!data.signature && !hasExistingSignature) {
+        throw new Error('La firma es obligatoria');
       }
 
       const formData = new FormData();
       formData.append('signerFullName', data.signerFullName.trim());
       formData.append('signerTitle', data.signerTitle.trim());
-      formData.append('logo', data.logo);
-      formData.append('signature', data.signature);
+
+      if (data.logo) {
+        formData.append('logo', data.logo);
+      }
+      if (data.signature) {
+        formData.append('signature', data.signature);
+      }
 
       return apiService.uploadOrganizationCertificateInfo(organizationId, formData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['organizations'] });
-      router.push('/dashboard/organizations/');
+      setIsEditMode(false);
+      setLogoPreview(null);
+      setSignaturePreview(null);
     },
     onError: (error: Error) => {
       console.error('Error uploading certificate info:', error);
@@ -186,18 +225,111 @@ function CertificateUploadContent() {
     form.trigger(field);
   };
 
-  // Validación personalizada para verificar si el formulario es válido
   const isFormValid = () => {
     const values = form.getValues();
+    const hasValidText =
+      values.signerFullName.trim().length >= 2 && values.signerTitle.trim().length >= 2;
+    const hasValidLogo = values.logo instanceof File || existingLogoUrl;
+    const hasValidSignature = values.signature instanceof File || existingSignatureUrl;
+
+    return hasValidText && hasValidLogo && hasValidSignature;
+  };
+
+  const renderImageContainer = (
+    field: 'logo' | 'signature',
+    label: string,
+    existingImageUrl: string | null,
+    preview: string | null,
+    value: File | undefined,
+    onChange: (file: File | undefined) => void,
+    isLogo = false,
+  ) => {
+    const inputId = `${field}-upload`;
+    const currentImage = preview || existingImageUrl;
+    const hasImage = !!currentImage;
+
     return (
-      values.signerFullName.trim().length >= 2 &&
-      values.signerTitle.trim().length >= 2 &&
-      values.logo instanceof File &&
-      values.signature instanceof File
+      <div className="space-y-3">
+        <label className="text-sm font-medium">{label} *</label>
+        <div
+          className={`relative ${isLogo ? 'aspect-[3/2]' : 'aspect-square'} w-full max-w-[200px] mx-auto bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg overflow-hidden group`}
+        >
+          {hasImage ? (
+            <>
+              <img
+                src={currentImage || '/placeholder.svg'}
+                alt={label}
+                className="w-full h-full object-contain bg-white"
+              />
+              {isEditMode && (
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => document.getElementById(inputId)?.click()}
+                      className="bg-white/90 hover:bg-white text-black"
+                    >
+                      <Camera className="h-4 w-4 mr-1" />
+                      Cambiar
+                    </Button>
+                    {preview && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => removeFile(field)}
+                        className="bg-red-500/90 hover:bg-red-500"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
+              {isLogo ? <FileImage className="h-8 w-8 mb-2" /> : <User className="h-8 w-8 mb-2" />}
+              <span className="text-xs text-center px-2">
+                {isEditMode ? 'Click para subir' : 'Sin imagen'}
+              </span>
+              {isEditMode && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => document.getElementById(inputId)?.click()}
+                  className="mt-2 h-8 text-xs"
+                >
+                  <Upload className="h-3 w-3 mr-1" />
+                  Subir
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+        <input
+          id={inputId}
+          type="file"
+          className="hidden"
+          accept={ACCEPTED_IMAGE_TYPES.join(',')}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            handleFileChange(file, field, onChange);
+          }}
+          disabled={!isEditMode}
+        />
+        {preview && value && (
+          <div className="text-xs text-center text-gray-500">
+            {value.name} • {(value.size / 1024 / 1024).toFixed(1)} MB
+          </div>
+        )}
+      </div>
     );
   };
 
-  // Loading states
   if (!isInitialized || isLoadingCourses || isLoadingOrganization) {
     return <CertificateUploadSkeleton />;
   }
@@ -269,19 +401,24 @@ function CertificateUploadContent() {
           <Button variant="ghost" size="icon" onClick={() => router.back()}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <div>
+          <div className="flex-1">
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
               Información de Certificado
             </h1>
             <p className="text-muted-foreground">
-              Sube la información y archivos necesarios para el certificado de{' '}
+              {isEditMode ? 'Editando' : 'Información de'} certificado de{' '}
               <span className="font-medium">{organizationData?.organizationName}</span>
             </p>
           </div>
+          {!isEditMode && (
+            <Button variant="outline" onClick={() => setIsEditMode(true)} className="ml-auto">
+              <Edit3 className="h-4 w-4 mr-2" />
+              Editar información
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Error de mutación */}
       {uploadCertificateInfoMutation.error && (
         <Alert variant="destructive" className="mb-6">
           <AlertCircle className="h-4 w-4" />
@@ -294,16 +431,33 @@ function CertificateUploadContent() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Datos del Certificado</CardTitle>
-          <CardDescription>
-            Completa la información del firmante y sube los archivos necesarios para generar el
-            certificado
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg">Datos del Certificado</CardTitle>
+              <CardDescription>
+                {isEditMode
+                  ? 'Completa la información del firmante y sube los archivos necesarios'
+                  : 'Información actual del certificado'}
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              {isEditMode ? (
+                <>
+                  <Edit3 className="h-4 w-4" />
+                  Editando
+                </>
+              ) : (
+                <>
+                  <Eye className="h-4 w-4" />
+                  Solo lectura
+                </>
+              )}
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {/* Text Fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
                   control={form.control}
@@ -315,7 +469,12 @@ function CertificateUploadContent() {
                         Nombre completo de la persona que firmará el certificado
                       </FormDescription>
                       <FormControl>
-                        <Input placeholder="Ej: Juan Carlos Pérez López" {...field} />
+                        <Input
+                          placeholder="Ej: Juan Carlos Pérez López"
+                          {...field}
+                          disabled={!isEditMode}
+                          className={!isEditMode ? 'bg-gray-50' : ''}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -332,7 +491,12 @@ function CertificateUploadContent() {
                         Cargo o título de la persona que firmará el certificado
                       </FormDescription>
                       <FormControl>
-                        <Input placeholder="Ej: Director General, Gerente de RRHH" {...field} />
+                        <Input
+                          placeholder="Ej: Director General, Gerente de RRHH"
+                          {...field}
+                          disabled={!isEditMode}
+                          className={!isEditMode ? 'bg-gray-50' : ''}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -340,160 +504,43 @@ function CertificateUploadContent() {
                 />
               </div>
 
-              {/* File Upload Fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Logo Upload */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <FormField
                   control={form.control}
                   name="logo"
-                  render={({ field: { onChange, value, ...field } }) => (
+                  render={({ field: { onChange, value } }) => (
                     <FormItem>
-                      <FormLabel>Logo de la Organización *</FormLabel>
-                      <FormDescription>
-                        Sube el logo oficial de la organización (máx. 5MB)
-                      </FormDescription>
                       <FormControl>
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-center w-full">
-                            <label
-                              htmlFor="logo-upload"
-                              className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-muted-foreground/25 rounded-lg cursor-pointer bg-muted/50 hover:bg-muted/80 transition-colors"
-                            >
-                              <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
-                                <p className="mb-2 text-sm text-muted-foreground">
-                                  <span className="font-semibold">Click para subir</span> o arrastra
-                                  el archivo
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  PNG, JPG, JPEG, WEBP (máx. 5MB)
-                                </p>
-                              </div>
-                              <input
-                                id="logo-upload"
-                                type="file"
-                                className="hidden"
-                                accept={ACCEPTED_IMAGE_TYPES.join(',')}
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  handleFileChange(file, 'logo', onChange);
-                                }}
-                                {...field}
-                              />
-                            </label>
-                          </div>
-
-                          {logoPreview && (
-                            <div className="relative">
-                              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                                <FileImage className="w-8 h-8 text-primary" />
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium truncate">{value?.name}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {value?.size
-                                      ? (value.size / 1024 / 1024).toFixed(2) + ' MB'
-                                      : ''}
-                                  </p>
-                                </div>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => removeFile('logo')}
-                                  className="h-8 w-8"
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                              <div className="mt-2">
-                                <img
-                                  src={logoPreview}
-                                  alt="Logo preview"
-                                  className="w-full h-32 object-contain bg-white rounded border"
-                                />
-                              </div>
-                            </div>
-                          )}
-                        </div>
+                        {renderImageContainer(
+                          'logo',
+                          'Logo de la Organización',
+                          existingLogoUrl,
+                          logoPreview,
+                          value,
+                          onChange,
+                          true,
+                        )}
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                {/* Signature Upload */}
                 <FormField
                   control={form.control}
                   name="signature"
-                  render={({ field: { onChange, value, ...field } }) => (
+                  render={({ field: { onChange, value } }) => (
                     <FormItem>
-                      <FormLabel>Firma del Firmante *</FormLabel>
-                      <FormDescription>
-                        Sube la firma digital del firmante (máx. 5MB)
-                      </FormDescription>
                       <FormControl>
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-center w-full">
-                            <label
-                              htmlFor="signature-upload"
-                              className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-muted-foreground/25 rounded-lg cursor-pointer bg-muted/50 hover:bg-muted/80 transition-colors"
-                            >
-                              <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
-                                <p className="mb-2 text-sm text-muted-foreground">
-                                  <span className="font-semibold">Click para subir</span> o arrastra
-                                  el archivo
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  PNG, JPG, JPEG, WEBP (máx. 5MB)
-                                </p>
-                              </div>
-                              <input
-                                id="signature-upload"
-                                type="file"
-                                className="hidden"
-                                accept={ACCEPTED_IMAGE_TYPES.join(',')}
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  handleFileChange(file, 'signature', onChange);
-                                }}
-                                {...field}
-                              />
-                            </label>
-                          </div>
-
-                          {signaturePreview && (
-                            <div className="relative">
-                              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                                <FileImage className="w-8 h-8 text-primary" />
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium truncate">{value?.name}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {value?.size
-                                      ? (value.size / 1024 / 1024).toFixed(2) + ' MB'
-                                      : ''}
-                                  </p>
-                                </div>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => removeFile('signature')}
-                                  className="h-8 w-8"
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                              <div className="mt-2">
-                                <img
-                                  src={signaturePreview}
-                                  alt="Signature preview"
-                                  className="w-full h-32 object-contain bg-white rounded border"
-                                />
-                              </div>
-                            </div>
-                          )}
-                        </div>
+                        {renderImageContainer(
+                          'signature',
+                          'Firma del Firmante',
+                          existingSignatureUrl,
+                          signaturePreview,
+                          value,
+                          onChange,
+                          false,
+                        )}
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -501,34 +548,46 @@ function CertificateUploadContent() {
                 />
               </div>
 
-              {/* Submit Button */}
-              <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t">
-                <Button
-                  type="submit"
-                  disabled={uploadCertificateInfoMutation.isPending || !isFormValid()}
-                  className="sm:ml-auto"
-                >
-                  {uploadCertificateInfoMutation.isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Subiendo...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4 mr-2" />
-                      Guardar Información
-                    </>
-                  )}
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  asChild
-                  disabled={uploadCertificateInfoMutation.isPending}
-                >
-                  <Link href="/dashboard/organizations/">Cancelar</Link>
-                </Button>
-              </div>
+              {isEditMode && (
+                <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t">
+                  <Button
+                    type="submit"
+                    disabled={uploadCertificateInfoMutation.isPending || !isFormValid()}
+                    className="sm:ml-auto"
+                  >
+                    {uploadCertificateInfoMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Guardando...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" />
+                        Guardar Cambios
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => {
+                      setIsEditMode(false);
+                      setLogoPreview(null);
+                      setSignaturePreview(null);
+                      form.reset();
+                      if (organizationData?.signerFullName) {
+                        form.setValue('signerFullName', organizationData.signerFullName);
+                      }
+                      if (organizationData?.signerTitle) {
+                        form.setValue('signerTitle', organizationData.signerTitle);
+                      }
+                    }}
+                    disabled={uploadCertificateInfoMutation.isPending}
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              )}
             </form>
           </Form>
         </CardContent>
@@ -537,7 +596,6 @@ function CertificateUploadContent() {
   );
 }
 
-// Loading skeleton component
 function CertificateUploadSkeleton() {
   return (
     <div className="container mx-auto p-4 md:p-6 max-w-4xl">

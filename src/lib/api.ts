@@ -12,6 +12,10 @@ export interface Organization {
   organizationSize: 'SMALL' | 'LARGE';
   sector: string;
   topicsOfInterest: string[];
+  logoUrl: string;
+  signerFullName: string;
+  signerTitle: string;
+  signerSignatureUrl: string;
   // Campos opcionales agregados para el formulario
   maximumNumberOfInterns?: number;
   placeOfResidenceFilter?: string[];
