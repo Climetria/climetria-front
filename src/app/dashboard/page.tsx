@@ -51,7 +51,7 @@ export default function DashboardPage() {
 
       try {
         setLoading(true);
-        const data = await apiService.getDashboardMetrics(activeCourse.id);
+        const data = await apiService.getDashboardMetricsWithinCourse(activeCourse.id);
         setMetrics(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error al cargar las métricas');

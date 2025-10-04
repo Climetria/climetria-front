@@ -341,9 +341,14 @@ class ApiService {
   }
 
   // Metrics
-  async getDashboardMetrics(courseId: string): Promise<DashboardMetrics> {
+  async getDashboardMetricsWithinCourse(courseId: string): Promise<DashboardMetrics> {
     return this.fetchWithErrorHandling(`/metrics/summary/${courseId}`);
   }
+
+  async getDashboardGlobalMetrics(): Promise<DashboardMetrics> {
+    return this.fetchWithErrorHandling(`/metrics/summary`);
+  }
+
   // Courses
   async getAllCourses(): Promise<Course[]> {
     return this.fetchWithErrorHandling('/courses');

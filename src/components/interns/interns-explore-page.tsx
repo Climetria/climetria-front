@@ -270,6 +270,17 @@ export default function InternsExplorePage({ mode }: InternsExplorePageProps) {
       </>
     ) : null;
 
+  // Scroll to top of list when page changes
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    setTimeout(() => {
+      const el = document.getElementById('interns-list-top');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 0);
+  };
+
   return (
     <div className="container mx-auto p-6">
       <div className="flex items-center gap-4 mb-6">
@@ -295,6 +306,7 @@ export default function InternsExplorePage({ mode }: InternsExplorePageProps) {
         </Alert>
       )}
 
+      <div id="interns-list-top" />
       <Card>
         <CardHeader>
           <CardTitle>Lista de Pasantes</CardTitle>
@@ -453,7 +465,7 @@ export default function InternsExplorePage({ mode }: InternsExplorePageProps) {
           totalPages={totalPages}
           itemsPerPage={itemsPerPage}
           totalItems={totalItems}
-          onPageChange={setCurrentPage}
+          onPageChange={handlePageChange}
           onItemsPerPageChange={setItemsPerPage}
           startIndex={startIndex}
           endIndex={endIndex}
