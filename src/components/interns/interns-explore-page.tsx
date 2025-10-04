@@ -29,7 +29,6 @@ import {
   Globe,
   IdCard,
   AlertCircle,
-  Loader2,
   University,
   Mail,
   Phone,
@@ -67,6 +66,7 @@ import {
   getTopicLabel,
 } from '@/lib/helper-functions';
 import { DeleteConfirmationModal } from '@/components/delete-confirmation-modal';
+import { InternsSkeleton } from '@/components/skeletons/interns-skeleton';
 
 const internFilterFn = (intern: Intern, searchTerm: string) => {
   const matchesSearch =
@@ -312,10 +312,7 @@ export default function InternsExplorePage({ mode }: InternsExplorePageProps) {
           <CardTitle>Lista de Pasantes</CardTitle>
           <CardDescription>
             {isLoading ? (
-              <div className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Cargando pasantes...
-              </div>
+              <span className="text-muted-foreground">Cargando pasantes...</span>
             ) : (
               <>
                 Mostrando {startIndex + 1}-{Math.min(endIndex, totalItems)} de {totalItems} pasante
@@ -326,9 +323,7 @@ export default function InternsExplorePage({ mode }: InternsExplorePageProps) {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin" />
-            </div>
+            <InternsSkeleton isMobile={isMobile} />
           ) : paginatedInterns.length === 0 ? (
             <div className="text-center py-8">
               <UserPlus className="h-12 w-12 mx-auto text-muted-foreground mb-4" />

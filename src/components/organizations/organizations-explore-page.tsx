@@ -1,5 +1,6 @@
 'use client';
 
+import { OrganizationsSkeleton } from '@/components/skeletons/organizations-skeleton';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -37,7 +38,6 @@ import {
   Mail,
   User,
   Building,
-  Loader2,
   AlertCircle,
   Users,
   GraduationCap,
@@ -769,9 +769,7 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
           <CardTitle>Lista de organizaciones</CardTitle>
           <CardDescription>
             {isLoading ? (
-              <div className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" /> Cargando organizaciones...
-              </div>
+              <span className="text-muted-foreground">Cargando organizaciones...</span>
             ) : (
               <>
                 Mostrando {pagination.startIndex + 1}-
@@ -785,9 +783,7 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin" />
-            </div>
+            <OrganizationsSkeleton isMobile={isMobile} />
           ) : paginatedData.length === 0 ? (
             <div className="text-center py-8">
               <Building2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />

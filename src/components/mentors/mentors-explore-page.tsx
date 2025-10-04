@@ -1,4 +1,5 @@
 'use client';
+import { MentorsSkeleton } from '@/components/skeletons/mentors-skeleton';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -27,7 +28,6 @@ import {
   Globe,
   IdCard,
   AlertCircle,
-  Loader2,
   UserPlus,
   Mail,
   Phone,
@@ -240,10 +240,7 @@ export default function MentorsExplorePage({ mode }: MentorsExplorePageProps) {
           <CardTitle>Lista de Mentores</CardTitle>
           <CardDescription>
             {isLoading ? (
-              <div className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Cargando mentores...
-              </div>
+              <span className="text-muted-foreground">Cargando mentores...</span>
             ) : (
               <>
                 Mostrando {startIndex + 1}-{Math.min(endIndex, totalItems)} de {totalItems} mentor
@@ -254,9 +251,7 @@ export default function MentorsExplorePage({ mode }: MentorsExplorePageProps) {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin" />
-            </div>
+            <MentorsSkeleton isMobile={isMobile} />
           ) : paginatedMentors.length === 0 ? (
             <div className="text-center py-8">
               <UserPlus className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
