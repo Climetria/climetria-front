@@ -62,7 +62,9 @@ export interface Intern {
   country: string;
   peruDepartment: string;
   topicsOfInterest: string[];
-  courseId: string;
+  courseId?: string; // Keep for backward compatibility
+  courseIds?: string[]; // Updated to match actual API response
+  courseStatus?: string;
   createdAt: string;
   updatedAt: string;
   organizationStatus: string;

@@ -281,7 +281,14 @@ export default function MentorInternshipEvaluation() {
           });
 
           if (associatedIntern) {
-            const courseName = courseMap.get(associatedIntern.courseId) || 'Curso desconocido';
+            // Handle courseIds as array - take the first course if available
+            const courseId =
+              associatedIntern.courseIds && associatedIntern.courseIds.length > 0
+                ? associatedIntern.courseIds[0]
+                : associatedIntern.courseId; // Fallback to singular courseId for backward compatibility
+            const courseName = courseId
+              ? courseMap.get(courseId) || 'Curso desconocido'
+              : 'Sin curso asignado';
             const studentData = convertApiDataToComponent(associatedIntern, grade, courseName);
             studentsWithGrades.push(studentData);
           }

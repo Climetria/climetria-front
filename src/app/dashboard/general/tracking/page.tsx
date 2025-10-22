@@ -1,4 +1,3 @@
- 
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -131,14 +130,21 @@ export default function GlobalInternshipTracking() {
       setLoading(true);
 
       // Get all data globally
-      const [interns, grades, courses] = await Promise.all([
+      const [interns, grades, courses, mentors] = await Promise.all([
         apiService.getAllInterns(),
         apiService.getInternGradeGlobally(),
         apiService.getAllCourses(),
+        apiService.getAllMentors(),
       ]);
 
       // Create maps for quick lookup
       const courseMap = new Map(courses.map((course) => [course.id, course.name]));
+      const mentorMap = new Map(
+        mentors.map((mentor) => [
+          mentor.id,
+          `${mentor.firstNames} ${mentor.lastNameFather} ${mentor.lastNameMother}`.trim(),
+        ]),
+      );
       const gradeMap = new Map(
         Array.isArray(grades) ? grades.map((grade) => [grade.internId, grade]) : [],
       );
@@ -146,9 +152,16 @@ export default function GlobalInternshipTracking() {
       // Convert to student data format
       const studentsWithGrades = interns.map((intern) => {
         const grade = gradeMap.get(intern.id);
-        const courseName = courseMap.get(intern.courseId) || 'Curso desconocido';
-        // TODO: Add mentor name mapping if available in the API
-        const mentorName = grade?.mentorId || 'Sin asignar';
+        // Handle courseIds as array - take the first course if available
+        const courseId =
+          intern.courseIds && intern.courseIds.length > 0 ? intern.courseIds[0] : intern.courseId; // Fallback to singular courseId for backward compatibility
+        const courseName = courseId
+          ? courseMap.get(courseId) || 'Curso desconocido'
+          : 'Sin curso asignado';
+        // Map mentor ID to mentor name
+        const mentorName = grade?.mentorId
+          ? mentorMap.get(grade.mentorId) || 'Mentor desconocido'
+          : 'Sin asignar';
 
         return convertApiDataToComponent(intern, grade, courseName, mentorName);
       });

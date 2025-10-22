@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -67,8 +67,9 @@ import {
 } from '@/lib/helper-functions';
 import { DeleteConfirmationModal } from '@/components/delete-confirmation-modal';
 import { InternsSkeleton } from '@/components/skeletons/interns-skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
-const internFilterFn = (intern: Intern, searchTerm: string) => {
+const internFilterFn = (intern: Intern, searchTerm: string, filters: Record<string, string>) => {
   const matchesSearch =
     intern.firstNames.toLowerCase().includes(searchTerm.toLowerCase()) ||
     intern.lastNameFather.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -76,7 +77,16 @@ const internFilterFn = (intern: Intern, searchTerm: string) => {
     intern.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     intern.universityName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     intern.country.toLowerCase().includes(searchTerm.toLowerCase());
-  return matchesSearch;
+
+  const matchesCourse =
+    !filters.course ||
+    filters.course === 'all' ||
+    (intern.courseIds && intern.courseIds.includes(filters.course)) ||
+    intern.courseId === filters.course; // Fallback for backward compatibility
+
+  const matchesMajor =
+    !filters.major || filters.major === 'all' || intern.majorInProgress === filters.major;
+  return matchesSearch && matchesCourse && matchesMajor;
 };
 
 interface InternsExplorePageProps {
@@ -85,10 +95,13 @@ interface InternsExplorePageProps {
 
 export default function InternsExplorePage({ mode }: InternsExplorePageProps) {
   const { activeCourse } = useCourse();
+  const [selectedCourse, setSelectedCourse] = useState('all');
+  const [selectedMajor, setSelectedMajor] = useState('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedIntern, setSelectedIntern] = useState<Intern | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState<boolean>(false);
   const [interns, setInterns] = useState<Intern[]>([]);
+  const [courses, setCourses] = useState<{ id: string; name: string }[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -98,6 +111,12 @@ export default function InternsExplorePage({ mode }: InternsExplorePageProps) {
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
   const isMobile = useIsMobile();
+
+  // Extract unique majors from interns
+  const uniqueMajors = useMemo(() => {
+    const majors = [...new Set(interns.map((intern) => intern.majorInProgress))];
+    return majors.filter((major) => major && major.trim() !== '').sort();
+  }, [interns]);
 
   // Use filtered pagination hook
   const {
@@ -114,6 +133,7 @@ export default function InternsExplorePage({ mode }: InternsExplorePageProps) {
     data: interns,
     itemsPerPage: 10,
     searchTerm,
+    filters: { course: selectedCourse, major: selectedMajor },
     filterFn: internFilterFn,
   });
 
@@ -148,7 +168,7 @@ export default function InternsExplorePage({ mode }: InternsExplorePageProps) {
   const currentConfig = config[mode];
 
   useEffect(() => {
-    const fetchInterns = async () => {
+    const fetchData = async () => {
       if (currentConfig.requiresCourse && !activeCourse) {
         setInterns([]);
         setIsLoading(false);
@@ -158,18 +178,35 @@ export default function InternsExplorePage({ mode }: InternsExplorePageProps) {
       try {
         setIsLoading(true);
         setError(null);
+        // Fetch interns
         const internsData = await currentConfig.fetchInterns();
+        console.log(
+          'Interns loaded:',
+          internsData.length,
+          'Sample courseId:',
+          internsData[0]?.courseId,
+        );
         setInterns(internsData);
+
+        // Fetch courses only for general mode
+        if (mode === 'general') {
+          const coursesData = await apiService.getAllCourses();
+          console.log(
+            'Courses loaded:',
+            coursesData.map((c) => ({ id: c.id, name: c.name })),
+          );
+          setCourses(coursesData.map((c) => ({ id: c.id, name: c.name })));
+        }
       } catch (err) {
-        console.error('Error fetching interns:', err);
-        setError('Error al cargar los pasantes. Por favor, intenta nuevamente.');
+        console.error('Error fetching data:', err);
+        setError('Error al cargar los datos. Por favor, intenta nuevamente.');
         setInterns([]);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchInterns();
+    fetchData();
   }, [activeCourse, mode]);
 
   const handleViewDetail = (intern: Intern) => {
@@ -268,7 +305,36 @@ export default function InternsExplorePage({ mode }: InternsExplorePageProps) {
           </Link>
         </Button>
       </>
-    ) : null;
+    ) : (
+      <>
+        <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Filtrar por curso" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos los cursos</SelectItem>
+            {courses.map((course) => (
+              <SelectItem key={course.id} value={course.id}>
+                {course.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={selectedMajor} onValueChange={setSelectedMajor}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Filtrar por carrera" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas las carreras</SelectItem>
+            {uniqueMajors.map((major) => (
+              <SelectItem key={major} value={major}>
+                {getMajorLabel(major)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </>
+    );
 
   // Scroll to top of list when page changes
   const handlePageChange = (page: number) => {
