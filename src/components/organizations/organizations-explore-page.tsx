@@ -555,12 +555,44 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
     if (!activeCourse || mode !== 'course') return;
 
     try {
-      console.log('Uploading organizations file:', file.name);
-      toast.success('Organizaciones cargadas exitosamente');
-      const organizationsData = await apiService.getAllOrganizationsWithinCourse(activeCourse.id);
-      setOrganizationsWithFilter(organizationsData);
-      setAllOrganizationsCache(organizationsData);
+      const response = await apiService.uploadOrganizationsBatchWithinCourse(activeCourse.id, file);
+
+      if (!response) {
+        toast.error('No se recibió respuesta del servidor.');
+        return;
+      }
+
+      const successCount = response.successes?.length || 0;
+      const failureCount = response.failures?.length || 0;
+
+      if (successCount > 0) {
+        const createdCount = response.successes.filter((s) => s.status === 'created').length;
+        const associatedCount = response.successes.filter((s) => s.status === 'associated').length;
+
+        if (createdCount > 0 && associatedCount > 0) {
+          toast.success(
+            `${createdCount} organizaciones creadas y ${associatedCount} asociadas con éxito.`,
+          );
+        } else if (createdCount > 0) {
+          toast.success(`${createdCount} organizaciones creadas con éxito.`);
+        } else {
+          toast.success(`${associatedCount} organizaciones asociadas con éxito.`);
+        }
+
+        const organizationsData = await apiService.getAllOrganizationsWithinCourse(activeCourse.id);
+        setOrganizationsWithFilter(organizationsData);
+        setAllOrganizationsCache(organizationsData);
+      }
+
+      if (failureCount > 0) {
+        toast.warning(`${failureCount} filas con errores no fueron importadas.`);
+      }
+
+      if (successCount === 0 && failureCount === 0) {
+        toast.info('No se procesaron registros.');
+      }
     } catch (error) {
+      console.error('Error uploading organizations:', error);
       toast.error('Error al subir el archivo.');
       throw error;
     }
@@ -667,13 +699,11 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
     <>
       {currentConfig.showBulkUpload && (
         <BulkUploadDialog
-          title="Carga masiva de Organizaciones"
-          description="Sube un archivo CSV con los datos de las organizaciones"
+          title="Carga Masiva de Organizaciones"
+          description="Sube un archivo CSV con los datos de las organizaciones para registrarlas masivamente en el curso."
           acceptedFileTypes=".csv"
           triggerText="Carga Masiva"
           columns={[
-            'ruc',
-            'topicsOfInterest',
             'ruc',
             'correo',
             'nombre_contacto',
@@ -684,12 +714,13 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
             'sector',
             'temas_interes',
             'max_internos',
-            'departamentos_residencia',
+            'departamentos_de_residencia',
             'carreras',
             'genero_preferido',
             'requisitos_extra',
           ]}
           onUpload={handleBulkUpload}
+          showDetailedHelp={true}
         />
       )}
       {currentConfig.showCreateButton && (

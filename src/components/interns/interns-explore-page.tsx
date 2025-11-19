@@ -243,15 +243,42 @@ export default function InternsExplorePage({ mode }: InternsExplorePageProps) {
 
     try {
       const response = await currentConfig.uploadBatch(file);
-      if (response.validInterns.length > 0) {
-        toast.success(`${response.validInterns.length} pasantes registrados con éxito.`);
+
+      if (!response) {
+        toast.error('No se recibió respuesta del servidor.');
+        return;
+      }
+
+      const successCount = response.successes?.length || 0;
+      const failureCount = response.failures?.length || 0;
+
+      if (successCount > 0) {
+        const createdCount = response.successes.filter((s) => s.status === 'created').length;
+        const associatedCount = response.successes.filter((s) => s.status === 'associated').length;
+
+        if (createdCount > 0 && associatedCount > 0) {
+          toast.success(
+            `${createdCount} pasantes creados y ${associatedCount} asociados con éxito.`,
+          );
+        } else if (createdCount > 0) {
+          toast.success(`${createdCount} pasantes creados con éxito.`);
+        } else {
+          toast.success(`${associatedCount} pasantes asociados con éxito.`);
+        }
+
         const internsData = await currentConfig.refreshInterns();
         setInterns(internsData);
       }
-      if (response.invalidRows.length > 0) {
-        toast.warning(`${response.invalidRows.length} filas con errores no fueron importadas.`);
+
+      if (failureCount > 0) {
+        toast.warning(`${failureCount} filas con errores no fueron importadas.`);
+      }
+
+      if (successCount === 0 && failureCount === 0) {
+        toast.info('No se procesaron registros.');
       }
     } catch (error) {
+      console.error('Error uploading interns:', error);
       toast.error('Error al subir el archivo.');
       throw error;
     }
@@ -275,7 +302,7 @@ export default function InternsExplorePage({ mode }: InternsExplorePageProps) {
       <>
         <BulkUploadDialog
           title="Carga Masiva de Pasantes"
-          description="Sube un archivo CSV con los datos de los pasantes"
+          description="Sube un archivo CSV con los datos de los pasantes para registrarlos masivamente en el curso."
           acceptedFileTypes=".csv"
           triggerText="Carga Masiva"
           columns={[
@@ -297,6 +324,7 @@ export default function InternsExplorePage({ mode }: InternsExplorePageProps) {
             'departamento',
           ]}
           onUpload={handleBulkUpload}
+          showDetailedHelp={true}
         />
         <Button asChild className="w-full sm:w-auto">
           <Link href={currentConfig.createUrl}>

@@ -463,7 +463,6 @@ export default function InternshipEvaluation() {
   );
 
   // Fetch data from API
-  // ...existing code...
 
   const fetchData = useCallback(async () => {
     if (!activeCourse?.id) return;

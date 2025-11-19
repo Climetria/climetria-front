@@ -1,4 +1,5 @@
 import type { CsvUploadInternResponseDto } from '@/interfaces/csvUploadIntern-response.dto';
+import type { CsvUploadOrganizationResponseDto } from '@/interfaces/csvUploadOrganization-response.dto';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 export interface Organization {
@@ -596,7 +597,31 @@ class ApiService {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch(`${API_BASE_URL}/courses/${courseId}/interns/batch`, {
+    const response = await fetch(`${API_BASE_URL}/courses/${courseId}/interns/batch-upload`, {
+      method: 'POST',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorBody}`);
+    }
+
+    return response.json();
+  }
+
+  async uploadOrganizationsBatchWithinCourse(
+    courseId: string,
+    file: File,
+  ): Promise<CsvUploadOrganizationResponseDto> {
+    const token = getCookieValue('accessToken');
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_BASE_URL}/courses/${courseId}/organizations/batch-upload`, {
       method: 'POST',
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
