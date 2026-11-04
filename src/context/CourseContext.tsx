@@ -29,6 +29,8 @@ interface CourseContextType {
   courses: Course[];
   isLoading: boolean;
   isFetching: boolean;
+  // true cuando la lista de cursos ya llegó del backend al menos una vez
+  isFetched: boolean;
   error: Error | null;
   refetch: () => void;
   isInitialized: boolean;
@@ -121,6 +123,7 @@ export function CourseProvider({ children }: CourseProviderProps) {
     data: courses = [],
     isLoading,
     isFetching,
+    isFetched,
     error,
     refetch,
   } = useQuery({
@@ -221,6 +224,7 @@ export function CourseProvider({ children }: CourseProviderProps) {
     courses,
     isLoading,
     isFetching,
+    isFetched,
     error: error as Error | null,
     refetch: refreshCourses,
     isInitialized,

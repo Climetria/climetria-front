@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
@@ -106,7 +108,7 @@ function ChartCard({
 }
 
 export default function DashboardPage() {
-  const { activeCourse } = useCourse();
+  const { activeCourse, courses, isFetched: coursesFetched } = useCourse();
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -128,6 +130,26 @@ export default function DashboardPage() {
 
     fetchMetrics();
   }, [activeCourse?.id]);
+
+  // Sin cursos no hay métricas que pedir: sin esto el esqueleto de carga se queda para siempre
+  if (coursesFetched && courses.length === 0) {
+    return (
+      <Card>
+        <CardContent className="flex h-64 flex-col items-center justify-center gap-3 text-center">
+          <Calendar className="h-8 w-8 text-muted-foreground" />
+          <div>
+            <p className="font-medium">Aún no hay cursos</p>
+            <p className="text-sm text-muted-foreground">
+              Crea el primer curso para empezar a registrar organizaciones, mentores y pasantes.
+            </p>
+          </div>
+          <Button asChild>
+            <Link href="/dashboard/courses/create">Crear curso</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (loading) {
     return <DashboardSkeleton />;
