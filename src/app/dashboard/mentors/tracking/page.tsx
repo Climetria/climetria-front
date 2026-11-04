@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
+import { decodeJWT } from '@/utils/jwt';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,24 +39,6 @@ import { toast } from 'sonner';
 import { apiService, type Intern, type Grade, type Attendance } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 
-// JWT decode function
-function decodeJWT(token: string) {
-  try {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join(''),
-    );
-    return JSON.parse(jsonPayload);
-  } catch (error) {
-    console.error('Error decoding JWT:', error);
-    return null;
-  }
-}
-
 // Function to get access token
 function getAccessToken(): string | null {
   // Try localStorage first
@@ -76,8 +59,8 @@ function getAccessToken(): string | null {
   return null;
 }
 
-// Function to get mentor username from JWT
-function getMentorUsername(): string | null {
+// El mentor se identifica por el id de Supabase Auth (sub del token), guardado en Mentor.authUserId
+function getMentorAuthUserId(): string | null {
   const token = getAccessToken();
   if (!token) {
     console.error('No access token found');
@@ -90,7 +73,7 @@ function getMentorUsername(): string | null {
     return null;
   }
 
-  return decoded.username || null;
+  return decoded.sub || null;
 }
 
 // Types for the evaluation data
@@ -240,18 +223,18 @@ export default function MentorInternshipEvaluation() {
       setLoading(true);
 
       // Get mentor username from JWT
-      const mentorUsername = getMentorUsername();
-      if (!mentorUsername) {
+      const mentorAuthUserId = getMentorAuthUserId();
+      if (!mentorAuthUserId) {
         toast.error(
           'No se pudo obtener la información del mentor. Por favor, inicia sesión nuevamente.',
         );
         return;
       }
 
-      console.log('Fetching grades for mentor:', mentorUsername);
+      console.log('Fetching grades for mentor:', mentorAuthUserId);
 
       // Get mentor grades using the new endpoint
-      const mentorGrades = await apiService.getInternGradeForMentor(mentorUsername);
+      const mentorGrades = await apiService.getInternGradeForMentor(mentorAuthUserId);
       console.log('Mentor grades received:', mentorGrades);
 
       // Get all interns and courses for mapping

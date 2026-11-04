@@ -9,6 +9,7 @@ import React, {
   useCallback,
 } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { TOKEN_CHANGED_EVENT } from '@/utils/setAuthCookie';
 
 interface Course {
   id: string;
@@ -167,8 +168,12 @@ export function CourseProvider({ children }: CourseProviderProps) {
 
     // Verificar cambios periódicamente (pero menos frecuente)
     const interval = setInterval(checkToken, 5000); // Cada 5 segundos
+    window.addEventListener(TOKEN_CHANGED_EVENT, checkToken);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener(TOKEN_CHANGED_EVENT, checkToken);
+    };
   }, [token]);
 
   // Efecto para inicialización y manejo de curso activo

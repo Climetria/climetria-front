@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
-import { AwsAuthProvider } from '@/components/AwsAuthProvider';
+import { SupabaseAuthProvider } from '@/components/SupabaseAuthProvider';
 import './globals.css';
-import '@aws-amplify/ui-react/styles.css';
 import { CourseProvider } from '@/context/CourseContext';
 import { Toaster } from '@/components/ui/sonner';
 import { UserProvider } from '@/context/UserContext';
@@ -29,17 +28,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="es">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ReactQueryProvider>
-          <AwsAuthProvider>
+          <SupabaseAuthProvider>
             <CourseProvider>
               <UserProvider>
                 <Toaster />
                 {children}
               </UserProvider>
             </CourseProvider>
-          </AwsAuthProvider>
+          </SupabaseAuthProvider>
         </ReactQueryProvider>
       </body>
     </html>

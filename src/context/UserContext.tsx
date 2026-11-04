@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
 type UserData = {
   username?: string;
@@ -14,8 +14,29 @@ type UserContextType = {
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
+// Se guarda en localStorage para que el nombre no se pierda al recargar la página
+const STORAGE_KEY = 'user';
+
 export const UserProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<UserData | null>(null);
+  const [user, setUserState] = useState<UserData | null>(null);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) setUserState(JSON.parse(stored));
+    } catch {
+      // localStorage no disponible: se queda sin usuario guardado
+    }
+  }, []);
+
+  const setUser = (next: UserData) => {
+    setUserState(next);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    } catch {
+      // localStorage no disponible
+    }
+  };
 
   return <UserContext.Provider value={{ user, setUser }}>{children}</UserContext.Provider>;
 };

@@ -805,7 +805,7 @@ export default function OrganizationsExplorePage({ mode }: OrganizationsExploreP
               <>
                 Mostrando {pagination.startIndex + 1}-
                 {Math.min(pagination.endIndex, pagination.totalItems)} de {pagination.totalItems}{' '}
-                organización{pagination.totalItems !== 1 ? 'es' : ''}.{' '}
+                {pagination.totalItems === 1 ? 'organización' : 'organizaciones'}.{' '}
                 {currentConfig.showAssignments &&
                   'Haz clic en los estados para gestionar asignaciones.'}
               </>

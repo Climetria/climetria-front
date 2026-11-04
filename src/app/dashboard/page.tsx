@@ -15,8 +15,8 @@ import {
   Building2,
   Star,
 } from 'lucide-react';
-import { Bar, BarChart, XAxis, YAxis, CartesianGrid, Cell } from 'recharts';
-import { apiService, type DashboardMetrics } from '@/lib/api';
+import { Bar, BarChart, XAxis, YAxis, CartesianGrid, LabelList } from 'recharts';
+import { apiService, type CourseMetric, type DashboardMetrics } from '@/lib/api';
 import { useCourse } from '@/context/CourseContext';
 import { DashboardSkeleton } from '@/components/skeletons/dashboard-skeleton';
 import { ChartLegend, ChartLegendContent } from '@/components/ui/chart';
@@ -24,20 +24,86 @@ import { ChartLegend, ChartLegendContent } from '@/components/ui/chart';
 const chartConfig = {
   value: {
     label: 'Cantidad',
-    color: '#90EE90',
+    color: 'var(--primary)',
   },
   internsWithOrg: {
     label: 'Alumnos con Organización',
-    color: '#90EE90',
+    color: 'var(--primary)',
   },
   organizationsWithTeam: {
     label: 'Organizaciones con Equipo',
-    color: '#228B22',
+    color: '#7fb98f',
   },
 };
 
-// Green color progression for multiple bars in the same chart
-const greenColors = ['#90EE90', '#32CD32', '#228B22', '#006400', '#004d00'];
+// Altura según la cantidad de cursos, para que las barras no se estiren
+const chartHeight = (rows: number) => Math.max(rows, 1) * 56 + 24;
+
+// Las fechas de curso son @db.Date (medianoche UTC): formatear en UTC evita que salgan un día antes
+const formatCourseDate = (date: string) =>
+  new Date(date).toLocaleDateString('es-PE', { timeZone: 'UTC' });
+
+function EmptyChart() {
+  return (
+    <div className="flex h-24 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
+      Aún no hay datos
+    </div>
+  );
+}
+
+function CourseBarChart({ data }: { data: CourseMetric[] }) {
+  const rows = data.map((item) => ({ ...item, value: Number(item.value) }));
+  if (rows.length === 0 || rows.every((row) => row.value === 0)) return <EmptyChart />;
+
+  return (
+    <ChartContainer
+      config={chartConfig}
+      className="aspect-auto w-full"
+      style={{ height: chartHeight(rows.length) }}
+    >
+      <BarChart accessibilityLayer data={rows} layout="vertical" margin={{ left: 0, right: 32 }}>
+        <YAxis
+          dataKey="courseName"
+          type="category"
+          tickLine={false}
+          tickMargin={10}
+          axisLine={false}
+          width={140}
+        />
+        <XAxis dataKey="value" type="number" hide allowDecimals={false} />
+        <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+        <Bar dataKey="value" fill="var(--color-value)" radius={4} maxBarSize={28}>
+          <LabelList dataKey="value" position="right" className="fill-foreground" fontSize={12} />
+        </Bar>
+      </BarChart>
+    </ChartContainer>
+  );
+}
+
+function ChartCard({
+  icon: Icon,
+  title,
+  description,
+  children,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Icon className="h-5 w-5" />
+          {title}
+        </CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent>{children}</CardContent>
+    </Card>
+  );
+}
 
 export default function DashboardPage() {
   const { activeCourse } = useCourse();
@@ -137,17 +203,17 @@ export default function DashboardPage() {
                   key={intern.internId}
                   className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors duration-200"
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex min-w-0 items-center gap-4">
                     <div
-                      className={`flex items-center justify-center w-8 h-8 rounded-full font-bold text-white ${
+                      className={`flex shrink-0 items-center justify-center w-8 h-8 rounded-full font-bold text-white ${
                         index === 0 ? 'bg-yellow-500' : index === 1 ? 'bg-gray-400' : 'bg-amber-600'
                       }`}
                     >
                       {index + 1}
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <p className="font-medium">{intern.fullName}</p>
-                      <div className="flex items-center gap-2 mt-1">
+                      <div className="flex flex-wrap items-center gap-2 mt-1">
                         {intern.recommended && (
                           <Badge variant="secondary" className="text-xs">
                             <Star className="h-3 w-3 mr-1" />
@@ -163,7 +229,7 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="shrink-0 pl-4 text-right">
                     <p className="text-2xl font-bold text-primary">{intern.totalNote}</p>
                     <p className="text-xs text-muted-foreground">Puntos</p>
                   </div>
@@ -189,15 +255,11 @@ export default function DashboardPage() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Inicio:</span>
-                    <span className="font-medium">
-                      {new Date(course.startDate).toLocaleDateString('es-ES')}
-                    </span>
+                    <span className="font-medium">{formatCourseDate(course.startDate)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Fin:</span>
-                    <span className="font-medium">
-                      {new Date(course.endDate).toLocaleDateString('es-ES')}
-                    </span>
+                    <span className="font-medium">{formatCourseDate(course.endDate)}</span>
                   </div>
                 </div>
                 <Separator />
@@ -214,265 +276,65 @@ export default function DashboardPage() {
 
       {/* Charts Grid */}
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Students Per Course */}
-        <Card className="transition-all duration-200 hover:shadow-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Alumnos por Curso
-            </CardTitle>
-            <CardDescription>Distribución de estudiantes por eje temático</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {(() => {
-              const parsedStudents = metrics.studentsPerCourse.map((item, index) => ({
-                ...item,
-                value: Number(item.value),
-                fill: greenColors[index % greenColors.length],
-              }));
+        <ChartCard
+          icon={Users}
+          title="Alumnos por Curso"
+          description="Alumnos inscritos en cada curso"
+        >
+          <CourseBarChart data={metrics.studentsPerCourse} />
+        </ChartCard>
 
-              return (
-                <ChartContainer config={chartConfig} className="h-64">
-                  <BarChart
-                    accessibilityLayer
-                    data={parsedStudents}
-                    layout="vertical"
-                    margin={{ left: 0 }}
-                  >
-                    <YAxis
-                      dataKey="courseName"
-                      type="category"
-                      tickLine={false}
-                      tickMargin={10}
-                      axisLine={false}
-                      width={120}
-                    />
-                    <XAxis dataKey="value" type="number" hide />
-                    <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                    <Bar dataKey="value" radius={5}>
-                      {parsedStudents.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ChartContainer>
-              );
-            })()}
-          </CardContent>
-        </Card>
+        <ChartCard
+          icon={FileText}
+          title="Informes Finales Entregados"
+          description="Alumnos que completaron su informe final por curso"
+        >
+          <CourseBarChart data={metrics.finalReportsPerCourse} />
+        </ChartCard>
 
-        {/* Final Reports */}
-        <Card className="transition-all duration-200 hover:shadow-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Informes Finales Entregados
-            </CardTitle>
-            <CardDescription>Alumnos que completaron su informe final por curso</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {(() => {
-              const parsedReports = metrics.finalReportsPerCourse.map((item, index) => ({
-                ...item,
-                value: Number(item.value),
-                fill: greenColors[index % greenColors.length],
-              }));
+        <ChartCard
+          icon={MessageSquare}
+          title="Charlas de Resultados"
+          description="Alumnos que realizaron su charla de resultados por curso"
+        >
+          <CourseBarChart data={metrics.talksPerCourse} />
+        </ChartCard>
 
-              return (
-                <ChartContainer config={chartConfig} className="h-64">
-                  <BarChart
-                    accessibilityLayer
-                    data={parsedReports}
-                    layout="vertical"
-                    margin={{ left: 0 }}
-                  >
-                    <YAxis
-                      dataKey="courseName"
-                      type="category"
-                      tickLine={false}
-                      tickMargin={10}
-                      axisLine={false}
-                      width={120}
-                    />
-                    <XAxis dataKey="value" type="number" hide />
-                    <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                    <Bar dataKey="value" radius={5}>
-                      {parsedReports.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ChartContainer>
-              );
-            })()}
-          </CardContent>
-        </Card>
+        <ChartCard
+          icon={CheckCircle}
+          title="Alumnos Completamente Evaluados"
+          description="Alumnos con todas sus calificaciones completas por curso"
+        >
+          <CourseBarChart data={metrics.fullyEvaluatedPerCourse} />
+        </ChartCard>
 
-        {/* Talks */}
-        <Card className="transition-all duration-200 hover:shadow-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MessageSquare className="h-5 w-5" />
-              Charlas de Resultados
-            </CardTitle>
-            <CardDescription>
-              Alumnos que realizaron su charla de resultados por curso
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {(() => {
-              const parsedTalks = metrics.talksPerCourse.map((item, index) => ({
-                ...item,
-                value: Number(item.value),
-                fill: greenColors[index % greenColors.length],
-              }));
+        <ChartCard
+          icon={Award}
+          title="Certificados Entregados"
+          description="Alumnos que recibieron sus certificados por curso"
+        >
+          <CourseBarChart data={metrics.certificatesPerCourse} />
+        </ChartCard>
 
-              return (
-                <ChartContainer config={chartConfig} className="h-64">
-                  <BarChart
-                    accessibilityLayer
-                    data={parsedTalks}
-                    layout="vertical"
-                    margin={{ left: 0 }}
-                  >
-                    <YAxis
-                      dataKey="courseName"
-                      type="category"
-                      tickLine={false}
-                      tickMargin={10}
-                      axisLine={false}
-                      width={120}
-                    />
-                    <XAxis dataKey="value" type="number" hide />
-                    <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                    <Bar dataKey="value" radius={5}>
-                      {parsedTalks.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ChartContainer>
-              );
-            })()}
-          </CardContent>
-        </Card>
-
-        {/* Fully Evaluated */}
-        <Card className="transition-all duration-200 hover:shadow-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5" />
-              Alumnos Completamente Evaluados
-            </CardTitle>
-            <CardDescription>
-              Estudiantes con todas sus calificaciones completas por curso
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {(() => {
-              const parsedEvaluated = metrics.fullyEvaluatedPerCourse.map((item, index) => ({
-                ...item,
-                value: Number(item.value),
-                fill: greenColors[index % greenColors.length],
-              }));
-
-              return (
-                <ChartContainer config={chartConfig} className="h-64">
-                  <BarChart
-                    accessibilityLayer
-                    data={parsedEvaluated}
-                    layout="vertical"
-                    margin={{ left: 0 }}
-                  >
-                    <YAxis
-                      dataKey="courseName"
-                      type="category"
-                      tickLine={false}
-                      tickMargin={10}
-                      axisLine={false}
-                      width={120}
-                    />
-                    <XAxis dataKey="value" type="number" hide />
-                    <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                    <Bar dataKey="value" radius={5}>
-                      {parsedEvaluated.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ChartContainer>
-              );
-            })()}
-          </CardContent>
-        </Card>
-
-        {/* Certificates */}
-        <Card className="transition-all duration-200 hover:shadow-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Award className="h-5 w-5" />
-              Certificados Entregados
-            </CardTitle>
-            <CardDescription>Alumnos que recibieron sus certificados por curso</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {(() => {
-              const parsedCertificates = metrics.certificatesPerCourse.map((item, index) => ({
-                ...item,
-                value: Number(item.value),
-                fill: greenColors[index % greenColors.length],
-              }));
-
-              return (
-                <ChartContainer config={chartConfig} className="h-64">
-                  <BarChart
-                    accessibilityLayer
-                    data={parsedCertificates}
-                    layout="vertical"
-                    margin={{ left: 0 }}
-                  >
-                    <YAxis
-                      dataKey="courseName"
-                      type="category"
-                      tickLine={false}
-                      tickMargin={10}
-                      axisLine={false}
-                      width={120}
-                    />
-                    <XAxis dataKey="value" type="number" hide />
-                    <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                    <Bar dataKey="value" radius={5}>
-                      {parsedCertificates.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ChartContainer>
-              );
-            })()}
-          </CardContent>
-        </Card>
-
-        {/* Interns and Organizations - Stacked Horizontal */}
-        <Card className="transition-all duration-200 hover:shadow-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5" />
-              Alumnos y Organizaciones
-            </CardTitle>
-            <CardDescription>
-              Distribución de alumnos con organizaciones y equipos por curso
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={chartConfig} className="h-64">
+        <ChartCard
+          icon={Building2}
+          title="Alumnos y Organizaciones"
+          description="Alumnos asignados a una organización y organizaciones con equipo, por curso"
+        >
+          {metrics.internsAndOrganizations.length === 0 ? (
+            <EmptyChart />
+          ) : (
+            <ChartContainer
+              config={chartConfig}
+              className="aspect-auto w-full"
+              style={{ height: chartHeight(metrics.internsAndOrganizations.length) * 1.5 + 32 }}
+            >
               <BarChart
                 accessibilityLayer
                 data={metrics.internsAndOrganizations}
                 layout="vertical"
-                margin={{
-                  left: 0,
-                }}
+                margin={{ left: 0, right: 32 }}
+                barGap={4}
               >
                 <CartesianGrid horizontal={false} />
                 <YAxis
@@ -481,27 +343,41 @@ export default function DashboardPage() {
                   tickLine={false}
                   tickMargin={10}
                   axisLine={false}
-                  width={120}
+                  width={140}
                 />
-                <XAxis type="number" hide />
-                <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                <XAxis type="number" hide allowDecimals={false} />
+                <ChartTooltip content={<ChartTooltipContent />} />
                 <ChartLegend content={<ChartLegendContent />} />
                 <Bar
                   dataKey="internsWithOrg"
-                  stackId="a"
                   fill="var(--color-internsWithOrg)"
-                  radius={[0, 4, 4, 0]}
-                />
+                  radius={4}
+                  maxBarSize={20}
+                >
+                  <LabelList
+                    dataKey="internsWithOrg"
+                    position="right"
+                    className="fill-foreground"
+                    fontSize={12}
+                  />
+                </Bar>
                 <Bar
                   dataKey="organizationsWithTeam"
-                  stackId="a"
                   fill="var(--color-organizationsWithTeam)"
-                  radius={[0, 4, 4, 0]}
-                />
+                  radius={4}
+                  maxBarSize={20}
+                >
+                  <LabelList
+                    dataKey="organizationsWithTeam"
+                    position="right"
+                    className="fill-foreground"
+                    fontSize={12}
+                  />
+                </Bar>
               </BarChart>
             </ChartContainer>
-          </CardContent>
-        </Card>
+          )}
+        </ChartCard>
       </div>
     </div>
   );

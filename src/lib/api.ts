@@ -808,8 +808,8 @@ class ApiService {
   }
 
   // Grades
-  async getInternGradeForMentor(mentorCognitoUser: string): Promise<Grade> {
-    return this.fetchWithErrorHandling(`/mentor/${mentorCognitoUser}/grades`);
+  async getInternGradeForMentor(mentorAuthUserId: string): Promise<Grade> {
+    return this.fetchWithErrorHandling(`/mentor/${mentorAuthUserId}/grades`);
   }
 
   async getInternGradeWithinCourse(courseId: string, internId: string): Promise<Grade> {

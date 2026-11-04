@@ -18,27 +18,10 @@ import {
 import Link from 'next/link';
 import { useCourse } from '@/context/CourseContext';
 import { useUser } from '@/context/UserContext';
-
-// Función para decodificar JWT y extraer grupos
-function decodeJWT(token: string) {
-  try {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join(''),
-    );
-    return JSON.parse(jsonPayload);
-  } catch (error) {
-    console.error('Error decoding JWT:', error);
-    return null;
-  }
-}
+import { getRoleFromToken, type UserRole } from '@/utils/jwt';
 
 // Función para obtener el rol del usuario
-function getUserRole(): 'admin' | 'mentor' | null {
+function getUserRole(): UserRole | null {
   if (typeof document === 'undefined') return null;
 
   const token = document.cookie
@@ -46,16 +29,7 @@ function getUserRole(): 'admin' | 'mentor' | null {
     .find((row) => row.startsWith('accessToken='))
     ?.split('=')[1];
 
-  if (!token) return null;
-
-  const decoded = decodeJWT(token);
-  if (!decoded || !decoded['cognito:groups']) return null;
-
-  const groups = decoded['cognito:groups'];
-  if (groups.includes('mentor')) return 'mentor';
-  if (groups.includes('admin')) return 'admin';
-
-  return null;
+  return getRoleFromToken(token);
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -63,7 +37,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useUser();
   const { state } = useSidebar();
   const [activeTab, setActiveTab] = React.useState<'curso' | 'general'>('curso');
-  const [userRole, setUserRole] = React.useState<'admin' | 'mentor' | null>(null);
+  const [userRole, setUserRole] = React.useState<UserRole | null>(null);
 
   // Detectar el rol del usuario
   React.useEffect(() => {
@@ -71,12 +45,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     setUserRole(role);
   }, []);
 
-  console.log('AppSidebar user:', user);
-  console.log('User role:', userRole);
-
   const userData = {
-    username: user?.username ?? 'default-user-id',
-    email: user?.email ?? 'default@mail.com',
+    username: user?.username ?? '',
+    email: user?.email ?? '',
+    role: userRole,
   };
 
   // Cambiar los endpoints de Dashboard y Notas según el tab activo

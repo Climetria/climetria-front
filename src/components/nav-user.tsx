@@ -17,7 +17,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { signOut } from '@aws-amplify/auth';
+import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { clearAllAuthData } from '@/utils/setAuthCookie';
 import { useCourse } from '@/context/CourseContext';
@@ -28,8 +28,13 @@ export function NavUser({
   user: {
     username: string;
     email: string;
+    role: 'admin' | 'mentor' | null;
   };
 }) {
+  const roleLabel =
+    user.role === 'admin' ? 'Administrador' : user.role === 'mentor' ? 'Mentor' : 'Usuario';
+  const initials = (user.email || roleLabel).slice(0, 2).toUpperCase();
+
   const { isMobile } = useSidebar();
   const router = useRouter();
   const { clearCourseState } = useCourse();
@@ -42,8 +47,8 @@ export function NavUser({
       // Limpiar todos los datos de autenticación
       clearAllAuthData();
 
-      // Hacer signOut de AWS Amplify
-      await signOut();
+      // Cerrar la sesión en Supabase
+      await supabase.auth.signOut();
 
       // Redirigir al login
       router.push('/');
@@ -70,11 +75,11 @@ export function NavUser({
             >
               <Avatar className="h-8 w-8 rounded-lg">
                 {/*<AvatarImage src={user.avatar} alt={user.name} />*/}
-                <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium"></span>
-                <span className="truncate text-xs">{user.username}</span>
+                <span className="truncate font-medium">{roleLabel}</span>
+                <span className="truncate text-xs">{user.email}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -89,10 +94,10 @@ export function NavUser({
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
                   {/*<AvatarImage src={user.avatar} alt={user.name} />*/}
-                  <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                  <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user.username}</span>
+                  <span className="truncate font-medium">{roleLabel}</span>
                   <span className="truncate text-xs">{user.email}</span>
                 </div>
               </div>
